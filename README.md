@@ -1,6 +1,6 @@
 # 智能知识库平台
 
-面向团队知识资产的统一检索、问答、引用溯源、文档处理和导出平台。首期采用前后端分离的 Git Monorepo，通过清晰模块边界支持六人并行开发，同时保持部署和维护简单。
+面向团队知识资产的统一检索、问答、引用溯源、文档处理和导出平台。首期采用前后端分离的 Git Monorepo，由五人团队协作交付，并将普通用户功能和管理员管理中心合并为一个 Vue 应用。
 
 ## 当前状态
 
@@ -9,9 +9,10 @@
 ## 总体架构
 
 ```text
-用户端 Web                 管理端 Web
-    |                          |
-    +----------- Nginx --------+
+          统一 Web 应用
+  普通用户工作区 + /admin 管理中心
+                 |
+               Nginx
                  |
           FastAPI API Server
                  |
@@ -28,9 +29,7 @@
 
 ```text
 frontend/
-├─ user-web/        用户端 Vue 3 应用
-├─ admin-web/       管理端 Vue 3 应用
-└─ shared-ui/       经双方确认的共享组件
+└─ web/             普通用户与管理中心的统一 Vue 3 应用
 backend/
 ├─ app/             FastAPI 业务模块
 ├─ migrations/      Alembic 迁移
@@ -56,7 +55,7 @@ scripts/            可重复执行的工程脚本
 | PostgreSQL | 17.10 |
 | Redis | 7.4.9 |
 
-所有直接依赖精确锁定，禁止 `^`、`~` 和 `latest`。完整依赖基线见《知识库平台_6人团队分工协作方案.md》。
+所有直接依赖精确锁定，禁止 `^`、`~` 和 `latest`。完整依赖基线见《知识库平台_5人团队分工协作方案.md》。
 
 ## 开发工作流
 
@@ -69,23 +68,23 @@ scripts/            可重复执行的工程脚本
 
 治理细节见 [docs/project-governance.md](docs/project-governance.md)。
 
-## 用户端命令
+## 统一前端命令
 
-用户端工程进入仓库后，在根目录使用：
+前端工程进入仓库后，在根目录使用：
 
 ```powershell
 npm.cmd ci
-npm.cmd run dev:user
-npm.cmd run dev:user:api
-npm.cmd run typecheck:user
-npm.cmd run lint:user
-npm.cmd run test:user
-npm.cmd run build:user
+npm.cmd run dev:web
+npm.cmd run dev:web:api
+npm.cmd run typecheck:web
+npm.cmd run lint:web
+npm.cmd run test:web
+npm.cmd run build:web
 ```
 
-- `dev:user` 使用类型安全 Mock。
-- `dev:user:api` 通过 Vite 代理访问 `http://127.0.0.1:8000/api`。
-- 默认用户端地址为 `http://localhost:5173`。
+- `dev:web` 使用类型安全 Mock。
+- `dev:web:api` 通过 Vite 代理访问 `http://127.0.0.1:8000/api`。
+- 普通用户入口为 `http://localhost:5173`，管理中心为 `http://localhost:5173/admin`。
 
 ## 安全
 

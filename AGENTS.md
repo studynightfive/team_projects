@@ -2,14 +2,12 @@
 
 ## 1. 项目目标与边界
 
-本仓库交付前后端分离的智能知识库平台。首期使用 Git Monorepo、Vue 3 双前端、FastAPI 模块化单体、PostgreSQL + pgvector、Redis 异步任务，不拆分微服务。
+本仓库交付前后端分离的智能知识库平台。首期使用 Git Monorepo、单个 Vue 3 前端、FastAPI 模块化单体、PostgreSQL + pgvector、Redis 异步任务，不拆分微服务。
 
 主要目录：
 
 ```text
-frontend/user-web/      用户端 Web
-frontend/admin-web/     管理端 Web
-frontend/shared-ui/     两端确认后真正共享的组件
+frontend/web/           普通用户工作区与管理员管理中心
 backend/                FastAPI、Worker、迁移和测试
 deploy/                 Docker、Nginx 和环境模板
 docs/                   API、设计和运维文档
@@ -66,7 +64,8 @@ git switch -c feature/<issue>-<name>
 
 ## 6. 前端规则
 
-- 用户端位于 `frontend/user-web/`，管理端位于 `frontend/admin-web/`；移动端和桌面端共用路由和业务实现。
+- 前端统一位于 `frontend/web/`；普通用户工作区和管理员 `/admin` 管理中心共用登录、路由、组件、类型、构建和部署产物。
+- 管理入口和管理路由按后端权限码展示；普通用户不得预加载管理数据，前端隐藏不能代替后端权限校验。
 - Pinia 只保存跨页面、共享或必须持久化的状态；表单、弹窗、页码和单页筛选留在局部。
 - OpenAPI 是 API 单一事实来源；TypeScript 类型由 OpenAPI 生成，Mock 实现同一类型。未确认接口只做静态 UI，不标记为联调完成。
 - 普通请求复用统一 API Client。流式问答使用原生 Fetch、ReadableStream、TextDecoder 和 AbortController，不新增 SSE 依赖。
@@ -74,16 +73,16 @@ git switch -c feature/<issue>-<name>
 - 前端不把 Token 写入 localStorage、URL 或日志；优先 HttpOnly Cookie。隐藏按钮不能代替后端权限校验。
 - 下载统一走鉴权接口，不拼接可猜测的静态文件地址。
 
-规定的用户端命令：
+规定的统一前端命令：
 
 ```powershell
-npm.cmd run dev:user
-npm.cmd run dev:user:api
-npm.cmd run typecheck:user
-npm.cmd run lint:user
-npm.cmd run test:user
-npm.cmd run test:user:watch
-npm.cmd run build:user
+npm.cmd run dev:web
+npm.cmd run dev:web:api
+npm.cmd run typecheck:web
+npm.cmd run lint:web
+npm.cmd run test:web
+npm.cmd run test:web:watch
+npm.cmd run build:web
 ```
 
 ## 7. 后端与安全规则

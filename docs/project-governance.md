@@ -38,7 +38,7 @@
 ### 根 npm 锁文件出现后
 
 - 使用 Node.js `22.23.1` 和 npm 缓存运行 `npm ci`。
-- 按存在情况运行用户端和管理端的 typecheck、Lint、test、build 脚本。
+- 按存在情况运行统一 Web 应用的 typecheck、Lint、test、build 脚本。
 - `--if-present` 仅用于让独立团队按阶段接入；每个功能 Issue 自身仍必须提供并执行所属模块脚本。
 
 ### 后端项目出现后

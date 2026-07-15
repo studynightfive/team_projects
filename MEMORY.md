@@ -2,13 +2,15 @@
 
 ## 架构与范围
 
-- 智能知识库平台采用 Git Monorepo、两个 Vue 3 前端、一个 FastAPI 模块化单体、独立 Worker、PostgreSQL + pgvector 和 Redis。
-- 首期部署单元为 `user-web`、`admin-web`、`api-server`、`worker`、`postgres`、`redis`；不拆分认证、文档或 RAG 微服务。
+- 智能知识库平台采用 Git Monorepo、一个统一 Vue 3 前端、一个 FastAPI 模块化单体、独立 Worker、PostgreSQL + pgvector 和 Redis。
+- 首期部署单元为 `web`、`api-server`、`worker`、`postgres`、`redis`；不拆分认证、文档或 RAG 微服务。
 - 原始文件和标准化 Markdown 都必须保留；文档处理、OCR、索引和大型导出使用异步任务。
 
 ## 协作边界
 
-- 员工 1 主责 `frontend/user-web`；员工 2 主责 `frontend/admin-web`；`frontend/shared-ui` 只放双方确认的真实共享组件。
+- 2026-07-15 员工 2 离职，其管理端前端职责由员工 1 接管；当前团队保留员工编号 1、3、4、5、6。
+- 员工 1 主责统一的 `frontend/web`，其中普通用户工作区与 `/admin` 管理中心共用登录、组件、API 类型、构建和部署产物。
+- 管理员可同时使用普通用户功能和管理中心；管理入口、路由和按钮由权限码控制，后端对所有管理请求最终鉴权。
 - 员工 3 提供认证、个人信息、权限码和统一错误结构；员工 4 提供知识库文档、Markdown、资源和引用定位；员工 5 提供检索、问答、会话、反馈、导出和收藏接口；员工 6 维护治理、CI 和部署基线。
 - OpenAPI 是前后端接口单一事实来源；生成的 TypeScript 类型和 Mock 使用同一契约，未确认字段不能被标记为联调完成。
 

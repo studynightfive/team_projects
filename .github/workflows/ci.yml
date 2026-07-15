@@ -61,37 +61,21 @@ jobs:
         if: steps.projects.outputs.frontend == 'true'
         run: npm ci
 
-      - name: 用户端类型检查
+      - name: Web 类型检查
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present typecheck:user
+        run: npm run --if-present typecheck:web
 
-      - name: 用户端 Lint
+      - name: Web Lint
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present lint:user
+        run: npm run --if-present lint:web
 
-      - name: 用户端测试
+      - name: Web 测试
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present test:user
+        run: npm run --if-present test:web
 
-      - name: 用户端构建
+      - name: Web 构建
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present build:user
-
-      - name: 管理端类型检查
-        if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present typecheck:admin
-
-      - name: 管理端 Lint
-        if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present lint:admin
-
-      - name: 管理端测试
-        if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present test:admin
-
-      - name: 管理端构建
-        if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present build:admin
+        run: npm run --if-present build:web
 
       - name: 配置 Python
         if: steps.projects.outputs.backend == 'true'
