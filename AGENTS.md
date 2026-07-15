@@ -58,8 +58,8 @@ git switch -c feature/<issue>-<name>
 - Node.js `22.23.1`，npm `10.9.8`。
 - Python `3.10.20`，uv `0.8.22`。
 - Vue `3.5.39`、Vue Router `4.6.3`、Pinia `3.0.4`、Element Plus `2.14.3`。
-- Axios `1.13.2`、Markdown-It `14.1.0`、DOMPurify `3.3.0`、FileSaver `2.0.5`。
-- Vite `7.2.2`、TypeScript `5.9.3`、Vue TSC `3.3.7`、ESLint `9.39.1`、Prettier `3.6.2`、Vitest `4.1.10`。
+- Axios `1.18.1`、Markdown-It `14.1.0`、DOMPurify `3.3.0`、FileSaver `2.0.5`。
+- Vite `7.3.6`、TypeScript `5.9.3`、Vue TSC `3.3.7`、ESLint `9.39.1`、Prettier `3.6.2`、Vitest `4.1.10`。
 - FastAPI、数据库、文档处理工具及完整依赖版本以协作方案和锁文件为准。
 - 所有直接依赖使用精确版本，禁止 `^`、`~` 和 `latest`；提交 `package-lock.json` 与 `uv.lock`。
 

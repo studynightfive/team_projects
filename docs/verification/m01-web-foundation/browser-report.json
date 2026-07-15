@@ -1,0 +1,926 @@
+{
+  "generatedAt": "2026-07-15T14:00:22.662Z",
+  "baseUrl": "http://127.0.0.1:5173",
+  "browser": "Chrome/150.0.7871.114",
+  "results": [
+    {
+      "name": "user-shell-1440",
+      "path": "/",
+      "viewport": "1440x1000",
+      "screenshot": "user-shell-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "h1Count": 1,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 64,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "summaryColumnCount": 4,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 64px",
+          "pass": true,
+          "actual": 64
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "桌面摘要保持四列",
+          "pass": true,
+          "actual": 4
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "user-shell-1280",
+      "path": "/",
+      "viewport": "1280x900",
+      "screenshot": "user-shell-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "h1Count": 1,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 64,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "summaryColumnCount": 4,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 64px",
+          "pass": true,
+          "actual": 64
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "桌面摘要保持四列",
+          "pass": true,
+          "actual": 4
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "user-shell-375",
+      "path": "/",
+      "viewport": "375x812",
+      "screenshot": "user-shell-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "h1Count": 1,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "summaryColumnCount": 1,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 6,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动端摘要单列",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 6
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "admin-shell-1440",
+      "path": "/admin",
+      "viewport": "1440x1000",
+      "screenshot": "admin-shell-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "h1Count": 1,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 64,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "summaryColumnCount": 4,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 64px",
+          "pass": true,
+          "actual": 64
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "桌面摘要保持四列",
+          "pass": true,
+          "actual": 4
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "admin-shell-1280",
+      "path": "/admin",
+      "viewport": "1280x900",
+      "screenshot": "admin-shell-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "h1Count": 1,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 64,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "summaryColumnCount": 4,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 64px",
+          "pass": true,
+          "actual": 64
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "桌面摘要保持四列",
+          "pass": true,
+          "actual": 4
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "admin-shell-375",
+      "path": "/admin",
+      "viewport": "375x812",
+      "screenshot": "admin-shell-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "h1Count": 1,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "summaryColumnCount": 1,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 7,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动端摘要单列",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 7
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "login-1440",
+      "path": "/login",
+      "viewport": "1440x1000",
+      "screenshot": "login-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "h1Count": 1,
+        "contentPaddingLeft": 0,
+        "contentPaddingRight": 0,
+        "summaryColumnCount": 0,
+        "maximumContentRight": 940,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "login-1280",
+      "path": "/login",
+      "viewport": "1280x900",
+      "screenshot": "login-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "h1Count": 1,
+        "contentPaddingLeft": 0,
+        "contentPaddingRight": 0,
+        "summaryColumnCount": 0,
+        "maximumContentRight": 860,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "login-375",
+      "path": "/login",
+      "viewport": "375x812",
+      "screenshot": "login-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "h1Count": 1,
+        "contentPaddingLeft": 0,
+        "contentPaddingRight": 0,
+        "summaryColumnCount": 0,
+        "maximumContentRight": 359,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 359
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "forbidden-1440",
+      "path": "/403",
+      "viewport": "1440x1000",
+      "screenshot": "forbidden-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "h1Count": 1,
+        "contentPaddingLeft": 0,
+        "contentPaddingRight": 0,
+        "summaryColumnCount": 0,
+        "maximumContentRight": 960,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "forbidden-1280",
+      "path": "/403",
+      "viewport": "1280x900",
+      "screenshot": "forbidden-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "h1Count": 1,
+        "contentPaddingLeft": 0,
+        "contentPaddingRight": 0,
+        "summaryColumnCount": 0,
+        "maximumContentRight": 880,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "forbidden-375",
+      "path": "/403",
+      "viewport": "375x812",
+      "screenshot": "forbidden-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "h1Count": 1,
+        "contentPaddingLeft": 0,
+        "contentPaddingRight": 0,
+        "summaryColumnCount": 0,
+        "maximumContentRight": 359,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 359
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "not-found-1440",
+      "path": "/does-not-exist",
+      "viewport": "1440x1000",
+      "screenshot": "not-found-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "h1Count": 1,
+        "contentPaddingLeft": 0,
+        "contentPaddingRight": 0,
+        "summaryColumnCount": 0,
+        "maximumContentRight": 960,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "not-found-1280",
+      "path": "/does-not-exist",
+      "viewport": "1280x900",
+      "screenshot": "not-found-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "h1Count": 1,
+        "contentPaddingLeft": 0,
+        "contentPaddingRight": 0,
+        "summaryColumnCount": 0,
+        "maximumContentRight": 880,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "not-found-375",
+      "path": "/does-not-exist",
+      "viewport": "375x812",
+      "screenshot": "not-found-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "h1Count": 1,
+        "contentPaddingLeft": 0,
+        "contentPaddingRight": 0,
+        "summaryColumnCount": 0,
+        "maximumContentRight": 359,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 359
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "consoleErrors": [],
+  "apiRequests": [],
+  "passed": true
+}

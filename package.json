@@ -1,0 +1,23 @@
+{
+  "name": "team-projects",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend/web"
+  ],
+  "engines": {
+    "node": "22.23.1",
+    "npm": "10.9.8"
+  },
+  "packageManager": "npm@10.9.8",
+  "scripts": {
+    "dev:web": "npm run dev --workspace=frontend/web -- --mode mock",
+    "dev:web:api": "npm run dev --workspace=frontend/web -- --mode api",
+    "typecheck:web": "npm run typecheck --workspace=frontend/web",
+    "lint:web": "npm run lint --workspace=frontend/web",
+    "test:web": "npm run test --workspace=frontend/web",
+    "test:web:watch": "npm run test:watch --workspace=frontend/web",
+    "build:web": "npm run build --workspace=frontend/web",
+    "verify:web:browser": "npm run verify:browser --workspace=frontend/web"
+  }
+}

@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目处于治理与工程基线阶段。业务代码尚未进入 `main`；功能分支必须在对应 Issue、接口契约和验收标准明确后创建。
+项目已进入统一前端 M01 `web-foundation` 实施阶段。当前 M01 只提供静态用户/管理壳层、通用状态、API Client 安全边界和 design-only Mock，不包含真实登录、权限或业务接口。
 
 ## 总体架构
 
@@ -64,7 +64,7 @@ scripts/            可重复执行的工程脚本
 3. 从最新 `main` 创建 `feature/<issue>-<name>` 或 `fix/<issue>-<name>`。
 4. 实现并运行相关类型检查、Lint、测试和构建。
 5. 推送分支并创建关联 Issue 的 Pull Request。
-6. 至少一名非作者评审和必需 CI 通过后合并。
+6. 至少一名非作者评审和 Pull Request `quality` CI 通过后合并。
 
 员工 1 的统一前端 P0 使用经批准的整体交付流程：一个总 Issue、一个长期功能分支、15 个里程碑和一个持续更新的 Draft PR；每个里程碑先本地通过再推送，全部门禁通过后才转 Ready。详见 [员工 1 统一前端完整实施计划](员工1_统一前端完整实施计划.md)。
 
@@ -81,12 +81,14 @@ npm.cmd run dev:web:api
 npm.cmd run typecheck:web
 npm.cmd run lint:web
 npm.cmd run test:web
+npm.cmd run test:web:watch
 npm.cmd run build:web
+npm.cmd run verify:web:browser
 ```
 
-- `dev:web` 使用类型安全 Mock。
+- `dev:web` 使用 design-only 固定数据，Mock Adapter 默认拒绝所有未注册请求，不访问真实业务网络。
 - `dev:web:api` 通过 Vite 代理访问 `http://127.0.0.1:8000/api`。
-- 普通用户入口为 `http://localhost:5173`，管理中心为 `http://localhost:5173/admin`。
+- 普通用户入口为 `http://127.0.0.1:5173`，管理中心为 `http://127.0.0.1:5173/admin`。
 
 ## 安全
 

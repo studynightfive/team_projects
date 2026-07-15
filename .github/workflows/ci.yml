@@ -48,7 +48,6 @@ jobs:
           test -f .github/ISSUE_TEMPLATE/feature.yml
           test -f .github/ISSUE_TEMPLATE/bug.yml
           test -f .github/pull_request_template.md
-          test -f scripts/configure-main-protection.ps1
 
       - name: 配置 Node.js
         if: steps.projects.outputs.frontend == 'true'
@@ -63,19 +62,19 @@ jobs:
 
       - name: Web 类型检查
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present typecheck:web
+        run: npm run typecheck:web
 
       - name: Web Lint
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present lint:web
+        run: npm run lint:web
 
       - name: Web 测试
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present test:web
+        run: npm run test:web
 
       - name: Web 构建
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present build:web
+        run: npm run build:web
 
       - name: 配置 Python
         if: steps.projects.outputs.backend == 'true'
