@@ -10,7 +10,7 @@ V2 不再使用 V1 `artifact.html` 作为生产像素事实。当前可编辑视
 - [`mock-data.json`](mock-data.json)：确定性 design-only 数据。
 - `frontend/web/src/`：三页可运行 Vue 静态实现和共享组件。
 
-PNG 只是由同一工作树生成的候选证据，不能单独编辑后作为设计变更。
+PNG 是由同一工作树生成的正式验收证据，不能单独编辑后作为设计变更。
 
 ## 视图入口
 
@@ -24,7 +24,7 @@ http://127.0.0.1:5173/does-not-exist
 
 Mock 模式不需要后端，不发送业务 `/api` 请求。
 
-## 候选导出视口
+## 正式导出视口
 
 | 页面 | 视口 |
 |---|---:|
@@ -46,4 +46,4 @@ Mock 模式不需要后端，不发送业务 `/api` 请求。
 
 ## V1 归档
 
-`artifact.html`、`tokens.css` 与 `acceptance/` 原图片保持 V1 历史状态，仅用于追踪改版差异。项目负责人确认 V2 后，再以单独变更决定是否替换或迁移这些历史资产。
+`artifact.html`、`tokens.css` 与 `acceptance/` 原图片保持 V1 历史状态，仅用于追踪改版差异；V2 正式证据统一保存在 `docs/verification/m01-web-foundation/`，不回写或覆盖 V1 资产。

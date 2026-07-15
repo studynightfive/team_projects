@@ -1,6 +1,6 @@
 # M01 V2 统一前端页面基线
 
-> 状态：候选基线。项目负责人将继续在本地调整登录页、用户工作台和管理中心；明确确认前不得把当前候选截图称为最终视觉基线。
+> 状态：正式基线。项目负责人于 2026-07-16 确认先完成 M01，并要求 M02–M14 的本地页面继承本基线；确认对应的生产实现提交为 `4903e9d`。
 
 ## 当前事实来源
 
@@ -13,10 +13,10 @@
 | [`tokens-v2.css`](tokens-v2.css) | V2 生产实现唯一共享视觉变量 |
 | [`mock-data.json`](mock-data.json) | design-only 固定展示数据，不是 API Contract |
 | [`assets/manifest.md`](assets/manifest.md) | 图标、字体和品牌资产来源与限制 |
-| [`source.md`](source.md) | 可编辑实现与候选截图生成规则 |
-| [`acceptance/manifest.md`](acceptance/manifest.md) | V2 候选截图和逐项检查点 |
+| [`source.md`](source.md) | 可编辑实现与正式截图生成规则 |
+| [`acceptance/manifest.md`](acceptance/manifest.md) | V2 正式截图和逐项检查点 |
 
-事实优先级为：用户最新明确决定 > PRD/Tech-Spec/实施规格 > tokens/Mock/生产实现 > 候选截图 > 原始提示词。原始提示词不能覆盖安全边界或不存在的依赖版本。
+事实优先级为：用户最新明确决定 > PRD/Tech-Spec/实施规格 > tokens/Mock/生产实现 > 正式截图 > 原始提示词。原始提示词不能覆盖安全边界或不存在的依赖版本。
 
 ## 当前三页
 
@@ -36,7 +36,7 @@
 
 ## 历史证据
 
-`artifact.html`、`tokens.css` 和 `acceptance/` 内原有 PNG 为 V1 历史设计证据。它们不再是 V2 的像素参考，也不得覆盖当前生产实现。V2 候选生产截图位于 [`../../verification/m01-web-foundation`](../../verification/m01-web-foundation)。
+`artifact.html`、`tokens.css` 和 `acceptance/` 内原有 PNG 为 V1 历史设计证据。它们不再是 V2 的像素参考，也不得覆盖当前生产实现。V2 正式生产截图与机器报告位于 [`../../verification/m01-web-foundation`](../../verification/m01-web-foundation)。
 
 ## 本地查看
 
@@ -49,7 +49,7 @@ pnpm.cmd run dev:web
 - 登录页：http://127.0.0.1:5173/login
 - 管理端：http://127.0.0.1:5173/admin
 
-## 候选基线变更规则
+## 正式基线变更规则
 
 1. 项目负责人提出登录、用户或管理基线调整。
 2. 先同步 PRD、Tech-Spec、tokens 或 Mock 中受影响的事实。
