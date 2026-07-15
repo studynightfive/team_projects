@@ -31,7 +31,28 @@ export interface NavigationItem {
   readonly shortLabel: string;
   readonly icon: LucideIcon;
   readonly to?: string;
+  readonly activePrefixes?: readonly string[];
+  readonly children?: readonly NavigationChildItem[];
 }
+
+export interface NavigationChildItem {
+  readonly label: string;
+  readonly to: string;
+}
+
+export const isNavigationItemActive = (
+  item: NavigationItem,
+  currentPath: string,
+): boolean => {
+  if (item.to === currentPath) return true;
+
+  return (
+    item.activePrefixes?.some(
+      (prefix) =>
+        currentPath === prefix || currentPath.startsWith(`${prefix}/`),
+    ) ?? false
+  );
+};
 
 interface UserSummaryItem {
   readonly label: string;
@@ -242,11 +263,33 @@ export const userNavigation = [
     icon: LayoutDashboard,
     to: "/",
   },
-  { label: "知识库", shortLabel: "知识库", icon: BookOpen },
-  { label: "检索", shortLabel: "检索", icon: Search },
-  { label: "智能问答", shortLabel: "问答", icon: MessageSquareText },
-  { label: "历史会话", shortLabel: "历史", icon: History },
-  { label: "我的下载", shortLabel: "下载", icon: Download },
+  {
+    label: "知识库",
+    shortLabel: "知识库",
+    icon: BookOpen,
+    to: "/knowledge",
+    activePrefixes: ["/knowledge"],
+  },
+  { label: "检索", shortLabel: "检索", icon: Search, to: "/search" },
+  {
+    label: "智能问答",
+    shortLabel: "问答",
+    icon: MessageSquareText,
+    to: "/chat",
+    activePrefixes: ["/chat"],
+  },
+  {
+    label: "历史会话",
+    shortLabel: "历史",
+    icon: History,
+    to: "/conversations",
+  },
+  {
+    label: "我的下载",
+    shortLabel: "下载",
+    icon: Download,
+    to: "/downloads",
+  },
 ] as const satisfies readonly NavigationItem[];
 
 export const adminNavigation = [
@@ -256,12 +299,52 @@ export const adminNavigation = [
     icon: Gauge,
     to: "/admin",
   },
-  { label: "用户与角色", shortLabel: "身份", icon: UsersRound },
-  { label: "模型管理", shortLabel: "模型", icon: Bot },
-  { label: "知识库管理", shortLabel: "知识库", icon: LibraryBig },
-  { label: "文档与任务", shortLabel: "任务", icon: Files },
-  { label: "命中率测试", shortLabel: "测试", icon: ListChecks },
-  { label: "审计日志", shortLabel: "审计", icon: ScrollText },
+  {
+    label: "用户与角色",
+    shortLabel: "身份",
+    icon: UsersRound,
+    to: "/admin/users",
+    activePrefixes: ["/admin/users", "/admin/roles"],
+    children: [
+      { label: "用户管理", to: "/admin/users" },
+      { label: "角色管理", to: "/admin/roles" },
+    ],
+  },
+  {
+    label: "模型管理",
+    shortLabel: "模型",
+    icon: Bot,
+    to: "/admin/models",
+  },
+  {
+    label: "知识库管理",
+    shortLabel: "知识库",
+    icon: LibraryBig,
+    to: "/admin/knowledge-bases",
+  },
+  {
+    label: "文档与任务",
+    shortLabel: "任务",
+    icon: Files,
+    to: "/admin/documents",
+    activePrefixes: ["/admin/documents", "/admin/tasks"],
+    children: [
+      { label: "文档管理", to: "/admin/documents" },
+      { label: "任务中心", to: "/admin/tasks" },
+    ],
+  },
+  {
+    label: "命中率测试",
+    shortLabel: "测试",
+    icon: ListChecks,
+    to: "/admin/retrieval-tests",
+  },
+  {
+    label: "审计日志",
+    shortLabel: "审计",
+    icon: ScrollText,
+    to: "/admin/audit-logs",
+  },
 ] as const satisfies readonly NavigationItem[];
 
 export const userMobileNavigation = userNavigation.slice(0, 4);

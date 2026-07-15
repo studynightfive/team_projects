@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { onBeforeUnmount, onMounted, ref } from "vue";
-import { RouterLink } from "vue-router";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import WorkspaceShell from "../components/WorkspaceShell.vue";
 import { Bell, CircleHelp, Search } from "../components/icons";
@@ -12,7 +12,17 @@ import {
 } from "../data/foundation";
 
 const { message } = AntApp.useApp();
+const route = useRoute();
+const router = useRouter();
 const searchInputRef = ref<HTMLInputElement>();
+const globalSearch = ref("");
+
+const currentTitle = computed(() =>
+  typeof route.meta.title === "string" ? route.meta.title : "工作台",
+);
+const currentParentTitle = computed(() =>
+  typeof route.meta.parentTitle === "string" ? route.meta.parentTitle : "首页",
+);
 
 const showNotice = (notice: string): void => {
   void message.info(notice);
@@ -23,6 +33,14 @@ const handleSearchShortcut = (event: KeyboardEvent): void => {
     event.preventDefault();
     searchInputRef.value?.focus();
   }
+};
+
+const openSearch = (): void => {
+  const query = globalSearch.value.trim();
+  void router.push({
+    path: "/search",
+    query: query.length > 0 ? { q: query } : undefined,
+  });
 };
 
 onMounted(() => window.addEventListener("keydown", handleSearchShortcut));
@@ -47,12 +65,12 @@ onBeforeUnmount(() =>
       to: '/admin',
     }"
   >
-    <template #topbar>
+    <template #topbar="{ openProfile }">
       <div class="topbar-layout user-topbar-layout">
         <nav class="topbar-breadcrumb" aria-label="面包屑">
-          <span>首页</span>
+          <span>{{ currentParentTitle }}</span>
           <span aria-hidden="true">/</span>
-          <strong>工作台</strong>
+          <strong>{{ currentTitle }}</strong>
         </nav>
 
         <label class="global-search" for="global-search-input">
@@ -60,9 +78,11 @@ onBeforeUnmount(() =>
           <input
             id="global-search-input"
             ref="searchInputRef"
+            v-model="globalSearch"
             type="search"
             placeholder="搜索知识、文档、问题"
             autocomplete="off"
+            @keydown.enter.prevent="openSearch"
           />
           <kbd>Ctrl K</kbd>
         </label>
@@ -93,7 +113,7 @@ onBeforeUnmount(() =>
             class="avatar topbar-avatar"
             type="button"
             :aria-label="`${foundationData.userView.profile.name}的账号菜单`"
-            @click="showNotice('账号菜单将在认证与个人中心里程碑开放')"
+            @click="openProfile"
           >
             {{ foundationData.userView.profile.initial }}
           </button>

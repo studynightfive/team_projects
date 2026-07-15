@@ -2,7 +2,10 @@
 import { nextTick, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
-import type { NavigationItem } from "../data/foundation";
+import {
+  isNavigationItemActive,
+  type NavigationItem,
+} from "../data/foundation";
 import {
   LogOut,
   PanelLeftClose,
@@ -25,6 +28,7 @@ defineProps<{
 const emit = defineEmits<{
   "toggle-collapse": [];
   notice: [message: string];
+  "open-profile": [];
 }>();
 
 const route = useRoute();
@@ -32,7 +36,7 @@ const isProfileMenuOpen = ref(false);
 const profileTriggerRef = ref<HTMLButtonElement>();
 
 const isActive = (item: NavigationItem): boolean =>
-  item.to !== undefined && route.path === item.to;
+  isNavigationItemActive(item, route.path);
 
 const notifyUpcoming = (label: string): void => {
   emit("notice", `${label}将在后续功能里程碑开放`);
@@ -48,6 +52,10 @@ const closeProfileMenu = async (): Promise<void> => {
 
 const runProfileAction = async (label: string): Promise<void> => {
   await closeProfileMenu();
+  if (label === "个人中心") {
+    emit("open-profile");
+    return;
+  }
   emit("notice", `${label}将在认证与个人中心里程碑开放`);
 };
 </script>
@@ -115,6 +123,21 @@ const runProfileAction = async (label: string): Promise<void> => {
             />
             <span v-if="!collapsed">{{ item.label }}</span>
           </button>
+          <ul
+            v-if="!collapsed && item.children !== undefined && isActive(item)"
+            class="sidebar-subnavigation"
+            :aria-label="`${item.label}子导航`"
+          >
+            <li v-for="child in item.children" :key="child.to">
+              <RouterLink
+                class="sidebar-subnavigation-item"
+                :class="{ active: route.path === child.to }"
+                :to="child.to"
+              >
+                {{ child.label }}
+              </RouterLink>
+            </li>
+          </ul>
         </li>
       </ul>
     </nav>

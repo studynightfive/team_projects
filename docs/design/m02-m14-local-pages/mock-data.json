@@ -50,6 +50,7 @@
   "documents": [
     {
       "id": "release-guide",
+      "knowledgeBaseId": "product-handbook",
       "name": "统一发布流程与回滚指南.md",
       "category": "发布流程",
       "status": "已索引",
@@ -59,6 +60,7 @@
     },
     {
       "id": "quality-gates",
+      "knowledgeBaseId": "product-handbook",
       "name": "前端质量门禁清单.pdf",
       "category": "质量规范",
       "status": "已索引",
@@ -68,6 +70,7 @@
     },
     {
       "id": "incident-review",
+      "knowledgeBaseId": "product-handbook",
       "name": "服务降级复盘模板.docx",
       "category": "复盘模板",
       "status": "处理中",
@@ -77,6 +80,7 @@
     },
     {
       "id": "release-checklist",
+      "knowledgeBaseId": "product-handbook",
       "name": "版本发布检查表.xlsx",
       "category": "发布流程",
       "status": "需复核",
@@ -389,6 +393,8 @@
   "retrievalResults": [
     {
       "id": "test-result-01",
+      "documentId": "release-guide",
+      "knowledgeBaseId": "product-handbook",
       "title": "统一发布流程与回滚指南",
       "page": 8,
       "score": "0.96",
@@ -396,6 +402,8 @@
     },
     {
       "id": "test-result-02",
+      "documentId": "quality-gates",
+      "knowledgeBaseId": "product-handbook",
       "title": "前端质量门禁清单",
       "page": 3,
       "score": "0.91",
@@ -403,6 +411,8 @@
     },
     {
       "id": "test-result-03",
+      "documentId": "incident-review",
+      "knowledgeBaseId": "product-handbook",
       "title": "服务降级复盘模板",
       "page": 2,
       "score": "0.84",

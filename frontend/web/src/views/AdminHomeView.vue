@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
 import { ref } from "vue";
+import { RouterLink } from "vue-router";
 
 import StatCard from "../components/StatCard.vue";
 import {
@@ -94,13 +95,9 @@ const priorityClass = (priority: "高" | "中" | "低"): string =>
       >
         <header class="card-heading">
           <h2 id="service-title">服务健康状态</h2>
-          <button
-            class="text-button"
-            type="button"
-            @click="showUpcomingNotice('详细监控')"
-          >
+          <RouterLink class="text-button" to="/admin/tasks">
             查看详细监控
-          </button>
+          </RouterLink>
         </header>
         <div class="service-list">
           <div
@@ -163,13 +160,16 @@ const priorityClass = (priority: "高" | "中" | "低"): string =>
               </p>
             </div>
             <div class="governance-actions">
-              <button
+              <RouterLink
                 class="secondary-button compact"
-                type="button"
-                @click="showUpcomingNotice(`查看${item.name}`)"
+                :to="
+                  item.scope.includes('知识库')
+                    ? '/admin/knowledge-bases'
+                    : '/admin/tasks'
+                "
               >
                 查看
-              </button>
+              </RouterLink>
               <button
                 class="admin-primary-button compact"
                 type="button"
@@ -186,13 +186,9 @@ const priorityClass = (priority: "高" | "中" | "低"): string =>
     <section class="content-card audit-card" aria-labelledby="audit-title">
       <header class="card-heading audit-heading">
         <h2 id="audit-title">审计日志</h2>
-        <button
-          class="text-button"
-          type="button"
-          @click="showUpcomingNotice('完整审计日志')"
-        >
+        <RouterLink class="text-button" to="/admin/audit-logs">
           查看全部
-        </button>
+        </RouterLink>
       </header>
       <div
         class="audit-table-scroll"

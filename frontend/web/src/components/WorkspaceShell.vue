@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { App as AntApp } from "ant-design-vue";
+import { App as AntApp, Modal as AntModal } from "ant-design-vue";
 import { ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
-import type { NavigationItem } from "../data/foundation";
+import {
+  isNavigationItemActive,
+  type NavigationItem,
+} from "../data/foundation";
 import AppSidebar from "./AppSidebar.vue";
 import { Menu } from "./icons";
 import MobileDrawer from "./MobileDrawer.vue";
@@ -24,14 +27,24 @@ defineProps<{
   };
 }>();
 
+defineSlots<{
+  topbar(props: { openProfile: () => void }): unknown;
+  default(): unknown;
+}>();
+
 const route = useRoute();
 const { message } = AntApp.useApp();
 const isDrawerOpen = ref(false);
 const isSidebarCollapsed = ref(false);
+const isProfileOpen = ref(false);
 const menuButtonRef = ref<HTMLButtonElement>();
 
 const showNotice = (notice: string): void => {
   void message.info(notice);
+};
+
+const openProfile = (): void => {
+  isProfileOpen.value = true;
 };
 </script>
 
@@ -52,6 +65,7 @@ const showNotice = (notice: string): void => {
       :identity-initial="identityInitial"
       @toggle-collapse="isSidebarCollapsed = !isSidebarCollapsed"
       @notice="showNotice"
+      @open-profile="isProfileOpen = true"
     />
 
     <div class="workspace-main-column">
@@ -67,7 +81,7 @@ const showNotice = (notice: string): void => {
         >
           <Menu :size="20" aria-hidden="true" />
         </button>
-        <slot name="topbar" />
+        <slot name="topbar" :open-profile="openProfile" />
       </header>
       <main id="workspace-content" class="workspace-content">
         <slot />
@@ -79,7 +93,7 @@ const showNotice = (notice: string): void => {
         <RouterLink
           v-if="item.to !== undefined"
           :to="item.to"
-          :class="{ active: route.path === item.to }"
+          :class="{ active: isNavigationItemActive(item, route.path) }"
         >
           <component :is="item.icon" :size="19" aria-hidden="true" />
           <span>{{ item.shortLabel }}</span>
@@ -110,5 +124,41 @@ const showNotice = (notice: string): void => {
       @update:open="isDrawerOpen = $event"
       @notice="showNotice"
     />
+
+    <AntModal
+      v-model:open="isProfileOpen"
+      title="个人资料"
+      :footer="null"
+      :width="480"
+    >
+      <div class="profile-preview">
+        <span class="local-preview-badge">M02 本地预览</span>
+        <div class="profile-preview-identity">
+          <span class="avatar" aria-hidden="true">{{ identityInitial }}</span>
+          <div>
+            <strong>{{ identityName }}</strong>
+            <span>{{ identityRole }}</span>
+          </div>
+        </div>
+        <dl class="profile-preview-details">
+          <div>
+            <dt>当前区域</dt>
+            <dd>{{ areaTitle }}</dd>
+          </div>
+          <div>
+            <dt>会话状态</dt>
+            <dd>等待认证 OpenAPI</dd>
+          </div>
+          <div>
+            <dt>资料来源</dt>
+            <dd>确定性 design-only 数据</dd>
+          </div>
+        </dl>
+        <p class="profile-preview-note">
+          独立个人资料路由不在正式路由表内；真实姓名、部门和权限将在 `/me`
+          契约确认后接入。
+        </p>
+      </div>
+    </AntModal>
   </div>
 </template>

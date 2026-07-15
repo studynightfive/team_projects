@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
 import { computed } from "vue";
+import { RouterLink } from "vue-router";
 
 import StatCard from "../components/StatCard.vue";
 import { BookOpen, FileUp, MessageSquarePlus } from "../components/icons";
 import { foundationData, userMetricIcons } from "../data/foundation";
+import { localPageData } from "../data/local-pages";
 
 const { message } = AntApp.useApp();
 
@@ -20,6 +22,13 @@ const greeting = computed(() => {
 const showUpcomingNotice = (feature: string): void => {
   void message.info(`${feature}将在对应业务里程碑开放`);
 };
+
+const knowledgeRouteByName = new Map(
+  localPageData.knowledgeBases.map((item) => [
+    item.name,
+    `/knowledge/${item.id}`,
+  ]),
+);
 </script>
 
 <template>
@@ -30,14 +39,10 @@ const showUpcomingNotice = (feature: string): void => {
         <p>今天有 3 个新文档等你审阅，2 个问题等待你的回答。</p>
       </div>
       <div class="dashboard-heading-actions">
-        <button
-          class="primary-button"
-          type="button"
-          @click="showUpcomingNotice('新建问答')"
-        >
+        <RouterLink class="primary-button" to="/chat">
           <MessageSquarePlus :size="17" aria-hidden="true" />
           新建问答
-        </button>
+        </RouterLink>
         <button
           class="secondary-button"
           type="button"
@@ -68,22 +73,17 @@ const showUpcomingNotice = (feature: string): void => {
       >
         <header class="card-heading">
           <h2 id="knowledge-title">最近访问的知识库</h2>
-          <button
-            class="text-button"
-            type="button"
-            @click="showUpcomingNotice('知识库列表')"
-          >
+          <RouterLink class="text-button" to="/knowledge">
             查看全部
-          </button>
+          </RouterLink>
         </header>
         <div class="knowledge-list">
-          <button
+          <RouterLink
             v-for="collection in foundationData.userView.knowledgeCollections"
             :key="collection.name"
             class="knowledge-row"
-            type="button"
+            :to="knowledgeRouteByName.get(collection.name) ?? '/knowledge'"
             :title="collection.name"
-            @click="showUpcomingNotice(collection.name)"
           >
             <span
               class="collection-icon"
@@ -102,7 +102,7 @@ const showUpcomingNotice = (feature: string): void => {
               </span>
             </span>
             <span class="knowledge-updated">{{ collection.updated }}</span>
-          </button>
+          </RouterLink>
         </div>
       </section>
 

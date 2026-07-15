@@ -2,7 +2,10 @@
 import { nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
-import type { NavigationItem } from "../data/foundation";
+import {
+  isNavigationItemActive,
+  type NavigationItem,
+} from "../data/foundation";
 import { X } from "./icons";
 import PlatformLogo from "./PlatformLogo.vue";
 
@@ -135,7 +138,7 @@ onBeforeUnmount(() => {
             <RouterLink
               v-if="item.to !== undefined"
               class="mobile-drawer-link"
-              :class="{ active: route.path === item.to }"
+              :class="{ active: isNavigationItemActive(item, route.path) }"
               :to="item.to"
               @click="close"
             >
@@ -151,6 +154,22 @@ onBeforeUnmount(() => {
               <component :is="item.icon" :size="20" aria-hidden="true" />
               {{ item.label }}
             </button>
+            <ul
+              v-if="item.children !== undefined"
+              class="mobile-drawer-subnavigation"
+              :aria-label="`${item.label}子导航`"
+            >
+              <li v-for="child in item.children" :key="child.to">
+                <RouterLink
+                  class="mobile-drawer-link mobile-drawer-sublink"
+                  :class="{ active: route.path === child.to }"
+                  :to="child.to"
+                  @click="close"
+                >
+                  {{ child.label }}
+                </RouterLink>
+              </li>
+            </ul>
           </li>
         </ul>
       </nav>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { ref } from "vue";
-import { RouterLink } from "vue-router";
+import { computed, ref } from "vue";
+import { RouterLink, useRoute } from "vue-router";
 
 import WorkspaceShell from "../components/WorkspaceShell.vue";
 import { Bell, ChevronDown } from "../components/icons";
@@ -12,14 +12,14 @@ import {
 } from "../data/foundation";
 
 const { message } = AntApp.useApp();
+const route = useRoute();
 const environment = ref("演示");
+const currentTitle = computed(() =>
+  typeof route.meta.title === "string" ? route.meta.title : "平台总览",
+);
 
 const showNotificationNotice = (): void => {
   void message.info("当前有 6 项治理通知，详细通知中心将在后续里程碑开放");
-};
-
-const showAccountNotice = (): void => {
-  void message.info("账号菜单将在认证与个人中心里程碑开放");
 };
 </script>
 
@@ -39,12 +39,12 @@ const showAccountNotice = (): void => {
       to: '/',
     }"
   >
-    <template #topbar>
+    <template #topbar="{ openProfile }">
       <div class="topbar-layout admin-topbar-layout">
         <div class="admin-topbar-title">
-          <strong>管理中心</strong>
+          <strong class="admin-area-title">管理中心</strong>
           <span aria-hidden="true">/</span>
-          <span>平台总览</span>
+          <span class="admin-current-title">{{ currentTitle }}</span>
         </div>
         <div class="topbar-actions admin-topbar-actions">
           <label class="environment-select">
@@ -68,7 +68,7 @@ const showAccountNotice = (): void => {
             class="avatar topbar-avatar admin-avatar"
             type="button"
             :aria-label="`${foundationData.adminView.profile.name}的账号菜单`"
-            @click="showAccountNotice"
+            @click="openProfile"
           >
             {{ foundationData.adminView.profile.initial }}
           </button>

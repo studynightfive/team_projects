@@ -1,18 +1,18 @@
 # M02–M14 本地页面开发包
 
-> 状态：本地页面实施基线。项目负责人于 2026-07-16 要求先完成 M01，再以 M01 V2 为基线开发后续全部前端页面。
+> 状态：本地页面已开发并通过本地门禁，尚未联调。项目负责人于 2026-07-16 要求先完成 M01，再以 M01 V2 为基线开发后续全部前端页面。
 
 本目录定义 M02–M14 在缺少 OpenAPI 时可以落地的页面、局部交互和验收边界。它不是 API Contract，不代表认证、权限或业务接口已经联调。
 
 ## 事实来源
 
-| 文件 | 职责 |
-|---|---|
-| [`PRD.md`](PRD.md) | 页面范围、用户价值、路由和验收标准 |
-| [`Tech-Spec.md`](Tech-Spec.md) | Vue 实现、共享模式、响应式、安全与测试约束 |
-| [`mock-data.json`](mock-data.json) | 固定界面数据，只描述本地视图，不复制 API DTO |
-| [`acceptance/manifest.md`](acceptance/manifest.md) | 页面、视口、状态和交互验收矩阵 |
-| [`../m01-web-foundation`](../m01-web-foundation) | 唯一视觉、布局、tokens 和壳层基线 |
+| 文件                                               | 职责                                         |
+| -------------------------------------------------- | -------------------------------------------- |
+| [`PRD.md`](PRD.md)                                 | 页面范围、用户价值、路由和验收标准           |
+| [`Tech-Spec.md`](Tech-Spec.md)                     | Vue 实现、共享模式、响应式、安全与测试约束   |
+| [`mock-data.json`](mock-data.json)                 | 固定界面数据，只描述本地视图，不复制 API DTO |
+| [`acceptance/manifest.md`](acceptance/manifest.md) | 页面、视口、状态和交互验收矩阵               |
+| [`../m01-web-foundation`](../m01-web-foundation)   | 唯一视觉、布局、tokens 和壳层基线            |
 
 事实优先级为：用户最新明确决定 > 正式实施计划与协作方案 > 本目录 PRD/Tech-Spec > M01 正式基线 > 本地 Mock。
 

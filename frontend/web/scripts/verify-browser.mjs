@@ -1,20 +1,50 @@
 import { Buffer } from "node:buffer";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(scriptDirectory, "../../..");
-const outputDirectory = resolve(
+const m01OutputDirectory = resolve(
   repositoryRoot,
   "docs/verification/m01-web-foundation",
 );
-const baseUrl = process.env.M01_BASE_URL ?? "http://127.0.0.1:5173";
+const localPagesOutputDirectory = resolve(
+  repositoryRoot,
+  "docs/verification/m02-m14-local-pages",
+);
+const baseUrl =
+  process.env.WEB_BASE_URL ??
+  process.env.M01_BASE_URL ??
+  "http://127.0.0.1:5173";
+const execFileAsync = promisify(execFile);
 
-const cases = [
+const getSourceState = async () => {
+  const [{ stdout: sourceCommit }, { stdout: status }] = await Promise.all([
+    execFileAsync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot }),
+    execFileAsync(
+      "git",
+      ["status", "--porcelain=v1", "--untracked-files=all"],
+      { cwd: repositoryRoot },
+    ),
+  ]);
+  const sourceChanges = status
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line) => line.slice(3))
+    .filter((path) => !path.startsWith("docs/verification/"));
+
+  return {
+    sourceCommit: sourceCommit.trim(),
+    sourceWorktreeDirty: sourceChanges.length > 0,
+  };
+};
+
+const m01Cases = [
   {
     name: "user-shell-1920",
     path: "/",
@@ -106,6 +136,146 @@ const cases = [
     width: 375,
     height: 812,
   },
+];
+
+const localPageRoutes = [
+  {
+    name: "knowledge-list",
+    path: "/knowledge",
+    shell: "user",
+    title: "知识库",
+  },
+  {
+    name: "knowledge-detail",
+    path: "/knowledge/product-handbook",
+    shell: "user",
+    title: "文档目录",
+  },
+  {
+    name: "document-detail",
+    path: "/knowledge/product-handbook/documents/release-guide",
+    shell: "user",
+    title: "文档预览",
+  },
+  {
+    name: "search",
+    path: "/search",
+    shell: "user",
+    title: "知识检索",
+  },
+  {
+    name: "chat-new",
+    path: "/chat",
+    shell: "user",
+    title: "新会话",
+  },
+  {
+    name: "chat-detail",
+    path: "/chat/conv-release-review",
+    shell: "user",
+    title: "会话详情",
+  },
+  {
+    name: "conversations",
+    path: "/conversations",
+    shell: "user",
+    title: "历史会话",
+  },
+  {
+    name: "downloads",
+    path: "/downloads",
+    shell: "user",
+    title: "我的下载",
+  },
+  {
+    name: "admin-users",
+    path: "/admin/users",
+    shell: "admin",
+    title: "用户管理",
+  },
+  {
+    name: "admin-roles",
+    path: "/admin/roles",
+    shell: "admin",
+    title: "角色管理",
+  },
+  {
+    name: "admin-models",
+    path: "/admin/models",
+    shell: "admin",
+    title: "模型管理",
+  },
+  {
+    name: "admin-knowledge-bases",
+    path: "/admin/knowledge-bases",
+    shell: "admin",
+    title: "知识库管理",
+  },
+  {
+    name: "admin-documents",
+    path: "/admin/documents",
+    shell: "admin",
+    title: "文档管理",
+  },
+  {
+    name: "admin-tasks",
+    path: "/admin/tasks",
+    shell: "admin",
+    title: "转换任务",
+  },
+  {
+    name: "admin-retrieval-tests",
+    path: "/admin/retrieval-tests",
+    shell: "admin",
+    title: "命中率测试",
+  },
+  {
+    name: "admin-audit-logs",
+    path: "/admin/audit-logs",
+    shell: "admin",
+    title: "审计日志",
+  },
+];
+
+const localPageCases = localPageRoutes.flatMap((route) =>
+  [
+    { suffix: "1440", width: 1440, height: 1000 },
+    { suffix: "1280", width: 1280, height: 900 },
+    { suffix: "375", width: 375, height: 812 },
+  ].map((viewport) => ({
+    ...route,
+    ...viewport,
+    name: `${route.name}-${viewport.suffix}`,
+    group: "local-pages",
+  })),
+);
+
+localPageCases.push(
+  {
+    name: "document-detail-collapsed-1440",
+    path: "/knowledge/product-handbook/documents/release-guide",
+    shell: "user",
+    title: "文档预览",
+    width: 1440,
+    height: 1000,
+    collapsed: true,
+    group: "local-pages",
+  },
+  {
+    name: "admin-users-collapsed-1440",
+    path: "/admin/users",
+    shell: "admin",
+    title: "用户管理",
+    width: 1440,
+    height: 1000,
+    collapsed: true,
+    group: "local-pages",
+  },
+);
+
+const cases = [
+  ...m01Cases.map((testCase) => ({ ...testCase, group: "m01" })),
+  ...localPageCases,
 ];
 
 const delay = (milliseconds) =>
@@ -332,6 +502,21 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     metrics.svgIconCount,
   );
 
+  if (testCase.group === "local-pages") {
+    recordCheck(
+      checks,
+      "业务页使用统一 business-page 根节点",
+      metrics.businessPageCount === 1,
+      metrics.businessPageCount,
+    );
+    recordCheck(
+      checks,
+      "顶栏标题与路由一致",
+      metrics.topbarTitle === testCase.title && metrics.topbarTitleVisible,
+      `${metrics.topbarTitle}/${metrics.topbarTitleVisible ? "可见" : "隐藏"}`,
+    );
+  }
+
   if (testCase.width < 768) {
     recordCheck(
       checks,
@@ -369,16 +554,18 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
     recordCheck(
       checks,
-      "桌面指标保持四列",
-      metrics.statColumnCount === 4,
-      metrics.statColumnCount,
-    );
-    recordCheck(
-      checks,
       "内容有效宽度不超过 1280px",
       metrics.contentInnerWidth <= 1280,
       metrics.contentInnerWidth,
     );
+    if (testCase.group === "m01") {
+      recordCheck(
+        checks,
+        "桌面指标保持四列",
+        metrics.statColumnCount === 4,
+        metrics.statColumnCount,
+      );
+    }
   }
 
   if (testCase.shell !== undefined && testCase.width < 768) {
@@ -400,16 +587,18 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
       metrics.contentPaddingLeft === 16 && metrics.contentPaddingRight === 16,
       `${metrics.contentPaddingLeft}/${metrics.contentPaddingRight}`,
     );
-    recordCheck(
-      checks,
-      "移动端指标单列",
-      metrics.statColumnCount === 1,
-      metrics.statColumnCount,
-    );
+    if (testCase.group === "m01") {
+      recordCheck(
+        checks,
+        "移动端指标单列",
+        metrics.statColumnCount === 1,
+        metrics.statColumnCount,
+      );
+    }
     recordCheck(
       checks,
       "移动完整导航项正确",
-      drawer.navigationCount === (testCase.shell === "user" ? 6 : 7),
+      drawer.navigationCount === (testCase.shell === "user" ? 6 : 11),
       drawer.navigationCount,
     );
     recordCheck(
@@ -433,7 +622,7 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
   }
 
-  if (testCase.shell === "user") {
+  if (testCase.group === "m01" && testCase.shell === "user") {
     recordCheck(
       checks,
       "用户指标共四张",
@@ -448,7 +637,7 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
   }
 
-  if (testCase.shell === "admin") {
+  if (testCase.group === "m01" && testCase.shell === "admin") {
     recordCheck(
       checks,
       "管理指标共四张",
@@ -541,7 +730,11 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
 };
 
 const run = async () => {
-  await mkdir(outputDirectory, { recursive: true });
+  await Promise.all([
+    mkdir(m01OutputDirectory, { recursive: true }),
+    mkdir(localPagesOutputDirectory, { recursive: true }),
+  ]);
+  const sourceState = await getSourceState();
   const chromePath = await findChrome();
   const port = await reservePort();
   const profileDirectory = await mkdtemp(join(tmpdir(), "codex-m01-cdp-"));
@@ -637,9 +830,18 @@ const run = async () => {
       const loaded = client.waitFor("Page.loadEventFired");
       await client.send("Page.navigate", { url: `${baseUrl}${testCase.path}` });
       await loaded;
+      const readySelector =
+        testCase.group === "local-pages" ? ".business-page h1" : "h1";
       await evaluate(
         client,
         `(async () => {
+          const deadline = Date.now() + 5000;
+          while (document.querySelector(${JSON.stringify(readySelector)}) === null) {
+            if (Date.now() >= deadline) {
+              throw new Error("页面内容渲染超时");
+            }
+            await new Promise((resolve) => setTimeout(resolve, 50));
+          }
           await document.fonts.ready;
           await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
           return true;
@@ -675,6 +877,7 @@ const run = async () => {
             rect(".admin-operations-grid"),
             rect(".dashboard-heading"),
             rect(".admin-page-heading"),
+            rect(".business-page"),
             rect(".mobile-bottom-nav"),
             rect(".login-form-container"),
             rect(".state-card")
@@ -683,6 +886,10 @@ const run = async () => {
           const contentRect = rect(".workspace-content");
           const loginGrid = style(".login-page-v2")?.gridTemplateColumns ?? "";
           const loginBrandWidth = rect(".login-brand-panel")?.width ?? 0;
+          const topbarTitleElement =
+            document.querySelector(".topbar-breadcrumb strong") ??
+            document.querySelector(".admin-current-title");
+          const topbarTitleRect = topbarTitleElement?.getBoundingClientRect();
           return {
             innerWidth: window.innerWidth,
             innerHeight: window.innerHeight,
@@ -690,6 +897,12 @@ const run = async () => {
             scrollWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
             scrollHeight: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
             h1Count: document.querySelectorAll("h1").length,
+            businessPageCount: document.querySelectorAll(".business-page").length,
+            topbarTitle: topbarTitleElement?.textContent?.trim() ?? "",
+            topbarTitleVisible:
+              topbarTitleRect !== undefined &&
+              topbarTitleRect.width > 0 &&
+              topbarTitleRect.height > 0,
             hasEmoji: /\\p{Emoji_Presentation}/u.test(document.body.innerText),
             svgIconCount: document.querySelectorAll("svg.lucide, svg[data-lucide]").length,
             sidebarDisplay: style(".app-sidebar")?.display,
@@ -727,7 +940,12 @@ const run = async () => {
       metrics.screenshotWidth = screenshotBuffer.readUInt32BE(16);
       metrics.screenshotHeight = screenshotBuffer.readUInt32BE(20);
       await writeFile(
-        join(outputDirectory, `${testCase.name}.png`),
+        join(
+          testCase.group === "m01"
+            ? m01OutputDirectory
+            : localPagesOutputDirectory,
+          `${testCase.name}.png`,
+        ),
         screenshotBuffer,
       );
 
@@ -788,6 +1006,7 @@ const run = async () => {
 
       const checks = verifyMetrics(testCase, metrics, drawer, loginState);
       results.push({
+        group: testCase.group,
         name: testCase.name,
         path: testCase.path,
         viewport: `${testCase.width}x${testCase.height}`,
@@ -800,24 +1019,45 @@ const run = async () => {
       });
     }
 
-    const report = {
-      generatedAt: new Date().toISOString(),
-      baseUrl,
-      browser: browserVersion.product,
-      results,
-      consoleErrors,
-      apiRequests,
-      passed:
-        results.every((result) => result.passed) &&
-        consoleErrors.length === 0 &&
-        apiRequests.length === 0,
+    const createReport = (group) => {
+      const groupResults = results.filter((result) => result.group === group);
+      const caseNames = new Set(groupResults.map((result) => result.name));
+      const groupConsoleErrors = consoleErrors.filter((entry) =>
+        caseNames.has(entry.case),
+      );
+      const groupApiRequests = apiRequests.filter((entry) =>
+        caseNames.has(entry.case),
+      );
+
+      return {
+        generatedAt: new Date().toISOString(),
+        ...sourceState,
+        baseUrl,
+        browser: browserVersion.product,
+        results: groupResults,
+        consoleErrors: groupConsoleErrors,
+        apiRequests: groupApiRequests,
+        passed:
+          groupResults.every((result) => result.passed) &&
+          groupConsoleErrors.length === 0 &&
+          groupApiRequests.length === 0,
+      };
     };
 
-    await writeFile(
-      join(outputDirectory, "browser-report.json"),
-      `${JSON.stringify(report, null, 2)}\n`,
-      "utf8",
-    );
+    const m01Report = createReport("m01");
+    const localPagesReport = createReport("local-pages");
+    await Promise.all([
+      writeFile(
+        join(m01OutputDirectory, "browser-report.json"),
+        `${JSON.stringify(m01Report, null, 2)}\n`,
+        "utf8",
+      ),
+      writeFile(
+        join(localPagesOutputDirectory, "browser-report.json"),
+        `${JSON.stringify(localPagesReport, null, 2)}\n`,
+        "utf8",
+      ),
+    ]);
 
     for (const result of results) {
       console.log(`${result.passed ? "PASS" : "FAIL"} ${result.name}`);
@@ -828,7 +1068,7 @@ const run = async () => {
     console.log(`Console errors: ${consoleErrors.length}`);
     console.log(`Business API requests: ${apiRequests.length}`);
 
-    if (!report.passed) {
+    if (!m01Report.passed || !localPagesReport.passed) {
       process.exitCode = 1;
     }
   } finally {
