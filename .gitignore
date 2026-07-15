@@ -4,11 +4,24 @@ __pycache__/
 *.pyo
 *.so
 .env
+.env.*
+!.env.example
 venv/
 .venv/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+
+# Node.js
+node_modules/
+coverage/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
 
 # IDE
 .vscode/
