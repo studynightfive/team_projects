@@ -1,0 +1,87 @@
+name: 功能需求
+description: 创建一个具备明确用户价值、范围和验收标准的功能任务
+title: "[功能] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        一个 Issue 只处理一个可验收目标。请不要填写任何密码、Token、API Key 或其他 secret。
+  - type: textarea
+    id: user_value
+    attributes:
+      label: 用户问题与产品价值
+      description: 谁遇到什么问题，解决后对真实用户有什么影响？
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 本次目标
+      description: 用一句可验证的话说明本 Issue 要完成什么。
+    validations:
+      required: true
+  - type: textarea
+    id: included
+    attributes:
+      label: 包含范围
+      description: 列出本 Issue 必须实现的页面、接口、组件或行为。
+    validations:
+      required: true
+  - type: textarea
+    id: excluded
+    attributes:
+      label: 不包含范围
+      description: 明确不在本 Issue 中实现的内容，防止范围扩张。
+    validations:
+      required: true
+  - type: textarea
+    id: states
+    attributes:
+      label: 页面与交互状态
+      description: 包括加载、空、错误、权限、重复操作、移动端等状态。
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: API 依赖与负责人
+      description: 列出 OpenAPI、接口路径、字段确认状态和后端负责人；无 API 时写“无”。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 使用可观察、可测试的结果描述完成标准。
+    validations:
+      required: true
+  - type: textarea
+    id: local_test
+    attributes:
+      label: 本地测试方法
+      description: 列出命令、代表性输入和人工检查尺寸或流程。
+    validations:
+      required: true
+  - type: textarea
+    id: edge_cases
+    attributes:
+      label: 失败与边界场景
+      description: 列出必须验证的失败、权限、并发、取消和极端输入。
+    validations:
+      required: true
+  - type: input
+    id: branch
+    attributes:
+      label: 对应分支
+      placeholder: feature/<issue>-<name>
+    validations:
+      required: true
+  - type: input
+    id: pull_request
+    attributes:
+      label: 对应 Pull Request
+      description: 未创建时填写“待创建”，创建后回填链接。
+    validations:
+      required: true

@@ -1,0 +1,72 @@
+name: 缺陷报告
+description: 报告可以复现且影响用户或工程可靠性的缺陷
+title: "[缺陷] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请提供最小可复现信息，不要粘贴 .env、Token、密码、私钥或含敏感数据的完整日志。
+  - type: textarea
+    id: impact
+    attributes:
+      label: 用户影响
+      description: 谁受到影响，影响程度和频率是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      description: 从已知初始状态开始，给出最短稳定复现路径。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果与证据
+      description: 可提供已脱敏错误、截图、请求编号或失败测试。
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 修复范围与非范围
+      description: 说明根因修复边界和明确不做的重构。
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境
+      description: 分支、提交、浏览器、操作系统或服务版本，不要包含 secret。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收与回归测试
+      description: 列出失败测试、修复后检查和相关边界回归。
+    validations:
+      required: true
+  - type: input
+    id: branch
+    attributes:
+      label: 对应分支
+      placeholder: fix/<issue>-<name>
+    validations:
+      required: true
+  - type: input
+    id: pull_request
+    attributes:
+      label: 对应 Pull Request
+      description: 未创建时填写“待创建”，创建后回填链接。
+    validations:
+      required: true

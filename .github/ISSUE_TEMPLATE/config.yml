@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全问题
+    url: https://github.com/studynightfive/team_projects
+    about: 请不要公开提交安全漏洞或 secret，直接联系仓库所有者。

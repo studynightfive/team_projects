@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4.2.2
+
+      - name: 检测工程
+        id: projects
+        shell: bash
+        run: |
+          if [[ -f package-lock.json ]]; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ -f backend/pyproject.toml ]]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 验证治理文件
+        shell: bash
+        run: |
+          test -f AGENTS.md
+          test -f MEMORY.md
+          test -f README.md
+          test -f .github/ISSUE_TEMPLATE/feature.yml
+          test -f .github/ISSUE_TEMPLATE/bug.yml
+          test -f .github/pull_request_template.md
+          test -f scripts/configure-main-protection.ps1
+
+      - name: 配置 Node.js
+        if: steps.projects.outputs.frontend == 'true'
+        uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 22.23.1
+          cache: npm
+
+      - name: 安装前端依赖
+        if: steps.projects.outputs.frontend == 'true'
+        run: npm ci
+
+      - name: 用户端类型检查
+        if: steps.projects.outputs.frontend == 'true'
+        run: npm run --if-present typecheck:user
+
+      - name: 用户端 Lint
+        if: steps.projects.outputs.frontend == 'true'
+        run: npm run --if-present lint:user
+
+      - name: 用户端测试
+        if: steps.projects.outputs.frontend == 'true'
+        run: npm run --if-present test:user
+
+      - name: 用户端构建
+        if: steps.projects.outputs.frontend == 'true'
+        run: npm run --if-present build:user
+
+      - name: 管理端类型检查
+        if: steps.projects.outputs.frontend == 'true'
+        run: npm run --if-present typecheck:admin
+
+      - name: 管理端 Lint
+        if: steps.projects.outputs.frontend == 'true'
+        run: npm run --if-present lint:admin
+
+      - name: 管理端测试
+        if: steps.projects.outputs.frontend == 'true'
+        run: npm run --if-present test:admin
+
+      - name: 管理端构建
+        if: steps.projects.outputs.frontend == 'true'
+        run: npm run --if-present build:admin
+
+      - name: 配置 Python
+        if: steps.projects.outputs.backend == 'true'
+        uses: actions/setup-python@v5.6.0
+        with:
+          python-version: 3.10.20
+
+      - name: 安装 uv
+        if: steps.projects.outputs.backend == 'true'
+        run: python -m pip install uv==0.8.22
+
+      - name: 安装后端依赖
+        if: steps.projects.outputs.backend == 'true'
+        run: uv sync --project backend --frozen
+
+      - name: 后端 Ruff
+        if: steps.projects.outputs.backend == 'true'
+        run: uv run --project backend ruff check backend
+
+      - name: 后端 mypy
+        if: steps.projects.outputs.backend == 'true'
+        run: uv run --project backend mypy backend/app
+
+      - name: 后端测试
+        if: steps.projects.outputs.backend == 'true'
+        run: uv run --project backend pytest backend/tests
