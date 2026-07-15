@@ -1,0 +1,51 @@
+{
+  "_meta": {
+    "purpose": "M01 静态视觉验收数据，仅供 artifact.html 展示，不代表 API 契约",
+    "containsPersonalData": false,
+    "containsSecrets": false,
+    "containsPermissionCodes": false
+  },
+  "userView": {
+    "summary": [
+      { "label": "知识库", "value": "12", "note": "本周新增 2 个" },
+      { "label": "已收录文档", "value": "386", "note": "最近同步于 10 分钟前" },
+      { "label": "本周问答", "value": "28", "note": "引用覆盖率 96%" }
+    ],
+    "knowledgeCollections": [
+      { "name": "产品需求资料库", "type": "产品", "documents": 84, "updated": "今天 09:30" },
+      { "name": "技术规范资料库", "type": "研发", "documents": 126, "updated": "昨天 17:20" },
+      { "name": "客服知识手册", "type": "服务", "documents": 96, "updated": "周一 14:05" }
+    ],
+    "recentDocuments": [
+      { "name": "知识库使用指南.md", "context": "产品需求资料库", "updated": "10 分钟前" },
+      { "name": "检索质量检查清单.pdf", "context": "技术规范资料库", "updated": "昨天" },
+      { "name": "发布流程说明.docx", "context": "技术规范资料库", "updated": "周一" }
+    ]
+  },
+  "adminView": {
+    "summary": [
+      { "label": "活跃身份", "value": "128", "note": "近 30 天" },
+      { "label": "内容总量", "value": "2,846", "note": "较上周 +4.8%" },
+      { "label": "任务成功率", "value": "98.4%", "note": "过去 24 小时" },
+      { "label": "待处理项", "value": "7", "note": "需要人工确认" }
+    ],
+    "serviceHealth": [
+      { "name": "文档处理", "status": "运行正常", "detail": "队列 3" },
+      { "name": "检索索引", "status": "运行正常", "detail": "延迟 42ms" },
+      { "name": "异步任务", "status": "运行正常", "detail": "成功率 98.4%" }
+    ],
+    "governanceQueue": [
+      { "name": "失效引用检查", "scope": "全部知识库", "status": "待确认", "time": "今天 10:20" },
+      { "name": "重复内容合并建议", "scope": "技术规范资料库", "status": "处理中", "time": "今天 09:45" },
+      { "name": "公开范围复核", "scope": "客服知识手册", "status": "待确认", "time": "昨天 16:30" }
+    ]
+  },
+  "stateView": [
+    { "name": "登录", "purpose": "共享登录入口骨架" },
+    { "name": "加载", "purpose": "页面与卡片加载反馈" },
+    { "name": "空状态", "purpose": "首次使用时提供明确下一步" },
+    { "name": "错误", "purpose": "网络失败时允许安全重试" },
+    { "name": "403", "purpose": "无访问权限时返回可用路径" },
+    { "name": "404", "purpose": "无效地址时返回工作区" }
+  ]
+}
