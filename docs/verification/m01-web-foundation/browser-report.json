@@ -1,9 +1,12 @@
 {
-  "generatedAt": "2026-07-15T15:49:12.737Z",
+  "generatedAt": "2026-07-15T17:33:32.867Z",
+  "sourceCommit": "c71e6b90fb79c5d4eeb1a23b28b77d731cc872e7",
+  "sourceWorktreeDirty": false,
   "baseUrl": "http://127.0.0.1:5173",
   "browser": "Chrome/150.0.7871.114",
   "results": [
     {
+      "group": "m01",
       "name": "user-shell-1920",
       "path": "/",
       "viewport": "1920x1080",
@@ -15,6 +18,9 @@
         "scrollWidth": 1920,
         "scrollHeight": 1080,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "工作台",
+        "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 30,
         "sidebarDisplay": "flex",
@@ -87,14 +93,14 @@
           "actual": "none"
         },
         {
-          "label": "桌面指标保持四列",
-          "pass": true,
-          "actual": 4
-        },
-        {
           "label": "内容有效宽度不超过 1280px",
           "pass": true,
           "actual": 1280
+        },
+        {
+          "label": "桌面指标保持四列",
+          "pass": true,
+          "actual": 4
         },
         {
           "label": "用户指标共四张",
@@ -110,6 +116,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "user-shell-1440",
       "path": "/",
       "viewport": "1440x1000",
@@ -121,6 +128,9 @@
         "scrollWidth": 1440,
         "scrollHeight": 1000,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "工作台",
+        "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 30,
         "sidebarDisplay": "flex",
@@ -193,14 +203,14 @@
           "actual": "none"
         },
         {
-          "label": "桌面指标保持四列",
-          "pass": true,
-          "actual": 4
-        },
-        {
           "label": "内容有效宽度不超过 1280px",
           "pass": true,
           "actual": 1136
+        },
+        {
+          "label": "桌面指标保持四列",
+          "pass": true,
+          "actual": 4
         },
         {
           "label": "用户指标共四张",
@@ -216,6 +226,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "user-shell-1280",
       "path": "/",
       "viewport": "1280x900",
@@ -227,6 +238,9 @@
         "scrollWidth": 1280,
         "scrollHeight": 900,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "工作台",
+        "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 30,
         "sidebarDisplay": "flex",
@@ -299,14 +313,14 @@
           "actual": "none"
         },
         {
-          "label": "桌面指标保持四列",
-          "pass": true,
-          "actual": 4
-        },
-        {
           "label": "内容有效宽度不超过 1280px",
           "pass": true,
           "actual": 976
+        },
+        {
+          "label": "桌面指标保持四列",
+          "pass": true,
+          "actual": 4
         },
         {
           "label": "用户指标共四张",
@@ -322,6 +336,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "user-shell-375",
       "path": "/",
       "viewport": "375x812",
@@ -333,6 +348,9 @@
         "scrollWidth": 375,
         "scrollHeight": 2082,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "工作台",
+        "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 30,
         "sidebarDisplay": "none",
@@ -464,6 +482,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "user-shell-collapsed-1440",
       "path": "/",
       "viewport": "1440x1000",
@@ -475,6 +494,9 @@
         "scrollWidth": 1440,
         "scrollHeight": 1000,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "工作台",
+        "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 30,
         "sidebarDisplay": "flex",
@@ -547,14 +569,14 @@
           "actual": "none"
         },
         {
-          "label": "桌面指标保持四列",
-          "pass": true,
-          "actual": 4
-        },
-        {
           "label": "内容有效宽度不超过 1280px",
           "pass": true,
           "actual": 1280
+        },
+        {
+          "label": "桌面指标保持四列",
+          "pass": true,
+          "actual": 4
         },
         {
           "label": "用户指标共四张",
@@ -570,6 +592,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "admin-shell-1920",
       "path": "/admin",
       "viewport": "1920x1080",
@@ -581,6 +604,9 @@
         "scrollWidth": 1920,
         "scrollHeight": 1235,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "平台总览",
+        "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 31,
         "sidebarDisplay": "flex",
@@ -654,14 +680,14 @@
           "actual": "none"
         },
         {
-          "label": "桌面指标保持四列",
-          "pass": true,
-          "actual": 4
-        },
-        {
           "label": "内容有效宽度不超过 1280px",
           "pass": true,
           "actual": 1280
+        },
+        {
+          "label": "桌面指标保持四列",
+          "pass": true,
+          "actual": 4
         },
         {
           "label": "管理指标共四张",
@@ -692,6 +718,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "admin-shell-1440",
       "path": "/admin",
       "viewport": "1440x1000",
@@ -703,6 +730,9 @@
         "scrollWidth": 1440,
         "scrollHeight": 1235,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "平台总览",
+        "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 31,
         "sidebarDisplay": "flex",
@@ -776,14 +806,14 @@
           "actual": "none"
         },
         {
-          "label": "桌面指标保持四列",
-          "pass": true,
-          "actual": 4
-        },
-        {
           "label": "内容有效宽度不超过 1280px",
           "pass": true,
           "actual": 1136
+        },
+        {
+          "label": "桌面指标保持四列",
+          "pass": true,
+          "actual": 4
         },
         {
           "label": "管理指标共四张",
@@ -814,6 +844,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "admin-shell-1280",
       "path": "/admin",
       "viewport": "1280x900",
@@ -825,6 +856,9 @@
         "scrollWidth": 1280,
         "scrollHeight": 1235,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "平台总览",
+        "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 31,
         "sidebarDisplay": "flex",
@@ -898,14 +932,14 @@
           "actual": "none"
         },
         {
-          "label": "桌面指标保持四列",
-          "pass": true,
-          "actual": 4
-        },
-        {
           "label": "内容有效宽度不超过 1280px",
           "pass": true,
           "actual": 976
+        },
+        {
+          "label": "桌面指标保持四列",
+          "pass": true,
+          "actual": 4
         },
         {
           "label": "管理指标共四张",
@@ -936,6 +970,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "admin-shell-375",
       "path": "/admin",
       "viewport": "375x812",
@@ -947,6 +982,9 @@
         "scrollWidth": 375,
         "scrollHeight": 2699,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "平台总览",
+        "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 31,
         "sidebarDisplay": "none",
@@ -972,7 +1010,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 7,
+        "navigationCount": 11,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -1043,7 +1081,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 7
+          "actual": 11
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -1094,6 +1132,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "admin-shell-collapsed-1440",
       "path": "/admin",
       "viewport": "1440x1000",
@@ -1105,6 +1144,9 @@
         "scrollWidth": 1440,
         "scrollHeight": 1235,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "平台总览",
+        "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 31,
         "sidebarDisplay": "flex",
@@ -1178,14 +1220,14 @@
           "actual": "none"
         },
         {
-          "label": "桌面指标保持四列",
-          "pass": true,
-          "actual": 4
-        },
-        {
           "label": "内容有效宽度不超过 1280px",
           "pass": true,
           "actual": 1280
+        },
+        {
+          "label": "桌面指标保持四列",
+          "pass": true,
+          "actual": 4
         },
         {
           "label": "管理指标共四张",
@@ -1216,6 +1258,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "login-1920",
       "path": "/login",
       "viewport": "1920x1080",
@@ -1227,6 +1270,9 @@
         "scrollWidth": 1920,
         "scrollHeight": 1080,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "",
+        "topbarTitleVisible": false,
         "hasEmoji": false,
         "svgIconCount": 9,
         "contentPaddingLeft": 0,
@@ -1325,6 +1371,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "login-1440",
       "path": "/login",
       "viewport": "1440x1000",
@@ -1336,6 +1383,9 @@
         "scrollWidth": 1440,
         "scrollHeight": 1000,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "",
+        "topbarTitleVisible": false,
         "hasEmoji": false,
         "svgIconCount": 9,
         "contentPaddingLeft": 0,
@@ -1434,6 +1484,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "login-1280",
       "path": "/login",
       "viewport": "1280x900",
@@ -1445,6 +1496,9 @@
         "scrollWidth": 1280,
         "scrollHeight": 900,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "",
+        "topbarTitleVisible": false,
         "hasEmoji": false,
         "svgIconCount": 9,
         "contentPaddingLeft": 0,
@@ -1543,6 +1597,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "login-375",
       "path": "/login",
       "viewport": "375x812",
@@ -1554,6 +1609,9 @@
         "scrollWidth": 375,
         "scrollHeight": 814,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "",
+        "topbarTitleVisible": false,
         "hasEmoji": false,
         "svgIconCount": 9,
         "contentPaddingLeft": 0,
@@ -1652,6 +1710,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "forbidden-1440",
       "path": "/403",
       "viewport": "1440x1000",
@@ -1663,6 +1722,9 @@
         "scrollWidth": 1440,
         "scrollHeight": 1000,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "",
+        "topbarTitleVisible": false,
         "hasEmoji": false,
         "svgIconCount": 1,
         "contentPaddingLeft": 0,
@@ -1719,6 +1781,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "forbidden-1280",
       "path": "/403",
       "viewport": "1280x900",
@@ -1730,6 +1793,9 @@
         "scrollWidth": 1280,
         "scrollHeight": 900,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "",
+        "topbarTitleVisible": false,
         "hasEmoji": false,
         "svgIconCount": 1,
         "contentPaddingLeft": 0,
@@ -1786,6 +1852,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "forbidden-375",
       "path": "/403",
       "viewport": "375x812",
@@ -1797,6 +1864,9 @@
         "scrollWidth": 375,
         "scrollHeight": 812,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "",
+        "topbarTitleVisible": false,
         "hasEmoji": false,
         "svgIconCount": 1,
         "contentPaddingLeft": 0,
@@ -1863,6 +1933,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "not-found-1440",
       "path": "/does-not-exist",
       "viewport": "1440x1000",
@@ -1874,6 +1945,9 @@
         "scrollWidth": 1440,
         "scrollHeight": 1000,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "",
+        "topbarTitleVisible": false,
         "hasEmoji": false,
         "svgIconCount": 1,
         "contentPaddingLeft": 0,
@@ -1930,6 +2004,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "not-found-1280",
       "path": "/does-not-exist",
       "viewport": "1280x900",
@@ -1941,6 +2016,9 @@
         "scrollWidth": 1280,
         "scrollHeight": 900,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "",
+        "topbarTitleVisible": false,
         "hasEmoji": false,
         "svgIconCount": 1,
         "contentPaddingLeft": 0,
@@ -1997,6 +2075,7 @@
       "passed": true
     },
     {
+      "group": "m01",
       "name": "not-found-375",
       "path": "/does-not-exist",
       "viewport": "375x812",
@@ -2008,6 +2087,9 @@
         "scrollWidth": 375,
         "scrollHeight": 812,
         "h1Count": 1,
+        "businessPageCount": 0,
+        "topbarTitle": "",
+        "topbarTitleVisible": false,
         "hasEmoji": false,
         "svgIconCount": 1,
         "contentPaddingLeft": 0,

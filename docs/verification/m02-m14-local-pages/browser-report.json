@@ -1,0 +1,5838 @@
+{
+  "generatedAt": "2026-07-15T17:33:32.868Z",
+  "sourceCommit": "c71e6b90fb79c5d4eeb1a23b28b77d731cc872e7",
+  "sourceWorktreeDirty": false,
+  "baseUrl": "http://127.0.0.1:5173",
+  "browser": "Chrome/150.0.7871.114",
+  "results": [
+    {
+      "group": "local-pages",
+      "name": "knowledge-list-1440",
+      "path": "/knowledge",
+      "viewport": "1440x1000",
+      "screenshot": "knowledge-list-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "知识库",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 25,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 25
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "知识库/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "knowledge-list-1280",
+      "path": "/knowledge",
+      "viewport": "1280x900",
+      "screenshot": "knowledge-list-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "知识库",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 25,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 25
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "知识库/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "knowledge-list-375",
+      "path": "/knowledge",
+      "viewport": "375x812",
+      "screenshot": "knowledge-list-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1769,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "知识库",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 25,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 6,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 25
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "知识库/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 6
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "knowledge-detail-1440",
+      "path": "/knowledge/product-handbook",
+      "viewport": "1440x1000",
+      "screenshot": "knowledge-detail-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "文档目录",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 22,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 1,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 22
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "文档目录/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "knowledge-detail-1280",
+      "path": "/knowledge/product-handbook",
+      "viewport": "1280x900",
+      "screenshot": "knowledge-detail-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "文档目录",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 22,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 1,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 22
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "文档目录/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "knowledge-detail-375",
+      "path": "/knowledge/product-handbook",
+      "viewport": "375x812",
+      "screenshot": "knowledge-detail-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1136,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "文档目录",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 22,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 1,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 6,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 22
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "文档目录/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 6
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "document-detail-1440",
+      "path": "/knowledge/product-handbook/documents/release-guide",
+      "viewport": "1440x1000",
+      "screenshot": "document-detail-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1290,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "文档预览",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 19,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 19
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "文档预览/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "document-detail-1280",
+      "path": "/knowledge/product-handbook/documents/release-guide",
+      "viewport": "1280x900",
+      "screenshot": "document-detail-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 1290,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "文档预览",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 19,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 19
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "文档预览/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "document-detail-375",
+      "path": "/knowledge/product-handbook/documents/release-guide",
+      "viewport": "375x812",
+      "screenshot": "document-detail-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1943,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "文档预览",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 19,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 6,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 19
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "文档预览/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 6
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "search-1440",
+      "path": "/search",
+      "viewport": "1440x1000",
+      "screenshot": "search-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1029,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "知识检索",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 20,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 20
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "知识检索/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "search-1280",
+      "path": "/search",
+      "viewport": "1280x900",
+      "screenshot": "search-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 1029,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "知识检索",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 20,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 20
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "知识检索/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "search-375",
+      "path": "/search",
+      "viewport": "375x812",
+      "screenshot": "search-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1591,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "知识检索",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 20,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 6,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 20
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "知识检索/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 6
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "chat-new-1440",
+      "path": "/chat",
+      "viewport": "1440x1000",
+      "screenshot": "chat-new-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "新会话",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 18,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1380,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 18
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "新会话/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "chat-new-1280",
+      "path": "/chat",
+      "viewport": "1280x900",
+      "screenshot": "chat-new-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "新会话",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 18,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 18
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "新会话/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "chat-new-375",
+      "path": "/chat",
+      "viewport": "375x812",
+      "screenshot": "chat-new-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 940,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "新会话",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 18,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 6,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 18
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "新会话/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 6
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "chat-detail-1440",
+      "path": "/chat/conv-release-review",
+      "viewport": "1440x1000",
+      "screenshot": "chat-detail-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "会话详情",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 19,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1380,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 19
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "会话详情/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "chat-detail-1280",
+      "path": "/chat/conv-release-review",
+      "viewport": "1280x900",
+      "screenshot": "chat-detail-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 902,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "会话详情",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 19,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 19
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "会话详情/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "chat-detail-375",
+      "path": "/chat/conv-release-review",
+      "viewport": "375x812",
+      "screenshot": "chat-detail-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1152,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "会话详情",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 19,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 6,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 19
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "会话详情/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 6
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "conversations-1440",
+      "path": "/conversations",
+      "viewport": "1440x1000",
+      "screenshot": "conversations-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1171,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "历史会话",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 21,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 21
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "历史会话/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "conversations-1280",
+      "path": "/conversations",
+      "viewport": "1280x900",
+      "screenshot": "conversations-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 1171,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "历史会话",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 21,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 21
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "历史会话/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "conversations-375",
+      "path": "/conversations",
+      "viewport": "375x812",
+      "screenshot": "conversations-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1627,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "历史会话",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 21,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 6,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 21
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "历史会话/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 6
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "downloads-1440",
+      "path": "/downloads",
+      "viewport": "1440x1000",
+      "screenshot": "downloads-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "我的下载",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 23,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 23
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "我的下载/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "downloads-1280",
+      "path": "/downloads",
+      "viewport": "1280x900",
+      "screenshot": "downloads-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "我的下载",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 23,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 23
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "我的下载/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "downloads-375",
+      "path": "/downloads",
+      "viewport": "375x812",
+      "screenshot": "downloads-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1098,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "我的下载",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 23,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 6,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 23
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "我的下载/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 6
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-users-1440",
+      "path": "/admin/users",
+      "viewport": "1440x1000",
+      "screenshot": "admin-users-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "用户管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "用户管理/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-users-1280",
+      "path": "/admin/users",
+      "viewport": "1280x900",
+      "screenshot": "admin-users-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "用户管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "用户管理/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-users-375",
+      "path": "/admin/users",
+      "viewport": "375x812",
+      "screenshot": "admin-users-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1252,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "用户管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 11,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "用户管理/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 11
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-roles-1440",
+      "path": "/admin/roles",
+      "viewport": "1440x1000",
+      "screenshot": "admin-roles-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "角色管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "角色管理/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-roles-1280",
+      "path": "/admin/roles",
+      "viewport": "1280x900",
+      "screenshot": "admin-roles-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "角色管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "角色管理/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-roles-375",
+      "path": "/admin/roles",
+      "viewport": "375x812",
+      "screenshot": "admin-roles-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1371,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "角色管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 11,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "角色管理/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 11
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-models-1440",
+      "path": "/admin/models",
+      "viewport": "1440x1000",
+      "screenshot": "admin-models-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "模型管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "模型管理/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-models-1280",
+      "path": "/admin/models",
+      "viewport": "1280x900",
+      "screenshot": "admin-models-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "模型管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "模型管理/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-models-375",
+      "path": "/admin/models",
+      "viewport": "375x812",
+      "screenshot": "admin-models-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 979,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "模型管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 11,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "模型管理/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 11
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-knowledge-bases-1440",
+      "path": "/admin/knowledge-bases",
+      "viewport": "1440x1000",
+      "screenshot": "admin-knowledge-bases-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "知识库管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "知识库管理/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-knowledge-bases-1280",
+      "path": "/admin/knowledge-bases",
+      "viewport": "1280x900",
+      "screenshot": "admin-knowledge-bases-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "知识库管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "知识库管理/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-knowledge-bases-375",
+      "path": "/admin/knowledge-bases",
+      "viewport": "375x812",
+      "screenshot": "admin-knowledge-bases-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1127,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "知识库管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 11,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "知识库管理/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 11
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-documents-1440",
+      "path": "/admin/documents",
+      "viewport": "1440x1000",
+      "screenshot": "admin-documents-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "文档管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "文档管理/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-documents-1280",
+      "path": "/admin/documents",
+      "viewport": "1280x900",
+      "screenshot": "admin-documents-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 921,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "文档管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "文档管理/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-documents-375",
+      "path": "/admin/documents",
+      "viewport": "375x812",
+      "screenshot": "admin-documents-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1287,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "文档管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 11,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "文档管理/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 11
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-tasks-1440",
+      "path": "/admin/tasks",
+      "viewport": "1440x1000",
+      "screenshot": "admin-tasks-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "转换任务",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "转换任务/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-tasks-1280",
+      "path": "/admin/tasks",
+      "viewport": "1280x900",
+      "screenshot": "admin-tasks-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "转换任务",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "转换任务/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-tasks-375",
+      "path": "/admin/tasks",
+      "viewport": "375x812",
+      "screenshot": "admin-tasks-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1020,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "转换任务",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 11,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "转换任务/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 11
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-retrieval-tests-1440",
+      "path": "/admin/retrieval-tests",
+      "viewport": "1440x1000",
+      "screenshot": "admin-retrieval-tests-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "命中率测试",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 17,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 17
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "命中率测试/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-retrieval-tests-1280",
+      "path": "/admin/retrieval-tests",
+      "viewport": "1280x900",
+      "screenshot": "admin-retrieval-tests-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "命中率测试",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 17,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 17
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "命中率测试/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-retrieval-tests-375",
+      "path": "/admin/retrieval-tests",
+      "viewport": "375x812",
+      "screenshot": "admin-retrieval-tests-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1389,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "命中率测试",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 17,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 11,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 17
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "命中率测试/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 11
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-audit-logs-1440",
+      "path": "/admin/audit-logs",
+      "viewport": "1440x1000",
+      "screenshot": "admin-audit-logs-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "审计日志",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1136,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 2,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1408,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "审计日志/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1136
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-audit-logs-1280",
+      "path": "/admin/audit-logs",
+      "viewport": "1280x900",
+      "screenshot": "admin-audit-logs-1280.png",
+      "metrics": {
+        "innerWidth": 1280,
+        "innerHeight": 900,
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "scrollHeight": 900,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "审计日志",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 240,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 976,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 2,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1248,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1280,
+        "screenshotHeight": 900
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1280
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1280/1280"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1280x900"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "审计日志/可见"
+        },
+        {
+          "label": "桌面侧栏宽度 240px",
+          "pass": true,
+          "actual": 240
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 976
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-audit-logs-375",
+      "path": "/admin/audit-logs",
+      "viewport": "375x812",
+      "screenshot": "admin-audit-logs-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1160,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "审计日志",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 2,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 11,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "审计日志/可见"
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 11
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "document-detail-collapsed-1440",
+      "path": "/knowledge/product-handbook/documents/release-guide",
+      "viewport": "1440x1000",
+      "screenshot": "document-detail-collapsed-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1290,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "文档预览",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 19,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 64,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1280,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1392,
+        "minimumInteractiveHeight": 20,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 19
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "文档预览/可见"
+        },
+        {
+          "label": "折叠侧栏宽度 64px",
+          "pass": true,
+          "actual": 64
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1280
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-users-collapsed-1440",
+      "path": "/admin/users",
+      "viewport": "1440x1000",
+      "screenshot": "admin-users-collapsed-1440.png",
+      "metrics": {
+        "innerWidth": 1440,
+        "innerHeight": 1000,
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 1000,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "topbarTitle": "用户管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "flex",
+        "sidebarWidth": 64,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "none",
+        "contentPaddingLeft": 32,
+        "contentPaddingRight": 32,
+        "contentInnerWidth": 1280,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "disabledInteractiveCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 1392,
+        "minimumInteractiveHeight": 32,
+        "screenshotWidth": 1440,
+        "screenshotHeight": 1000
+      },
+      "drawer": {},
+      "loginState": {},
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 1440
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "1440/1440"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "1440x1000"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "用户管理/可见"
+        },
+        {
+          "label": "折叠侧栏宽度 64px",
+          "pass": true,
+          "actual": 64
+        },
+        {
+          "label": "桌面顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "桌面菜单按钮隐藏",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "内容有效宽度不超过 1280px",
+          "pass": true,
+          "actual": 1280
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "consoleErrors": [],
+  "apiRequests": [],
+  "passed": true
+}
