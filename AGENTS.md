@@ -35,6 +35,7 @@ docs/                   API、设计和运维文档
 
 - `main` 始终保持可部署，禁止直接推送。
 - 一个 Issue 对应一个分支和一个 Pull Request。
+- 员工 1 的统一前端 P0 作为一个整体交付单元：只创建一个总 Issue、一个 `feature/<issue>-unified-web-p0` 长期功能分支、15 个里程碑和一个持续更新的 Draft PR。每个里程碑必须先通过本地门禁再推送同一分支；全量本地 E2E、最终 CI 和测试环境验收通过后才能转 Ready；合并后才关闭总 Issue。
 - 功能分支：`feature/<issue>-<name>`；修复分支：`fix/<issue>-<name>`；发布分支：`release/<version>`。
 - 每个新分支从最新 `main` 创建；依赖上一个分支时，等待上一个 PR 合并后再创建。
 - 不提前创建全部分支，不在不同分支重复维护同一份代码。

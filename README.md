@@ -66,6 +66,8 @@ scripts/            可重复执行的工程脚本
 5. 推送分支并创建关联 Issue 的 Pull Request。
 6. 至少一名非作者评审和必需 CI 通过后合并。
 
+员工 1 的统一前端 P0 使用经批准的整体交付流程：一个总 Issue、一个长期功能分支、15 个里程碑和一个持续更新的 Draft PR；每个里程碑先本地通过再推送，全部门禁通过后才转 Ready。详见 [员工 1 统一前端完整实施计划](员工1_统一前端完整实施计划.md)。
+
 治理细节见 [docs/project-governance.md](docs/project-governance.md)。
 
 ## 统一前端命令

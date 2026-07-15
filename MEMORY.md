@@ -20,10 +20,11 @@
 - 流式问答使用原生 Fetch + ReadableStream + TextDecoder + AbortController，不新增专用 SSE 依赖。
 - Markdown 采用服务端清洗加前端 DOMPurify 二次过滤；下载统一走鉴权接口。
 - 每个新功能分支从最新 `main` 创建；依赖分支必须等待父 PR 合并，避免堆叠未合并代码造成冲突。
+- 2026-07-15 确认员工 1 的统一前端 P0 采用整体交付：一个总 Issue、一个 `feature/<issue>-unified-web-p0` 长期功能分支、15 个里程碑和一个持续更新的 Draft PR。每个里程碑先本地通过再推送；全量本地 E2E、最终 CI 和测试环境验收通过后才转 Ready；合并后统一关闭总 Issue 并删除长期分支。
 
 ## 非机密仓库备注
 
 - GitHub 仓库：`studynightfive/team_projects`，默认分支 `main`。
 - 2026-07-15 接管项目治理时，远端 `main` 基线为 `c57255a162ffbd8ba59e353f9f46588c2e80e192`，仓库尚无工程代码、治理文件、Issue 模板或 CI。
-- 当前协作账号对仓库是 Write 权限而不是 Admin；GitHub 分支保护 API 返回 404。仓库管理员需运行 `scripts/configure-main-protection.ps1` 应用 `main` 保护规则。
+- 当前协作账号对仓库是 Write 权限而不是 Admin；`main` 已启用部分经典分支保护，但必需状态检查列表尚未包含 `quality`，其余目标规则也无法由当前权限完整确认。仓库管理员需运行 `scripts/configure-main-protection.ps1` 应用并复核完整保护规则。
 - 项目直接依赖必须精确锁定；Node.js `22.23.1`、npm `10.9.8`、Python `3.10.20`、uv `0.8.22`。
