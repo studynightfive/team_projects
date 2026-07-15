@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 
 import type { NavigationItem } from "../data/foundation";
+import { X } from "./icons";
+import PlatformLogo from "./PlatformLogo.vue";
 
 const props = defineProps<{
   open: boolean;
@@ -20,8 +22,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:open": [value: boolean];
+  notice: [message: string];
 }>();
 
+const route = useRoute();
 const panelRef = ref<HTMLElement>();
 const closeButtonRef = ref<HTMLButtonElement>();
 
@@ -29,10 +33,13 @@ const close = (): void => {
   emit("update:open", false);
 };
 
+const notifyUpcoming = (label: string): void => {
+  close();
+  emit("notice", `${label}将在后续功能里程碑开放`);
+};
+
 const getFocusableElements = (): HTMLElement[] => {
-  if (panelRef.value === undefined) {
-    return [];
-  }
+  if (panelRef.value === undefined) return [];
 
   return Array.from(
     panelRef.value.querySelectorAll<HTMLElement>(
@@ -48,9 +55,7 @@ const handleKeydown = (event: KeyboardEvent): void => {
     return;
   }
 
-  if (event.key !== "Tab") {
-    return;
-  }
+  if (event.key !== "Tab") return;
 
   const focusableElements = getFocusableElements();
   const firstElement = focusableElements.at(0);
@@ -95,7 +100,7 @@ onBeforeUnmount(() => {
     v-if="open"
     :id="drawerId"
     class="mobile-drawer"
-    :class="{ 'admin-drawer': variant === 'admin' }"
+    :class="`variant-${variant}`"
     @keydown="handleKeydown"
   >
     <button
@@ -112,28 +117,40 @@ onBeforeUnmount(() => {
       :aria-label="dialogLabel"
     >
       <div class="mobile-drawer-header">
-        <strong>{{ title }}</strong>
+        <PlatformLogo />
         <button
           ref="closeButtonRef"
-          class="mobile-drawer-close"
+          class="mobile-drawer-close icon-button"
           type="button"
           aria-label="关闭导航"
           @click="close"
         >
-          ×
+          <X :size="20" aria-hidden="true" />
         </button>
       </div>
+      <div class="mobile-drawer-title">{{ title }}</div>
       <nav :aria-label="`${title}全部功能`">
         <ul class="mobile-drawer-list">
-          <li v-for="(item, index) in navigation" :key="item.label">
-            <a
+          <li v-for="item in navigation" :key="item.label">
+            <RouterLink
+              v-if="item.to !== undefined"
               class="mobile-drawer-link"
-              :class="{ active: index === 0 }"
-              href="#"
-              @click.prevent="close"
+              :class="{ active: route.path === item.to }"
+              :to="item.to"
+              @click="close"
             >
+              <component :is="item.icon" :size="20" aria-hidden="true" />
               {{ item.label }}
-            </a>
+            </RouterLink>
+            <button
+              v-else
+              class="mobile-drawer-link"
+              type="button"
+              @click="notifyUpcoming(item.label)"
+            >
+              <component :is="item.icon" :size="20" aria-hidden="true" />
+              {{ item.label }}
+            </button>
           </li>
         </ul>
       </nav>

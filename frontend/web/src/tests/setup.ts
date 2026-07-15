@@ -9,7 +9,6 @@ afterEach(() => {
   }
 
   document.body.classList.remove("drawer-open");
-  document.body.innerHTML = "";
   localStorage.clear();
   sessionStorage.clear();
 });

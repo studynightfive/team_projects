@@ -35,11 +35,11 @@
 ### 无工程代码时
 
 - 验证 `AGENTS.md`、`MEMORY.md`、README 和协作模板存在。
-- 不因为缺少 `package-lock.json` 或 `backend/pyproject.toml` 失败。
+- 不因为缺少 `pnpm-lock.yaml` 或 `backend/pyproject.toml` 失败。
 
-### 根 npm 锁文件出现后
+### 根 pnpm 锁文件出现后
 
-- 使用 Node.js `22.23.1` 和 npm 缓存运行 `npm ci`。
+- 使用 Node.js `22.23.1`、pnpm `11.13.0` 和 pnpm 缓存运行 `pnpm install --frozen-lockfile`。
 - 直接运行统一 Web 应用的 typecheck、Lint、test、build 脚本；任一根脚本缺失都必须让 CI 失败。
 
 ### 后端项目出现后
@@ -66,7 +66,7 @@
 
 - 必需治理文件存在且内容与协作方案一致。
 - YAML 与工程配置通过语法或对应工具检查。
-- CI 在根 npm 锁文件出现后执行统一 Web 的安装、类型检查、Lint、测试和构建；后端工程出现后自动进入后端检查。
+- CI 在根 pnpm 锁文件出现后执行统一 Web 的安装、类型检查、Lint、测试和构建；后端工程出现后自动进入后端检查。
 - 分支已推送，PR 关联 #5。
 - 不依赖仓库管理员配置必需状态检查即可开始工程工作。
 

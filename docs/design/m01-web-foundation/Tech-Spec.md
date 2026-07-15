@@ -1,152 +1,154 @@
-# M01 Web Foundation Tech-Spec
+# M01 V2 统一前端 Tech-Spec
 
-## 1. 目标与约束
+## 1. 技术基线
 
-本规格把 M01 设计基线映射为 Vue 3 实现边界。设计基线已通过 PR #10 合入；生产代码在统一 P0 长期分支中按本规格实现。
+- Node.js `22.23.1`、pnpm `11.13.0`。
+- Vue `3.5.39`、Vue Router `4.6.3`、Pinia `3.0.4`。
+- Ant Design Vue `4.2.6`、`@lucide/vue` `1.24.0`。
+- Vite `7.3.6`、TypeScript `5.9.3` strict。
+- Axios `1.18.1` 只保留统一 API Client；V2 页面不发送业务请求。
 
-固定技术基线：Vue 3、Vue Router、Pinia、Element Plus、Vite 与 TypeScript strict。直接依赖版本以根 `AGENTS.md` 和锁文件为准；安全补丁升级必须同步事实来源并重新执行全部门禁。
+提示词写的 Ant Design Vue 5.x 当前无法从 registry 安装，`lucide-vue-next` 已被官方废弃，因此采用上述可验证版本。保留仓库当前 Vue/Pinia/Vite 版本，不按提示词降级。
 
-## 2. 目标布局树
+## 2. 包管理与命令
+
+- 根目录使用 `pnpm-workspace.yaml` 管理 `frontend/*`。
+- 直接依赖精确锁定，提交 `pnpm-lock.yaml`，不再维护 `package-lock.json`。
+- `allowBuilds` 只允许 esbuild 构建脚本，明确拒绝非必要的 core-js 安装脚本。
+
+```powershell
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd run dev:web
+pnpm.cmd run dev:web:api
+pnpm.cmd run typecheck:web
+pnpm.cmd run lint:web
+pnpm.cmd run test:web
+pnpm.cmd run build:web
+pnpm.cmd run verify:web:browser
+```
+
+## 3. 组件树
 
 ```text
 App
-└── ElConfigProvider
+└── Ant ConfigProvider + App
     └── RouterView
         ├── LoginView
         ├── UserWorkspaceLayout
-        │   └── WorkspaceShell → RouterView → UserHomeView
+        │   └── WorkspaceShell
+        │       ├── AppSidebar
+        │       ├── User Topbar
+        │       ├── MobileDrawer
+        │       └── UserHomeView → StatCard
         ├── AdminWorkspaceLayout
-        │   └── WorkspaceShell → RouterView → AdminHomeView
+        │   └── WorkspaceShell
+        │       ├── AppSidebar
+        │       ├── Admin Topbar
+        │       ├── MobileDrawer
+        │       └── AdminHomeView → StatCard → Sparkline
         ├── ForbiddenView
         └── NotFoundView
 ```
 
-M01 只建立布局和占位路由。M02 才实现登录态、守卫、`usePermission()`、401 刷新和权限撤销清理。
+- `WorkspaceShell` 只协调共享网格、侧栏、顶栏槽位、移动抽屉和底部导航。
+- 用户/管理顶栏保留在各自 Layout，避免创建难维护的万能顶栏配置对象。
+- `StatCard` 复用指标结构；`Sparkline` 使用原生 SVG 平滑曲线和七个数据点，不为四条静态趋势引入 ECharts。
+- `components/icons/index.ts` 只按需导出已使用 Lucide 图标，禁止 `export *`。
 
-## 3. M01 路由壳
+## 4. 路由边界
 
-| 路径 | M01 行为 | 非范围 |
+| 路径 | V2 行为 | 非范围 |
 |---|---|---|
-| `/login` | 登录视觉骨架 | 真实提交和会话 |
-| `/` | 普通工作区壳层 | 业务数据加载 |
-| `/admin` | 管理中心壳层 | 权限判断和管理 API |
+| `/login` | 分屏登录与本地交互验证 | 真实认证和会话 |
+| `/` | 普通用户工作台 | 知识库/检索/问答子页面 |
+| `/admin` | 管理总览 | 管理业务 API 和权限守卫 |
 | `/403` | 静态无权限页 | 后端鉴权替代 |
-| `/:pathMatch(.*)*` | 静态 404 页 | 业务重定向策略 |
+| `/:pathMatch(.*)*` | 静态 404 | 业务重定向策略 |
 
-`/admin` 在 M01 的 Mock 入口只证明布局可进入，不代表普通用户允许访问。M02 必须实现“普通用户 403 且不请求管理数据”。
+当前只创建三张核心页面，不虚构子路由。尚未建设的菜单和按钮通过 Ant Design 消息明确提示所属后续里程碑，禁止 `href="#"` 或静默无效点击。
 
-## 4. 目录映射
+## 5. 视觉事实来源
 
-M01 按以下最小范围落地：
+- 原始需求输入：`V2-Redesign-Prompt.md`。
+- 执行事实：`PRD.md`、本 Tech-Spec、`V2-Implementation-Spec.md`。
+- 视觉变量：`tokens-v2.css`，生产 `global.css` 直接导入。
+- 固定展示数据：`mock-data.json`，只供 design-only 页面和测试使用。
+- V1 `artifact.html`、`tokens.css` 和旧 PNG 保留为历史证据，不参与 V2 完成判断。
 
-```text
-frontend/web/src/
-├── api/
-├── layouts/
-├── mocks/
-├── router/
-├── styles/
-├── tests/
-└── views/
-```
+## 6. Tokens 与 Ant Design
 
-不为 M02–M15 预建空 feature 目录或一次性抽象。只有真实跨模块复用后才把组件提升到共享目录。
+- `tokens-v2.css` 提供蓝/紫六档色阶、Slate 中性色、语义色、九档字号、四档字重、三档行高、4px 间距、四档圆角和三档阴影。
+- `App.vue` 的 Ant `ConfigProvider` 只映射主色、语义色、边框、背景、圆角和系统字体。
+- 业务页面不复制第二套 SCSS 变量；当前规模不引入 Sass、stylelint 或 Tailwind。
+- 浅色背景上的 12/13px 辅助文字至少使用 Slate 500；Slate 400 只用于深色侧栏等仍满足对比度的场景。
+- 用户焦点环为蓝色 12% 透明，管理区域为紫色 12% 透明。
 
-## 5. Tokens
+## 7. 状态归属
 
-[`tokens.css`](tokens.css) 是 M01 语义视觉变量的单一事实来源：
+- 账号、密码、错误、记住我、密码显隐都属于 LoginView 局部状态。
+- 侧栏折叠、移动抽屉、筛选、环境选择和更新时间属于各页面/Layout 局部状态。
+- `Ctrl/Cmd + K` 监听器挂载时注册、卸载时清理。
+- Pinia 继续注册但不保存 design-only 状态；真实用户和权限数据等 OpenAPI 明确后再进入 store。
 
-- 色彩使用稳定的语义或布局用途命名，不按单页或临时实现值命名。
-- 间距以 4px 为基础，避免页面自行发明数值。
-- 侧栏、顶栏、内容 gutter 和移动导航尺寸直接映射布局。
-- 生产 Vue 实现直接导入同一文件，并按 Element Plus CSS variables 做最小映射。
+## 8. Mock 与隐私
 
-不得复制为第二份 JSON tokens 或在组件中重写一套等价值。需要改视觉值时先改 `tokens.css` 并重新生成截图。
+- `mock-data.json` 不包含真实个人数据、凭据、权限码、Cookie、下载地址或未确认 DTO。
+- 审计 IP 使用 RFC 5737 文档保留网段 `192.0.2.0/24`、`198.51.100.0/24`、`203.0.113.0/24`。
+- 动态问候只根据浏览器当前小时计算，测试只断言用户名和规则结果，不把日期写入持久化状态。
+- Mock/生产页面不得访问 `/api`；Mock Adapter 默认拒绝所有未注册请求。
 
-## 6. 状态归属
+## 9. 关键交互
 
-- Pinia 在 M01 只完成注册，不保存表单、弹窗、页码、筛选或状态页加载标志。
-- M01 登录输入只保留浏览器原生局部值且不提交；M02 才增加真实提交状态。
-- 当前用户、权限和当前知识库只有在真实跨页面需求出现后进入 store。
-- 设计 artifact 不模拟 store，不持久化任何数据。
+### 9.1 登录
 
-## 7. API Client 与 Mock 边界
+- 空提交同步生成两个中文错误，并聚焦第一个错误字段。
+- 密码显隐按钮维护动态 `aria-label`、`aria-pressed`。
+- 记住我只改变内存中的复选状态，不写存储。
+- 填写后提交只显示“认证接口将在 M02 接入”，不记录字段值。
 
-M01 API Client 的最小职责：
+### 9.2 侧栏和顶栏
 
-- `baseURL` 使用 `/api`。
-- Cookie 会话请求设置 `withCredentials`。
-- 把外部错误收窄为不泄露内部信息的统一前端错误边界。
+- 桌面侧栏 240px，可在 200ms 内折叠到 64px；折叠按钮维护 `aria-expanded`。
+- 用户菜单通过点击打开，支持 Escape，不依赖 hover 作为唯一入口。
+- 用户顶栏搜索宽度最大 480px；`Ctrl/Cmd + K` 聚焦输入框。
+- 通知红点同时提供包含数量的中文可访问名称。
 
-M01 不实现刷新 Token、真实认证 DTO、权限码或业务接口。
+### 9.3 移动抽屉
 
-[`mock-data.json`](mock-data.json) 标记为 `design-only`。它只固定卡片数量、文字长度和状态组合，不得生成 OpenAPI 类型，也不得被测试称为后端契约。M01 直接复用其展示内容，Mock Adapter 不注册虚构业务端点并默认拒绝网络；后续接口形状必须以已提交 OpenAPI 为准。
+- 375px 隐藏桌面侧栏，菜单按钮维护 `aria-expanded`/`aria-controls`。
+- 支持关闭按钮、遮罩、Escape、Tab/Shift+Tab 焦点循环、关闭后焦点返回和卸载滚动锁清理。
+- 所有主要触控区域不小于 44px。
 
-## 8. 静态 artifact
+## 10. 响应式实现
 
-[`artifact.html`](artifact.html) 与 [`tokens.css`](tokens.css) 是可编辑视觉源：
+- 桌面：`240px minmax(0, 1fr)`；折叠：`64px minmax(0, 1fr)`。
+- 顶栏 56px；内容有效宽度最大 1280px，桌面 gutter 32px。
+- 登录桌面 `55% 45%`，表单 360px；900px 以下改为单栏。
+- 1280px 仍保持四张指标卡；1180px 以下管理运营区改单列。
+- 767px 以下所有指标和内容区改单列，gutter 16px，底部导航 68px。
+- 审计表最小内容宽度 920px，只在 `.audit-table-scroll` 内横向滚动。
 
-- 不加载 CDN、远程字体、图片或脚本。
-- `view=user|admin|states` 固定截图入口。
-- 直接从本地文件打开可查看；截图过程不依赖登录态或后端。
-- JavaScript 只负责选择静态视图和移动端导航展示，不执行动态代码或网络请求。
+## 11. 可访问性
 
-PNG 是由 artifact 派生的证据，不能单独编辑后作为事实来源。
-
-## 9. 响应式实现规则
-
-### 9.1 桌面（≥ 768px）
-
-- CSS Grid：`240px minmax(0, 1fr)`。
-- 顶栏高度 64px，内容 gutter 32px。
-- 摘要区按验收 artifact 使用桌面四列、1180px 以下两列、767px 以下单列，普通用户三张卡在桌面保留第四列空位。
-- 表格容器允许内部滚动，但页面根节点不产生横向滚动。
-
-### 9.2 移动（≤ 767px）
-
-- 侧栏 `display: none`，不保留空白列。
-- 顶栏左右内容必须允许 `min-width: 0`，长标题省略。
-- 菜单按钮通过本地 drawer 展示当前区域的完整模块导航和跨工作区入口，维护 `aria-expanded` / `aria-controls`，支持关闭按钮、Escape 退出和 Tab 首尾焦点循环。
-- 内容 gutter 16px，卡片单列。
-- 普通工作区底部导航高度 68px，内容区预留安全间距。
-- 表格转为带标签的列表卡，不把宽表缩到不可读。
-
-## 10. 可访问性实现规则
-
-- 使用 `header`、`nav`、`main`、`section` 和正确标题层级。
-- 图标按钮必须有可访问名称，装饰图形标记为隐藏。
-- 表单控件使用显式 `label`，错误文字与控件关联。
-- 可点击元素最小高度 44px；键盘顺序与视觉顺序一致。
-- 使用 `:focus-visible` 和 `--shadow-focus`，不全局移除 outline。
-- 加载状态保留可读文字，并通过 `aria-live="polite"` 提供动态反馈语义。
-
-## 11. 安全边界
-
-- 不把 Token、Cookie、密码、密钥、内部堆栈或真实请求体写入日志、Mock 或截图。
-- 登录输入在 artifact 中为空，不提供示例凭据。
-- 403 状态不渲染管理数据占位，避免形成“先加载后隐藏”的错误模式。
-- `VITE_*` 会进入浏览器产物，后续不得用于 secret。
+- 一个页面一个 `h1`；标题、导航、区域和表格使用语义元素。
+- 文字按钮和图标按钮均可键盘聚焦；focus-visible 不被裁切。
+- 状态徽章同时显示文字；颜色不是唯一信号。
+- Sparkline 使用 `role="img"` 和中文趋势标签；28 个点由测试与浏览器脚本锁定。
+- 动画遵守 `prefers-reduced-motion`。
 
 ## 12. 验证
 
-设计 PR：
-
-- JSON 可解析，CSS/HTML 结构可读。
-- Markdown 相对链接存在。
-- artifact 三个视图可离线打开。
-- 七张截图尺寸与清单一致。
-- 1440px、1280px、375px 无根级横向溢出、文字重叠或关键操作遮挡。
-- `git diff --check` 通过。
-
-M01 生产实现必须运行：
+自动化门禁：
 
 ```powershell
-npm.cmd ci
-npm.cmd run typecheck:web
-npm.cmd run lint:web
-npm.cmd run test:web
-npm.cmd run build:web
-npm.cmd run verify:web:browser
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd run typecheck:web
+pnpm.cmd run lint:web
+pnpm.cmd run test:web
+pnpm.cmd run build:web
+pnpm.cmd audit
+pnpm.cmd run verify:web:browser
+git diff --check
 ```
 
-视觉实现须把生产截图与本目录验收图逐项对照；真实 API、认证与权限不在 M01 完成声明中。
+浏览器脚本覆盖 20 个用例：用户、管理、登录的 1920/1440/1280/375，用户/管理折叠 1440，以及 403/404 的 1440/1280/375。检查顶栏、侧栏、四指标、Sparkline、审计表头、登录错误/显隐、移动抽屉、触控尺寸、根级溢出、控制台错误和业务 API 请求。

@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { App as AntApp } from "ant-design-vue";
 import { ref } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 
 import type { NavigationItem } from "../data/foundation";
+import AppSidebar from "./AppSidebar.vue";
+import { Menu } from "./icons";
 import MobileDrawer from "./MobileDrawer.vue";
 
 defineProps<{
@@ -10,8 +13,7 @@ defineProps<{
   areaTitle: string;
   navigation: readonly NavigationItem[];
   navigationLabel: string;
-  navigationAriaLabel: string;
-  mobileNavigation: readonly string[];
+  mobileNavigation: readonly NavigationItem[];
   identityName: string;
   identityRole: string;
   identityInitial: string;
@@ -22,96 +24,75 @@ defineProps<{
   };
 }>();
 
+const route = useRoute();
+const { message } = AntApp.useApp();
 const isDrawerOpen = ref(false);
+const isSidebarCollapsed = ref(false);
 const menuButtonRef = ref<HTMLButtonElement>();
+
+const showNotice = (notice: string): void => {
+  void message.info(notice);
+};
 </script>
 
 <template>
   <div
     :id="`${variant}-view`"
-    class="app-shell"
-    :class="{ 'admin-shell': variant === 'admin' }"
-    data-design-source="mock-data.json"
+    class="workspace-shell"
+    :class="[`variant-${variant}`, { 'sidebar-collapsed': isSidebarCollapsed }]"
+    data-design-source="V2-Redesign-Prompt.md"
   >
-    <aside
-      class="sidebar"
-      :class="{ admin: variant === 'admin' }"
-      :aria-label="navigationAriaLabel"
-    >
-      <div class="brand">智能知识库平台</div>
-      <div class="nav-label">
-        {{ navigationLabel }}
-      </div>
-      <nav :aria-label="`${navigationLabel}功能`">
-        <ul class="nav-list">
-          <li v-for="(item, index) in navigation" :key="item.label">
-            <a
-              class="nav-item"
-              :class="{ active: index === 0 }"
-              href="#"
-              @click.prevent
-            >
-              <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
-              {{ item.label }}
-            </a>
-          </li>
-        </ul>
-      </nav>
-      <div class="sidebar-footer">
-        <div class="identity">
-          <span class="avatar" aria-hidden="true">{{ identityInitial }}</span>
-          <div class="identity-copy">
-            <div class="identity-name">
-              {{ identityName }}
-            </div>
-            <div class="identity-role">
-              {{ identityRole }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </aside>
+    <AppSidebar
+      :variant="variant"
+      :collapsed="isSidebarCollapsed"
+      :navigation="navigation"
+      :navigation-label="navigationLabel"
+      :identity-name="identityName"
+      :identity-role="identityRole"
+      :identity-initial="identityInitial"
+      @toggle-collapse="isSidebarCollapsed = !isSidebarCollapsed"
+      @notice="showNotice"
+    />
 
-    <div class="main-column">
-      <header class="topbar">
-        <div class="topbar-start">
-          <button
-            ref="menuButtonRef"
-            class="mobile-menu"
-            type="button"
-            :aria-label="`打开${areaTitle}导航`"
-            :aria-controls="`${variant}-mobile-drawer`"
-            :aria-expanded="isDrawerOpen"
-            @click="isDrawerOpen = true"
-          >
-            ☰
-          </button>
-          <span class="topbar-title">{{ areaTitle }}</span>
-        </div>
-        <div class="topbar-actions">
-          <RouterLink class="button secondary" :to="workspaceSwitch.to">
-            {{ workspaceSwitch.label }}
-          </RouterLink>
-          <span class="avatar" :aria-label="identityName">{{
-            identityInitial
-          }}</span>
-        </div>
+    <div class="workspace-main-column">
+      <header class="workspace-topbar">
+        <button
+          ref="menuButtonRef"
+          class="mobile-menu-button icon-button"
+          type="button"
+          :aria-label="`打开${areaTitle}导航`"
+          :aria-controls="`${variant}-mobile-drawer`"
+          :aria-expanded="isDrawerOpen"
+          @click="isDrawerOpen = true"
+        >
+          <Menu :size="20" aria-hidden="true" />
+        </button>
+        <slot name="topbar" />
       </header>
-      <main id="workspace-content" class="content">
+      <main id="workspace-content" class="workspace-content">
         <slot />
       </main>
     </div>
 
-    <nav class="mobile-nav" :aria-label="`移动端${areaTitle}导航`">
-      <a
-        v-for="(item, index) in mobileNavigation"
-        :key="item"
-        href="#"
-        :class="{ active: index === 0 }"
-        @click.prevent
-      >
-        {{ item }}
-      </a>
+    <nav class="mobile-bottom-nav" :aria-label="`${areaTitle}快捷导航`">
+      <template v-for="item in mobileNavigation" :key="item.label">
+        <RouterLink
+          v-if="item.to !== undefined"
+          :to="item.to"
+          :class="{ active: route.path === item.to }"
+        >
+          <component :is="item.icon" :size="19" aria-hidden="true" />
+          <span>{{ item.shortLabel }}</span>
+        </RouterLink>
+        <button
+          v-else
+          type="button"
+          @click="showNotice(`${item.label}将在后续功能里程碑开放`)"
+        >
+          <component :is="item.icon" :size="19" aria-hidden="true" />
+          <span>{{ item.shortLabel }}</span>
+        </button>
+      </template>
     </nav>
 
     <MobileDrawer
@@ -127,6 +108,7 @@ const menuButtonRef = ref<HTMLButtonElement>();
       }"
       :return-focus-to="menuButtonRef"
       @update:open="isDrawerOpen = $event"
+      @notice="showNotice"
     />
   </div>
 </template>

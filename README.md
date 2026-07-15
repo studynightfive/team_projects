@@ -47,7 +47,7 @@ scripts/            可重复执行的工程脚本
 | 工具 | 版本 |
 |---|---:|
 | Node.js | 22.23.1 |
-| npm | 10.9.8 |
+| pnpm | 11.13.0 |
 | Python | 3.10.20 |
 | uv | 0.8.22 |
 | Docker Engine | 27.5.1 |
@@ -55,7 +55,7 @@ scripts/            可重复执行的工程脚本
 | PostgreSQL | 17.10 |
 | Redis | 7.4.9 |
 
-所有直接依赖精确锁定，禁止 `^`、`~` 和 `latest`。完整依赖基线见《知识库平台_5人团队分工协作方案.md》。
+所有直接依赖精确锁定，禁止 `^`、`~` 和 `latest`。统一前端使用 Ant Design Vue `4.2.6` 与 `@lucide/vue` `1.24.0`。完整依赖基线见《知识库平台_5人团队分工协作方案.md》。
 
 ## 开发工作流
 
@@ -75,15 +75,15 @@ scripts/            可重复执行的工程脚本
 前端工程进入仓库后，在根目录使用：
 
 ```powershell
-npm.cmd ci
-npm.cmd run dev:web
-npm.cmd run dev:web:api
-npm.cmd run typecheck:web
-npm.cmd run lint:web
-npm.cmd run test:web
-npm.cmd run test:web:watch
-npm.cmd run build:web
-npm.cmd run verify:web:browser
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd run dev:web
+pnpm.cmd run dev:web:api
+pnpm.cmd run typecheck:web
+pnpm.cmd run lint:web
+pnpm.cmd run test:web
+pnpm.cmd run test:web:watch
+pnpm.cmd run build:web
+pnpm.cmd run verify:web:browser
 ```
 
 - `dev:web` 使用 design-only 固定数据，Mock Adapter 默认拒绝所有未注册请求，不访问真实业务网络。

@@ -16,6 +16,13 @@ const baseUrl = process.env.M01_BASE_URL ?? "http://127.0.0.1:5173";
 
 const cases = [
   {
+    name: "user-shell-1920",
+    path: "/",
+    width: 1920,
+    height: 1080,
+    shell: "user",
+  },
+  {
     name: "user-shell-1440",
     path: "/",
     width: 1440,
@@ -30,6 +37,21 @@ const cases = [
     shell: "user",
   },
   { name: "user-shell-375", path: "/", width: 375, height: 812, shell: "user" },
+  {
+    name: "user-shell-collapsed-1440",
+    path: "/",
+    width: 1440,
+    height: 1000,
+    shell: "user",
+    collapsed: true,
+  },
+  {
+    name: "admin-shell-1920",
+    path: "/admin",
+    width: 1920,
+    height: 1080,
+    shell: "admin",
+  },
   {
     name: "admin-shell-1440",
     path: "/admin",
@@ -51,6 +73,15 @@ const cases = [
     height: 812,
     shell: "admin",
   },
+  {
+    name: "admin-shell-collapsed-1440",
+    path: "/admin",
+    width: 1440,
+    height: 1000,
+    shell: "admin",
+    collapsed: true,
+  },
+  { name: "login-1920", path: "/login", width: 1920, height: 1080 },
   { name: "login-1440", path: "/login", width: 1440, height: 1000 },
   { name: "login-1280", path: "/login", width: 1280, height: 900 },
   { name: "login-375", path: "/login", width: 375, height: 812 },
@@ -266,7 +297,7 @@ const recordCheck = (checks, label, pass, actual) => {
   checks.push({ label, pass, actual });
 };
 
-const verifyMetrics = (testCase, metrics, drawer) => {
+const verifyMetrics = (testCase, metrics, drawer, loginState) => {
   const checks = [];
   recordCheck(
     checks,
@@ -293,6 +324,13 @@ const verifyMetrics = (testCase, metrics, drawer) => {
       metrics.screenshotHeight === testCase.height,
     `${metrics.screenshotWidth}x${metrics.screenshotHeight}`,
   );
+  recordCheck(checks, "页面文案无 emoji", !metrics.hasEmoji, metrics.hasEmoji);
+  recordCheck(
+    checks,
+    "页面使用线性 SVG 图标",
+    metrics.svgIconCount > 0,
+    metrics.svgIconCount,
+  );
 
   if (testCase.width < 768) {
     recordCheck(
@@ -310,16 +348,17 @@ const verifyMetrics = (testCase, metrics, drawer) => {
   }
 
   if (testCase.shell !== undefined && testCase.width >= 768) {
+    const expectedSidebarWidth = testCase.collapsed ? 64 : 240;
     recordCheck(
       checks,
-      "桌面侧栏宽度 240px",
-      metrics.sidebarWidth === 240,
+      testCase.collapsed ? "折叠侧栏宽度 64px" : "桌面侧栏宽度 240px",
+      metrics.sidebarWidth === expectedSidebarWidth,
       metrics.sidebarWidth,
     );
     recordCheck(
       checks,
-      "桌面顶栏高度 64px",
-      metrics.topbarHeight === 64,
+      "桌面顶栏高度 56px",
+      metrics.topbarHeight === 56,
       metrics.topbarHeight,
     );
     recordCheck(
@@ -330,9 +369,15 @@ const verifyMetrics = (testCase, metrics, drawer) => {
     );
     recordCheck(
       checks,
-      "桌面摘要保持四列",
-      metrics.summaryColumnCount === 4,
-      metrics.summaryColumnCount,
+      "桌面指标保持四列",
+      metrics.statColumnCount === 4,
+      metrics.statColumnCount,
+    );
+    recordCheck(
+      checks,
+      "内容有效宽度不超过 1280px",
+      metrics.contentInnerWidth <= 1280,
+      metrics.contentInnerWidth,
     );
   }
 
@@ -357,9 +402,9 @@ const verifyMetrics = (testCase, metrics, drawer) => {
     );
     recordCheck(
       checks,
-      "移动端摘要单列",
-      metrics.summaryColumnCount === 1,
-      metrics.summaryColumnCount,
+      "移动端指标单列",
+      metrics.statColumnCount === 1,
+      metrics.statColumnCount,
     );
     recordCheck(
       checks,
@@ -385,6 +430,110 @@ const verifyMetrics = (testCase, metrics, drawer) => {
       "关闭后解除滚动锁",
       drawer.bodyUnlocked,
       drawer.bodyUnlocked,
+    );
+  }
+
+  if (testCase.shell === "user") {
+    recordCheck(
+      checks,
+      "用户指标共四张",
+      metrics.statCardCount === 4,
+      metrics.statCardCount,
+    );
+    recordCheck(
+      checks,
+      "团队动态内容存在",
+      metrics.activityCount === 4,
+      metrics.activityCount,
+    );
+  }
+
+  if (testCase.shell === "admin") {
+    recordCheck(
+      checks,
+      "管理指标共四张",
+      metrics.statCardCount === 4,
+      metrics.statCardCount,
+    );
+    recordCheck(
+      checks,
+      "四张管理卡均有 Sparkline",
+      metrics.sparklineCount === 4,
+      metrics.sparklineCount,
+    );
+    recordCheck(
+      checks,
+      "Sparkline 共 28 个数据点",
+      metrics.sparklinePointCount === 28,
+      metrics.sparklinePointCount,
+    );
+    recordCheck(
+      checks,
+      "审计表头使用 slate-100",
+      metrics.auditHeaderBackground === "rgb(241, 245, 249)",
+      metrics.auditHeaderBackground,
+    );
+    recordCheck(
+      checks,
+      "分页提供禁用态",
+      metrics.disabledInteractiveCount >= 1,
+      metrics.disabledInteractiveCount,
+    );
+  }
+
+  if (testCase.path === "/login") {
+    if (testCase.width >= 1280) {
+      recordCheck(
+        checks,
+        "登录桌面布局为 55:45 分屏",
+        metrics.loginBrandRatio >= 0.545 && metrics.loginBrandRatio <= 0.555,
+        metrics.loginBrandRatio,
+      );
+      recordCheck(
+        checks,
+        "登录桌面首屏无页面级滚动",
+        metrics.scrollHeight <= metrics.innerHeight,
+        `${metrics.scrollHeight}/${metrics.innerHeight}`,
+      );
+      recordCheck(
+        checks,
+        "登录表单宽度不超过 360px",
+        metrics.loginFormWidth <= 360,
+        metrics.loginFormWidth,
+      );
+    } else {
+      recordCheck(
+        checks,
+        "登录移动端为单栏布局",
+        metrics.loginColumnCount === 1,
+        metrics.loginColumnCount,
+      );
+    }
+
+    recordCheck(
+      checks,
+      "登录空提交显示两个错误",
+      loginState.errorCount === 2,
+      loginState.errorCount,
+    );
+    recordCheck(
+      checks,
+      "登录错误与控件 ARIA 关联",
+      loginState.accountInvalid && loginState.passwordInvalid,
+      `${loginState.accountInvalid}/${loginState.passwordInvalid}`,
+    );
+    recordCheck(
+      checks,
+      "密码显隐切换可用",
+      loginState.passwordVisible,
+      loginState.passwordVisible,
+    );
+    recordCheck(
+      checks,
+      "登录交互不持久化凭据",
+      loginState.localStorageLength === 0 &&
+        loginState.sessionStorageLength === 0,
+      `${loginState.localStorageLength}/${loginState.sessionStorageLength}`,
     );
   }
 
@@ -497,6 +646,17 @@ const run = async () => {
         })()`,
       );
 
+      if (testCase.collapsed) {
+        await evaluate(
+          client,
+          `(async () => {
+            document.querySelector(".sidebar-collapse-button")?.click();
+            await new Promise((resolve) => setTimeout(resolve, 260));
+            return true;
+          })()`,
+        );
+      }
+
       const metrics = await evaluate(
         client,
         `(() => {
@@ -507,23 +667,51 @@ const run = async () => {
             return target ? getComputedStyle(target) : undefined;
           };
           const interactive = [...document.querySelectorAll(
-            "button, .button, .link-action, .nav-item, .mobile-nav a, .state-action"
+            "button, a[href], input:not([type='checkbox']), select, [tabindex]"
           )].map((target) => target.getBoundingClientRect()).filter((box) => box.width > 0 && box.height > 0);
-          const contentRects = [rect(".summary-grid"), rect(".workspace-grid"), rect(".page-heading"), rect(".mobile-nav"), rect(".login-card"), rect(".state-card")].filter(Boolean);
+          const contentRects = [
+            rect(".stat-grid"),
+            rect(".user-content-grid"),
+            rect(".admin-operations-grid"),
+            rect(".dashboard-heading"),
+            rect(".admin-page-heading"),
+            rect(".mobile-bottom-nav"),
+            rect(".login-form-container"),
+            rect(".state-card")
+          ].filter(Boolean);
+          const contentStyle = style(".workspace-content");
+          const contentRect = rect(".workspace-content");
+          const loginGrid = style(".login-page-v2")?.gridTemplateColumns ?? "";
+          const loginBrandWidth = rect(".login-brand-panel")?.width ?? 0;
           return {
             innerWidth: window.innerWidth,
             innerHeight: window.innerHeight,
             clientWidth: document.documentElement.clientWidth,
             scrollWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+            scrollHeight: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
             h1Count: document.querySelectorAll("h1").length,
-            sidebarDisplay: style(".sidebar")?.display,
-            sidebarWidth: rect(".sidebar")?.width,
-            topbarHeight: rect(".topbar")?.height,
-            mobileMenuDisplay: style(".mobile-menu")?.display,
-            contentPaddingLeft: Number.parseFloat(style(".content")?.paddingLeft ?? "0"),
-            contentPaddingRight: Number.parseFloat(style(".content")?.paddingRight ?? "0"),
-            summaryColumnCount: (style(".summary-grid")?.gridTemplateColumns ?? "")
+            hasEmoji: /\\p{Emoji_Presentation}/u.test(document.body.innerText),
+            svgIconCount: document.querySelectorAll("svg.lucide, svg[data-lucide]").length,
+            sidebarDisplay: style(".app-sidebar")?.display,
+            sidebarWidth: rect(".app-sidebar")?.width,
+            topbarHeight: rect(".workspace-topbar")?.height,
+            mobileMenuDisplay: style(".mobile-menu-button")?.display,
+            contentPaddingLeft: Number.parseFloat(contentStyle?.paddingLeft ?? "0"),
+            contentPaddingRight: Number.parseFloat(contentStyle?.paddingRight ?? "0"),
+            contentInnerWidth: contentRect === undefined
+              ? 0
+              : Math.round(contentRect.width - Number.parseFloat(contentStyle?.paddingLeft ?? "0") - Number.parseFloat(contentStyle?.paddingRight ?? "0")),
+            statColumnCount: (style(".stat-grid")?.gridTemplateColumns ?? "")
               .split(/\\s+/u).filter(Boolean).length,
+            statCardCount: document.querySelectorAll(".stat-grid .stat-card").length,
+            activityCount: document.querySelectorAll(".activity-list li").length,
+            sparklineCount: document.querySelectorAll(".admin-stat-grid .sparkline").length,
+            sparklinePointCount: document.querySelectorAll(".admin-stat-grid .sparkline-point").length,
+            auditHeaderBackground: style(".audit-table thead th")?.backgroundColor,
+            disabledInteractiveCount: document.querySelectorAll("button:disabled, input:disabled, select:disabled").length,
+            loginBrandRatio: loginBrandWidth / window.innerWidth,
+            loginFormWidth: rect(".login-form-container")?.width ?? 0,
+            loginColumnCount: loginGrid.split(/\\s+/u).filter(Boolean).length,
             maximumContentRight: Math.ceil(Math.max(0, ...contentRects.map((box) => box.right))),
             minimumInteractiveHeight: Math.floor(Math.min(Infinity, ...interactive.map((box) => box.height))),
           };
@@ -548,7 +736,7 @@ const run = async () => {
         drawer = await evaluate(
           client,
           `(async () => {
-            const trigger = document.querySelector(".mobile-menu");
+            const trigger = document.querySelector(".mobile-menu-button");
             trigger.click();
             await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
             const drawer = document.querySelector(".mobile-drawer");
@@ -573,7 +761,32 @@ const run = async () => {
         );
       }
 
-      const checks = verifyMetrics(testCase, metrics, drawer);
+      let loginState = {};
+      if (testCase.path === "/login") {
+        loginState = await evaluate(
+          client,
+          `(async () => {
+            const account = document.querySelector("#account");
+            const password = document.querySelector("#password");
+            const form = document.querySelector("form");
+            const toggle = document.querySelector(".password-toggle");
+            form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            toggle.click();
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+            return {
+              errorCount: document.querySelectorAll(".field-error").length,
+              accountInvalid: account.getAttribute("aria-invalid") === "true",
+              passwordInvalid: password.getAttribute("aria-invalid") === "true",
+              passwordVisible: password.type === "text" && toggle.getAttribute("aria-pressed") === "true",
+              localStorageLength: localStorage.length,
+              sessionStorageLength: sessionStorage.length,
+            };
+          })()`,
+        );
+      }
+
+      const checks = verifyMetrics(testCase, metrics, drawer, loginState);
       results.push({
         name: testCase.name,
         path: testCase.path,
@@ -581,6 +794,7 @@ const run = async () => {
         screenshot: `${testCase.name}.png`,
         metrics,
         drawer,
+        loginState,
         checks,
         passed: checks.every((check) => check.pass),
       });

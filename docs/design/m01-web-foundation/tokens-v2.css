@@ -1,0 +1,144 @@
+:root {
+  color-scheme: light;
+
+  /* V2 品牌色阶 */
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-300: #93c5fd;
+  --blue-500: #3b82f6;
+  --blue-700: #2b6cb0;
+  --blue-900: #1e3a8a;
+  --violet-50: #f5f3ff;
+  --violet-100: #ede9fe;
+  --violet-300: #c4b5fd;
+  --violet-500: #8b5cf6;
+  --violet-700: #553c9a;
+  --violet-900: #4c1d95;
+
+  /* Slate 中性色 */
+  --slate-950: #0f172a;
+  --slate-800: #1e293b;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;
+  --slate-100: #f1f5f9;
+  --slate-50: #f8fafc;
+  --white: #ffffff;
+
+  /* 语义色：正文徽章使用更深色保证小字对比度 */
+  --green-50: #f0fdf4;
+  --green-100: #dcfce7;
+  --green-600: #16a34a;
+  --green-800: #166534;
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-600: #d97706;
+  --amber-800: #92400e;
+  --red-50: #fef2f2;
+  --red-100: #fee2e2;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
+  --sky-50: #f0f9ff;
+  --sky-600: #0284c7;
+
+  /* 应用语义 */
+  --color-primary: var(--blue-700);
+  --color-primary-hover: #245f9d;
+  --color-primary-active: #1e527f;
+  --color-primary-soft: var(--blue-50);
+  --color-admin: var(--violet-700);
+  --color-admin-hover: #493184;
+  --color-admin-active: #3f2a73;
+  --color-admin-soft: var(--violet-50);
+  --color-canvas: var(--slate-50);
+  --color-surface: var(--white);
+  --color-surface-subtle: var(--slate-100);
+  --color-table-head: var(--slate-100);
+  --color-text: var(--slate-950);
+  --color-text-secondary: var(--slate-700);
+  --color-text-muted: var(--slate-500);
+  --color-text-subtle: var(--slate-500);
+  --color-border: var(--slate-200);
+  --color-border-strong: var(--slate-300);
+  --color-success: var(--green-600);
+  --color-success-text: var(--green-800);
+  --color-success-soft: var(--green-100);
+  --color-warning: var(--amber-600);
+  --color-warning-text: var(--amber-800);
+  --color-warning-soft: var(--amber-100);
+  --color-danger: var(--red-600);
+  --color-danger-text: var(--red-700);
+  --color-danger-soft: var(--red-100);
+  --color-info: var(--sky-600);
+  --color-info-soft: var(--sky-50);
+  --color-sidebar: var(--slate-950);
+  --color-sidebar-text: var(--slate-300);
+  --color-sidebar-muted: var(--slate-400);
+  --color-sidebar-divider: rgb(255 255 255 / 10%);
+  --color-sidebar-hover: rgb(255 255 255 / 6%);
+  --color-sidebar-user-active: rgb(43 108 176 / 18%);
+  --color-sidebar-admin-active: rgb(85 60 154 / 18%);
+  --color-overlay: rgb(15 23 42 / 56%);
+
+  /* 字体与排版 */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC",
+    "Microsoft YaHei UI", "Source Han Sans SC", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --font-size-12: 12px;
+  --font-size-13: 13px;
+  --font-size-14: 14px;
+  --font-size-16: 16px;
+  --font-size-18: 18px;
+  --font-size-20: 20px;
+  --font-size-24: 24px;
+  --font-size-30: 30px;
+  --font-size-36: 36px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-title: 1.2;
+  --line-height-body: 1.5;
+  --line-height-description: 1.75;
+
+  /* 4px 栅格 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --radius-4: 4px;
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 4%);
+  --shadow-md: 0 4px 12px rgb(15 23 42 / 6%);
+  --shadow-lg: 0 12px 32px rgb(15 23 42 / 8%);
+  --shadow-focus: 0 0 0 3px rgb(43 108 176 / 12%);
+  --shadow-focus-admin: 0 0 0 3px rgb(85 60 154 / 12%);
+
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --topbar-height: 56px;
+  --content-max-width: 1280px;
+  --content-gutter: 32px;
+  --mobile-nav-height: 68px;
+  --transition-fast: 150ms ease;
+  --transition-layout: 200ms ease;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --content-gutter: 16px;
+  }
+}

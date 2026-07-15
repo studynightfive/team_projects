@@ -1,47 +1,58 @@
-# M01 统一前端设计基线
+# M01 V2 统一前端页面基线
 
-> 对应 Issue：[#9](https://github.com/studynightfive/team_projects/issues/9)
-> 状态：已由非作者批准并通过 PR #10 合入 `main`，现为 M01 实施基线
-> 适用里程碑：M01 `web-foundation`
+> 状态：候选基线。项目负责人将继续在本地调整登录页、用户工作台和管理中心；明确确认前不得把当前候选截图称为最终视觉基线。
 
-本目录是 M01 的项目级设计事实来源，不包含 `frontend/web/`、依赖、真实 API、认证或权限实现。它先于员工 1 的唯一 P0 总 Issue 合入 `main`，并在实现阶段继续用于生产截图对照，避免一边实现一边发明验收口径。
-
-## 文件职责
+## 当前事实来源
 
 | 文件 | 职责 |
 |---|---|
-| [`PRD.md`](PRD.md) | 用户价值、信息架构、页面状态和可观察验收 |
-| [`Tech-Spec.md`](Tech-Spec.md) | Vue 实现映射、响应式、可访问性和边界 |
-| [`tokens.css`](tokens.css) | M01 实际使用的语义视觉变量 |
+| [`V2-Redesign-Prompt.md`](V2-Redesign-Prompt.md) | 项目负责人提供的原始视觉与内容输入 |
+| [`PRD.md`](PRD.md) | 批准后的用户价值、页面结构、范围和验收 |
+| [`Tech-Spec.md`](Tech-Spec.md) | Vue 实现、交互、响应式、安全和验证映射 |
+| [`V2-Implementation-Spec.md`](V2-Implementation-Spec.md) | 原始提示词与仓库版本/架构冲突的处理决定 |
+| [`tokens-v2.css`](tokens-v2.css) | V2 生产实现唯一共享视觉变量 |
 | [`mock-data.json`](mock-data.json) | design-only 固定展示数据，不是 API Contract |
-| [`assets/manifest.md`](assets/manifest.md) | 真实资产来源与无自定义资产决定 |
-| [`source.md`](source.md) | 可编辑视觉源与截图生成规则 |
-| [`artifact.html`](artifact.html) | 可离线查看的静态 UI 事实来源 |
-| [`acceptance/manifest.md`](acceptance/manifest.md) | 七张验收图及逐图检查点 |
+| [`assets/manifest.md`](assets/manifest.md) | 图标、字体和品牌资产来源与限制 |
+| [`source.md`](source.md) | 可编辑实现与候选截图生成规则 |
+| [`acceptance/manifest.md`](acceptance/manifest.md) | V2 候选截图和逐项检查点 |
 
-## 已固定决定
+事实优先级为：用户最新明确决定 > PRD/Tech-Spec/实施规格 > tokens/Mock/生产实现 > 候选截图 > 原始提示词。原始提示词不能覆盖安全边界或不存在的依赖版本。
 
-- 产品名称只使用“智能知识库平台”，不创造品牌简称。
-- M01 不使用自定义 Logo、插画、Web Font 或远程图片。
-- 页面采用系统字体和文字产品名；M01 不为装饰图标新增依赖。
-- 视觉方向为克制、清晰、高密度但不拥挤的企业知识工具。
-- 桌面端使用 240px 侧栏与 64px 顶栏；375px 隐藏侧栏并保留可达的移动导航。
-- Mock 只证明布局和状态，不包含 `/me`、权限码、Token、Cookie、后端错误结构或未确认 DTO。
+## 当前三页
 
-这些视觉值和资产取舍已由项目负责人以非作者身份批准，任何后续变更都应同步更新可编辑 artifact 与验收截图。
+- `/login`：55:45 企业分屏登录；375px 为紧凑品牌头和单列表单。
+- `/`：普通用户工作台，包含搜索、动态问候、四指标、知识库和团队动态。
+- `/admin`：管理中心，包含四条 Sparkline、服务健康、治理事项和审计日志。
+
+真实登录、权限、业务子页面和业务 API 不属于本轮；未建设操作必须提供明确的后续开放反馈。
+
+## 技术决定
+
+- Ant Design Vue `4.2.6` 与 pnpm `11.13.0` 已获项目负责人明确批准。
+- `@lucide/vue@1.24.0` 是已废弃 `lucide-vue-next` 的官方替代包。
+- 保留 Vue 3.5、Pinia 3、Vite 7 和 TypeScript strict。
+- Sparkline 使用原生 SVG；不为四条静态曲线引入 ECharts。
+- 继续验收 375px，不采用提示词“只支持最小 1280px”的建议。
+
+## 历史证据
+
+`artifact.html`、`tokens.css` 和 `acceptance/` 内原有 PNG 为 V1 历史设计证据。它们不再是 V2 的像素参考，也不得覆盖当前生产实现。V2 候选生产截图位于 [`../../verification/m01-web-foundation`](../../verification/m01-web-foundation)。
 
 ## 本地查看
 
-直接打开 [`artifact.html`](artifact.html)，或使用查询参数固定视图：
-
-```text
-artifact.html?view=user
-artifact.html?view=admin
-artifact.html?view=states
+```powershell
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd run dev:web
 ```
 
-静态 artifact 不访问网络，不需要安装依赖。截图尺寸与文件名见 [`acceptance/manifest.md`](acceptance/manifest.md)。
+- 用户端：http://127.0.0.1:5173/
+- 登录页：http://127.0.0.1:5173/login
+- 管理端：http://127.0.0.1:5173/admin
 
-## M01 实现边界
+## 候选基线变更规则
 
-实现阶段可以复用 tokens、文案、布局尺寸和状态结构，但不得把 design-only Mock 当成 OpenAPI。M01 只建立工程和壳层；登录逻辑、路由守卫、权限码、401 刷新和业务页面仍属于后续里程碑。
+1. 项目负责人提出登录、用户或管理基线调整。
+2. 先同步 PRD、Tech-Spec、tokens 或 Mock 中受影响的事实。
+3. 修改共享组件和当前页面，并确保后续对应子页面继承最新基线。
+4. 重跑类型、Lint、测试、构建、依赖和浏览器验收。
+5. 生成受影响视口截图并由项目负责人确认。

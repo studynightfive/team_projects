@@ -11,7 +11,7 @@ describe("M01 移动端完整导航", () => {
     "%s 展开完整模块并通过关闭按钮返回焦点",
     async (path, moduleCount, workspaceSwitch) => {
       const { wrapper } = await renderAppAt(path);
-      const trigger = wrapper.get("button.mobile-menu");
+      const trigger = wrapper.get("button.mobile-menu-button");
 
       expect(trigger.attributes("aria-expanded")).toBe("false");
       expect(trigger.attributes("aria-controls")).toMatch(/mobile-drawer$/u);
@@ -42,7 +42,7 @@ describe("M01 移动端完整导航", () => {
 
   it("支持 Escape、遮罩和导航链接关闭", async () => {
     const { wrapper } = await renderAppAt("/");
-    const trigger = wrapper.get("button.mobile-menu");
+    const trigger = wrapper.get("button.mobile-menu-button");
 
     await trigger.trigger("click");
     await wrapper.get(".mobile-drawer").trigger("keydown", { key: "Escape" });
@@ -61,7 +61,7 @@ describe("M01 移动端完整导航", () => {
 
   it("在首尾可聚焦元素之间循环 Tab 焦点", async () => {
     const { wrapper } = await renderAppAt("/");
-    await wrapper.get("button.mobile-menu").trigger("click");
+    await wrapper.get("button.mobile-menu-button").trigger("click");
     await nextTick();
 
     const drawer = wrapper.get(".mobile-drawer");
@@ -79,7 +79,7 @@ describe("M01 移动端完整导航", () => {
 
   it("卸载时清除页面滚动锁", async () => {
     const { wrapper } = await renderAppAt("/");
-    await wrapper.get("button.mobile-menu").trigger("click");
+    await wrapper.get("button.mobile-menu-button").trigger("click");
     expect(document.body.classList.contains("drawer-open")).toBe(true);
 
     wrapper.unmount();
