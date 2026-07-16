@@ -1,0 +1,675 @@
+openapi: 3.0.3
+info:
+  title: 智能知识库平台 API
+  version: 0.1.0
+  description: 智能知识库平台 - REST API 规范（方案第14节）
+servers:
+  - url: /api/v1
+    description: API 前缀
+
+paths:
+  # ============================================================
+  # 健康检查
+  # ============================================================
+  /health/live:
+    get:
+      tags: [health]
+      summary: 存活检查
+      description: 返回 200 表示进程正常运行
+      responses:
+        "200":
+          description: 服务存活
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthLiveResponse"
+
+  /health/ready:
+    get:
+      tags: [health]
+      summary: 就绪检查
+      description: 检查数据库、Redis 和文件存储是否可用
+      responses:
+        "200":
+          description: 全部依赖就绪
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthReadyResponse"
+        "503":
+          description: 部分依赖不可用
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthReadyResponse"
+
+  # ============================================================
+  # 认证与个人信息
+  # ============================================================
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: 用户登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: 用户名或密码错误
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: 用户退出
+      responses:
+        "200":
+          description: 退出成功
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: 刷新 Token
+      responses:
+        "200":
+          description: 刷新成功
+
+  /me:
+    get:
+      tags: [auth]
+      summary: 获取当前用户信息
+      responses:
+        "200":
+          description: 当前用户信息
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "401":
+          description: 未登录
+
+  # ============================================================
+  # 用户管理
+  # ============================================================
+  /users:
+    get:
+      tags: [users]
+      summary: 用户列表
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: 用户列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedUsersResponse"
+    post:
+      tags: [users]
+      summary: 创建用户
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: 创建成功
+
+  /users/{user_id}:
+    patch:
+      tags: [users]
+      summary: 更新用户
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: 更新成功
+
+  /users/{user_id}/reset-password:
+    post:
+      tags: [users]
+      summary: 重置密码
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: 重置成功
+
+  # ============================================================
+  # 角色管理
+  # ============================================================
+  /roles:
+    get:
+      tags: [roles]
+      summary: 角色列表
+      responses:
+        "200":
+          description: 角色列表
+    post:
+      tags: [roles]
+      summary: 创建角色
+      responses:
+        "201":
+          description: 创建成功
+
+  /roles/{role_id}:
+    patch:
+      tags: [roles]
+      summary: 更新角色
+      parameters:
+        - name: role_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: 更新成功
+    delete:
+      tags: [roles]
+      summary: 删除角色
+      responses:
+        "200":
+          description: 删除成功
+
+  /roles/{role_id}/permissions:
+    put:
+      tags: [roles]
+      summary: 设置角色权限
+      parameters:
+        - name: role_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: 设置成功
+
+  # ============================================================
+  # 模型管理
+  # ============================================================
+  /models:
+    get:
+      tags: [models]
+      summary: 模型列表
+      responses:
+        "200":
+          description: 模型列表
+    post:
+      tags: [models]
+      summary: 创建模型
+      responses:
+        "201":
+          description: 创建成功
+
+  /models/{model_id}:
+    patch:
+      tags: [models]
+      summary: 更新模型
+      parameters:
+        - name: model_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: 更新成功
+    delete:
+      tags: [models]
+      summary: 删除模型
+      responses:
+        "200":
+          description: 删除成功
+
+  /models/{model_id}/test:
+    post:
+      tags: [models]
+      summary: 测试模型连通性
+      responses:
+        "200":
+          description: 测试成功
+
+  # ============================================================
+  # 知识库管理
+  # ============================================================
+  /knowledge-bases/available:
+    get:
+      tags: [knowledge-bases]
+      summary: 获取可用的知识库列表
+      responses:
+        "200":
+          description: 可用知识库列表
+
+  /knowledge-bases:
+    get:
+      tags: [knowledge-bases]
+      summary: 知识库列表
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: 知识库列表
+    post:
+      tags: [knowledge-bases]
+      summary: 创建知识库
+      responses:
+        "201":
+          description: 创建成功
+
+  /knowledge-bases/{kb_id}:
+    patch:
+      tags: [knowledge-bases]
+      summary: 更新知识库
+      responses:
+        "200":
+          description: 更新成功
+    delete:
+      tags: [knowledge-bases]
+      summary: 删除知识库
+      responses:
+        "200":
+          description: 删除成功
+
+  /knowledge-bases/{kb_id}/documents:
+    get:
+      tags: [knowledge-bases]
+      summary: 知识库文档列表
+      parameters:
+        - name: kb_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: 文档列表
+    post:
+      tags: [knowledge-bases]
+      summary: 上传文档到知识库
+      responses:
+        "201":
+          description: 上传成功
+
+  # ============================================================
+  # 文档管理
+  # ============================================================
+  /documents/{document_id}:
+    get:
+      tags: [documents]
+      summary: 获取文档详情
+      responses:
+        "200":
+          description: 文档详情
+    delete:
+      tags: [documents]
+      summary: 删除文档
+      responses:
+        "200":
+          description: 删除成功
+
+  /documents/{document_id}/markdown:
+    get:
+      tags: [documents]
+      summary: 获取文档 Markdown 内容
+      responses:
+        "200":
+          description: Markdown 内容
+
+  /documents/{document_id}/assets/{asset_id}:
+    get:
+      tags: [documents]
+      summary: 获取文档资源
+      responses:
+        "200":
+          description: 资源文件
+
+  /documents/{document_id}/chunks:
+    get:
+      tags: [documents]
+      summary: 获取文档分段
+      responses:
+        "200":
+          description: 分段列表
+
+  /documents/{document_id}/reprocess:
+    post:
+      tags: [documents]
+      summary: 重新处理文档
+      responses:
+        "200":
+          description: 重新处理任务已创建
+
+  /tasks/{task_id}:
+    get:
+      tags: [documents]
+      summary: 获取任务状态
+      responses:
+        "200":
+          description: 任务状态
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskResponse"
+
+  # ============================================================
+  # 检索
+  # ============================================================
+  /retrieval/search:
+    post:
+      tags: [retrieval]
+      summary: 检索
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: 检索结果
+
+  /retrieval-tests/run:
+    post:
+      tags: [retrieval]
+      summary: 运行命中率测试
+      responses:
+        "200":
+          description: 测试结果
+
+  # ============================================================
+  # 问答与会话
+  # ============================================================
+  /chat/stream:
+    post:
+      tags: [chat]
+      summary: 流式问答
+      description: SSE 流式接口，事件序列：start -> delta* -> citation* -> done
+      responses:
+        "200":
+          description: SSE 事件流
+
+  /conversations:
+    get:
+      tags: [chat]
+      summary: 会话列表
+      responses:
+        "200":
+          description: 会话列表
+
+  /conversations/{conversation_id}:
+    patch:
+      tags: [chat]
+      summary: 更新会话
+      responses:
+        "200":
+          description: 更新成功
+    delete:
+      tags: [chat]
+      summary: 删除会话
+      responses:
+        "200":
+          description: 删除成功
+
+  /conversations/{conversation_id}/messages:
+    get:
+      tags: [chat]
+      summary: 获取会话消息
+      responses:
+        "200":
+          description: 消息列表
+
+  # ============================================================
+  # 导出
+  # ============================================================
+  /exports:
+    post:
+      tags: [exports]
+      summary: 创建导出任务
+      responses:
+        "201":
+          description: 导出任务已创建
+
+  /exports/{export_id}:
+    get:
+      tags: [exports]
+      summary: 获取导出任务状态
+      responses:
+        "200":
+          description: 导出任务状态
+    delete:
+      tags: [exports]
+      summary: 删除导出任务
+      responses:
+        "200":
+          description: 删除成功
+
+  /exports/{export_id}/download:
+    get:
+      tags: [exports]
+      summary: 下载导出文件
+      responses:
+        "200":
+          description: 导出文件
+
+  # ============================================================
+  # 审计日志
+  # ============================================================
+  /audit-logs:
+    get:
+      tags: [audit]
+      summary: 审计日志列表
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: 审计日志列表
+
+# ============================================================
+# 数据模型定义
+# ============================================================
+components:
+  schemas:
+    # 统一响应格式
+    HealthLiveResponse:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+          example: ok
+        timestamp:
+          type: string
+          format: date-time
+
+    HealthReadyResponse:
+      type: object
+      required: [status, checks, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+            redis:
+              type: string
+            storage:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+        request_id:
+          type: string
+
+    MeResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            username:
+              type: string
+            display_name:
+              type: string
+            roles:
+              type: array
+            permissions:
+              type: array
+            knowledge_base_access:
+              type: array
+        request_id:
+          type: string
+
+    CreateUserRequest:
+      type: object
+      required: [username, display_name, password]
+      properties:
+        username:
+          type: string
+        display_name:
+          type: string
+        password:
+          type: string
+        role_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    PaginatedUsersResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+            page:
+              type: integer
+            page_size:
+              type: integer
+            total:
+              type: integer
+        request_id:
+          type: string
+
+    SearchRequest:
+      type: object
+      required: [query, mode]
+      properties:
+        query:
+          type: string
+        mode:
+          type: string
+          enum: [keyword, vector, hybrid]
+        kb_id:
+          type: string
+          format: uuid
+        top_k:
+          type: integer
+          default: 10
+
+    TaskResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            task_id:
+              type: string
+              format: uuid
+            task_type:
+              type: string
+            status:
+              type: string
+            stage:
+              type: string
+            progress:
+              type: integer
+            retry_count:
+              type: integer
+            error_code:
+              type: string
+            error_message:
+              type: string
+            request_id:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+            finished_at:
+              type: string
+              format: date-time
+        request_id:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
