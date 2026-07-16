@@ -34,3 +34,7 @@
 - 2026-07-15 接管项目治理时，远端 `main` 基线为 `c57255a162ffbd8ba59e353f9f46588c2e80e192`，仓库尚无工程代码、治理文件、Issue 模板或 CI。
 - 当前协作账号对仓库是 Write 权限而不是 Admin；项目不再要求管理员配置 GitHub 必需状态检查，也不再维护分支保护配置脚本。
 - 项目直接依赖必须精确锁定；Node.js `22.23.1`、pnpm `11.13.0`、Python `3.10.20`、uv `0.8.22`。
+- 2026-07-16 员工6 初始化后端基础设施时发现两个依赖版本冲突，已修复并记录：
+  - `redis` 从方案定版 `6.4.0` 降级为 `5.2.1`：`arq==0.26.3` 的依赖约束为 `redis>=4.2.0,<6`，不兼容 redis 6.x。后续若需升级 redis 6.x，必须同步升级 arq 到支持 redis 6 的版本。
+  - `pydantic-settings` 从方案定版 `2.12.0` 升级为 `2.14.0`：`docling==2.112.0` 的传递依赖 `docling-core` 要求 `pydantic-settings>=2.14.0`。后续若需降级 pydantic-settings，必须同步降级 docling 到兼容版本。
+  - 以上两个版本偏离已体现于 `backend/pyproject.toml` 和 `backend/uv.lock`，CI 中的 `uv sync --frozen` 以此为准。
