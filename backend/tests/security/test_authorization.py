@@ -4,7 +4,6 @@
 
 import pytest
 
-
 pytestmark = pytest.mark.skip(reason="后端权限模块尚未实现，安全测试待就位")
 
 
@@ -31,7 +30,9 @@ class TestAuthorizationBypass:
         """用户 A 尝试通过修改 UUID 查看无权文档 -> 403 或 404"""
         pass
 
-    async def test_partial_admin_cannot_access_unauthorized_modules(self, client, partial_admin_headers):
+    async def test_partial_admin_cannot_unauthorized(
+        self, client, partial_admin_headers
+    ):
         """部分管理员尝试访问未授权模块 -> 403"""
         pass
 

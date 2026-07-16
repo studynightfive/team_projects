@@ -1,6 +1,7 @@
 # 集成测试：问答到引用流程
 # 验证流式问答和引用溯源的完整链路
 import pytest
+
 pytestmark = pytest.mark.skip(reason="chat and citation modules not yet implemented")
 
 class TestChatToCitation:

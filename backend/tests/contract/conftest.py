@@ -2,7 +2,8 @@
 # 为所有契约测试模块提供统一的测试客户端和认证头
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from app.main import app
 
 

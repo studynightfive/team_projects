@@ -2,6 +2,7 @@
 # 方案第15.4节：内容安全
 # 验证 Markdown/HTML 内容的安全清洗
 import pytest
+
 pytestmark = pytest.mark.skip(reason="document processing module not yet implemented")
 
 class TestMarkdownXSS:

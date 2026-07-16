@@ -2,6 +2,7 @@
 # 方案第15.2节：Secret 管理
 # 验证密钥、密码、连接字符串不会泄露
 import pytest
+
 pytestmark = pytest.mark.skip(reason="model and export modules not yet implemented")
 
 class TestModelKeySecurity:

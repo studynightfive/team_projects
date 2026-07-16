@@ -1,5 +1,6 @@
 # 性能测试：队列积压
 import pytest
+
 pytestmark = pytest.mark.skip(reason="性能测试需手动执行")
 
 class TestQueueBacklog:

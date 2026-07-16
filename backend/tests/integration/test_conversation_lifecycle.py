@@ -1,6 +1,7 @@
 # 集成测试：会话管理
 # 验证会话的创建、重命名、搜索和删除
 import pytest
+
 pytestmark = pytest.mark.skip(reason="conversation module not yet implemented")
 
 class TestConversationLifecycle:

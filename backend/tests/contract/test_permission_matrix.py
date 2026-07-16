@@ -4,7 +4,6 @@
 
 import pytest
 
-
 # 当前后端权限模块尚未实现，全部测试暂时跳过
 pytestmark = pytest.mark.skip(reason="permission module not yet implemented")
 
@@ -45,11 +44,15 @@ class TestViewerAdminPermissions:
 class TestPartialAdminPermissions:
     """部分管理员权限测试"""
 
-    async def test_partial_admin_only_access_authorized_modules(self, client, partial_admin_headers):
+    async def test_partial_admin_only_authorized(
+        self, client, partial_admin_headers
+    ):
         """部分管理员只能访问授权模块"""
         pass
 
-    async def test_partial_admin_cannot_access_unauthorized_modules(self, client, partial_admin_headers):
+    async def test_partial_admin_cannot_unauthorized(
+        self, client, partial_admin_headers
+    ):
         """部分管理员不能访问未授权模块"""
         pass
 

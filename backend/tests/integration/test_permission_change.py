@@ -1,6 +1,7 @@
 # 集成测试：权限变更流程
 # 验证权限变更后的数据可见性和引用状态
 import pytest
+
 pytestmark = pytest.mark.skip(reason="permission and KB modules not yet implemented")
 
 class TestPermissionChange:

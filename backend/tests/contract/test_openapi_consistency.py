@@ -1,13 +1,10 @@
 # OpenAPI 规范一致性测试
 # 验证实际 API 响应与 OpenAPI 定义一致
 
-import json
-import os
 from pathlib import Path
 
 import pytest
 import yaml
-
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
@@ -19,7 +16,7 @@ def load_openapi_spec():
     if not spec_path.exists():
         pytest.skip("OpenAPI 规范文件不存在，跳过契约测试")
 
-    with open(spec_path, "r", encoding="utf-8") as f:
+    with open(spec_path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
