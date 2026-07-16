@@ -27,7 +27,7 @@ jobs:
         id: projects
         shell: bash
         run: |
-          if [[ -f package-lock.json ]]; then
+          if [[ -f pnpm-lock.yaml ]]; then
             echo "frontend=true" >> "$GITHUB_OUTPUT"
           else
             echo "frontend=false" >> "$GITHUB_OUTPUT"
@@ -48,34 +48,40 @@ jobs:
           test -f .github/ISSUE_TEMPLATE/feature.yml
           test -f .github/ISSUE_TEMPLATE/bug.yml
           test -f .github/pull_request_template.md
-          test -f scripts/configure-main-protection.ps1
+
+      - name: 配置 pnpm
+        if: steps.projects.outputs.frontend == 'true'
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.13.0
 
       - name: 配置 Node.js
         if: steps.projects.outputs.frontend == 'true'
         uses: actions/setup-node@v4.4.0
         with:
           node-version: 22.23.1
-          cache: npm
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: 安装前端依赖
         if: steps.projects.outputs.frontend == 'true'
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Web 类型检查
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present typecheck:web
+        run: pnpm run typecheck:web
 
       - name: Web Lint
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present lint:web
+        run: pnpm run lint:web
 
       - name: Web 测试
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present test:web
+        run: pnpm run test:web
 
       - name: Web 构建
         if: steps.projects.outputs.frontend == 'true'
-        run: npm run --if-present build:web
+        run: pnpm run build:web
 
       - name: 配置 Python
         if: steps.projects.outputs.backend == 'true'

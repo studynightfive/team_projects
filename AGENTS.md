@@ -55,13 +55,13 @@ git switch -c feature/<issue>-<name>
 
 ## 5. 固定版本
 
-- Node.js `22.23.1`，npm `10.9.8`。
+- Node.js `22.23.1`，pnpm `11.13.0`。
 - Python `3.10.20`，uv `0.8.22`。
-- Vue `3.5.39`、Vue Router `4.6.3`、Pinia `3.0.4`、Element Plus `2.14.3`。
-- Axios `1.13.2`、Markdown-It `14.1.0`、DOMPurify `3.3.0`、FileSaver `2.0.5`。
-- Vite `7.2.2`、TypeScript `5.9.3`、Vue TSC `3.3.7`、ESLint `9.39.1`、Prettier `3.6.2`、Vitest `4.1.10`。
+- Vue `3.5.39`、Vue Router `4.6.3`、Pinia `3.0.4`、Ant Design Vue `4.2.6`、Lucide Vue `1.24.0`。
+- Axios `1.18.1`、Markdown-It `14.1.0`、DOMPurify `3.3.0`、FileSaver `2.0.5`。
+- Vite `7.3.6`、TypeScript `5.9.3`、Vue TSC `3.3.7`、ESLint `9.39.1`、Prettier `3.6.2`、Vitest `4.1.10`。
 - FastAPI、数据库、文档处理工具及完整依赖版本以协作方案和锁文件为准。
-- 所有直接依赖使用精确版本，禁止 `^`、`~` 和 `latest`；提交 `package-lock.json` 与 `uv.lock`。
+- 所有直接依赖使用精确版本，禁止 `^`、`~` 和 `latest`；提交 `pnpm-lock.yaml` 与 `uv.lock`。
 
 ## 6. 前端规则
 
@@ -77,13 +77,13 @@ git switch -c feature/<issue>-<name>
 规定的统一前端命令：
 
 ```powershell
-npm.cmd run dev:web
-npm.cmd run dev:web:api
-npm.cmd run typecheck:web
-npm.cmd run lint:web
-npm.cmd run test:web
-npm.cmd run test:web:watch
-npm.cmd run build:web
+pnpm.cmd run dev:web
+pnpm.cmd run dev:web:api
+pnpm.cmd run typecheck:web
+pnpm.cmd run lint:web
+pnpm.cmd run test:web
+pnpm.cmd run test:web:watch
+pnpm.cmd run build:web
 ```
 
 ## 7. 后端与安全规则

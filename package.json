@@ -1,0 +1,21 @@
+{
+  "name": "team-projects",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "22.23.1",
+    "pnpm": "11.13.0"
+  },
+  "packageManager": "pnpm@11.13.0",
+  "scripts": {
+    "dev": "pnpm run dev:web",
+    "dev:web": "pnpm --filter @team-projects/web dev --mode mock",
+    "dev:web:api": "pnpm --filter @team-projects/web dev --mode api",
+    "typecheck:web": "pnpm --filter @team-projects/web typecheck",
+    "lint:web": "pnpm --filter @team-projects/web lint",
+    "test:web": "pnpm --filter @team-projects/web test",
+    "test:web:watch": "pnpm --filter @team-projects/web test:watch",
+    "build:web": "pnpm --filter @team-projects/web build",
+    "verify:web:browser": "pnpm --filter @team-projects/web verify:browser"
+  }
+}

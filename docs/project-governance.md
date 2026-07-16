@@ -1,7 +1,7 @@
 # 项目治理与 CI 基线
 
 > 对应 Issue：[#5](https://github.com/studynightfive/team_projects/issues/5)<br>
-> 状态：实施中<br>
+> 状态：已通过 PR #6 合入 `main`<br>
 > 日期：2026-07-15
 
 ## 1. 目标
@@ -14,9 +14,9 @@
 - 功能、缺陷 Issue 表单和 Pull Request 模板。
 - 项目 README 与固定运行时版本。
 - 可在空工程状态运行、在前后端工程出现后自动启用的 CI。
-- 可重复执行的 `main` 分支保护配置。
+- `main` 的 Pull Request 协作规则与 CI 基线。
 
-本分支不包含业务代码、Docker 环境或具体产品功能。
+治理基线交付不包含业务代码、Docker 环境或具体产品功能；后续功能分支复用这些规则。
 
 ## 3. Issue 和分支规则
 
@@ -30,18 +30,17 @@
 
 ## 4. CI 行为
 
-工作流名称为 `CI`，必需检查 Job 名称为 `quality`。
+工作流名称为 `CI`，质量检查 Job 名称为 `quality`。项目不要求把它配置成 GitHub 必需状态检查，但 Pull Request 仍需运行并通过该 Job。
 
 ### 无工程代码时
 
-- 验证 `AGENTS.md`、`MEMORY.md`、README、模板和治理脚本存在。
-- 不因为缺少 `package-lock.json` 或 `backend/pyproject.toml` 失败。
+- 验证 `AGENTS.md`、`MEMORY.md`、README 和协作模板存在。
+- 不因为缺少 `pnpm-lock.yaml` 或 `backend/pyproject.toml` 失败。
 
-### 根 npm 锁文件出现后
+### 根 pnpm 锁文件出现后
 
-- 使用 Node.js `22.23.1` 和 npm 缓存运行 `npm ci`。
-- 按存在情况运行统一 Web 应用的 typecheck、Lint、test、build 脚本。
-- `--if-present` 仅用于让独立团队按阶段接入；每个功能 Issue 自身仍必须提供并执行所属模块脚本。
+- 使用 Node.js `22.23.1`、pnpm `11.13.0` 和 pnpm 缓存运行 `pnpm install --frozen-lockfile`。
+- 直接运行统一 Web 应用的 typecheck、Lint、test、build 脚本；任一根脚本缺失都必须让 CI 失败。
 
 ### 后端项目出现后
 
@@ -49,40 +48,34 @@
 - 执行 `uv sync --project backend --frozen`。
 - 执行 Ruff、mypy 和 pytest。
 
-## 5. main 分支保护
+## 5. main 协作规则
 
-目标规则：
+仓库协作规则：
 
 - 禁止直接推送，所有变更通过 PR。
-- 必需状态检查：`quality`，分支必须与最新 `main` 同步。
+- Pull Request 的 `quality` CI 必须通过，分支在最终验收前必须与最新 `main` 同步。
 - 至少一名非作者批准，推送新提交后旧批准失效。
 - 最后一次推送者不能批准自己的变更。
 - 所有 Review 对话必须解决。
 - 禁止 force push 和删除 `main`。
 - 要求线性历史。
 
-仓库管理员运行：
-
-```powershell
-./scripts/configure-main-protection.ps1
-```
-
-脚本依赖已登录且具有仓库管理员权限的 GitHub CLI，不读取或写入任何凭据值。普通 Write 权限无法修改分支保护，这是 GitHub 权限边界，不应通过弱化规则绕过。
+2026-07-15 项目负责人已废除“管理员必须把 `quality` 配置为 GitHub 必需状态检查”的规则。因此不再提供或要求执行分支保护配置脚本；上述协作规则通过本地门禁、Pull Request 流程、CI 结果和评审共同执行。
 
 ## 6. 验收标准
 
 - 必需治理文件存在且内容与协作方案一致。
-- YAML 和 PowerShell 脚本通过语法检查。
-- CI 在当前空工程仓库中成功，在前后端工程出现后自动进入对应检查。
+- YAML 与工程配置通过语法或对应工具检查。
+- CI 在根 pnpm 锁文件出现后执行统一 Web 的安装、类型检查、Lint、测试和构建；后端工程出现后自动进入后端检查。
 - 分支已推送，PR 关联 #5。
-- 分支保护已由管理员应用；若权限不足，PR 中明确标记阻塞项和管理员命令。
+- 不依赖仓库管理员配置必需状态检查即可开始工程工作。
 
 ## 7. 风险与约束
 
 | 风险 | 处理 |
 |---|---|
-| 当前账号只有 Write 权限 | 保留可重复执行脚本，由仓库管理员应用保护规则 |
-| 工程尚未创建 | CI 使用文件检测，不伪造空项目或无意义依赖 |
+| GitHub 未强制 required check | 本地门禁、Pull Request CI 与非作者评审仍作为合入条件 |
+| 后端工程尚未创建 | CI 使用文件检测，不伪造空项目或无意义依赖 |
 | 团队分支长期未合并 | 每个分支保持单一可验收能力并从最新 main 创建 |
 | API 字段由前端猜测 | OpenAPI 先行；未确认接口只做静态 UI |
 | 依赖版本漂移 | 固定运行时、精确直接依赖并提交锁文件 |
@@ -92,11 +85,6 @@
 
 ```powershell
 git diff --check
-
-# PowerShell 语法
-[scriptblock]::Create(
-  (Get-Content -Raw scripts/configure-main-protection.ps1)
-) | Out-Null
 
 # GitHub CLI 和仓库权限（不输出凭据）
 gh api user --jq .login

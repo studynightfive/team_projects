@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目处于治理与工程基线阶段。业务代码尚未进入 `main`；功能分支必须在对应 Issue、接口契约和验收标准明确后创建。
+统一前端 M01 `web-foundation` V2 已由项目负责人批准并冻结为正式视觉与交互基线。M02–M14 的后续 16 个业务路由也已按该基线完成本地可交互页面和浏览器验证，但尚未接入真实认证、权限、OpenAPI 类型或业务接口；因此当前结论是“本地页面已开发”，不是业务联调或统一前端 P0 最终交付完成。
 
 ## 总体架构
 
@@ -44,18 +44,18 @@ scripts/            可重复执行的工程脚本
 
 ## 固定环境
 
-| 工具 | 版本 |
-|---|---:|
-| Node.js | 22.23.1 |
-| npm | 10.9.8 |
-| Python | 3.10.20 |
-| uv | 0.8.22 |
-| Docker Engine | 27.5.1 |
-| Docker Compose | 2.32.4 |
-| PostgreSQL | 17.10 |
-| Redis | 7.4.9 |
+| 工具           |    版本 |
+| -------------- | ------: |
+| Node.js        | 22.23.1 |
+| pnpm           | 11.13.0 |
+| Python         | 3.10.20 |
+| uv             |  0.8.22 |
+| Docker Engine  |  27.5.1 |
+| Docker Compose |  2.32.4 |
+| PostgreSQL     |   17.10 |
+| Redis          |   7.4.9 |
 
-所有直接依赖精确锁定，禁止 `^`、`~` 和 `latest`。完整依赖基线见《知识库平台_5人团队分工协作方案.md》。
+所有直接依赖精确锁定，禁止 `^`、`~` 和 `latest`。统一前端使用 Ant Design Vue `4.2.6` 与 `@lucide/vue` `1.24.0`。完整依赖基线见《知识库平台\_5人团队分工协作方案.md》。
 
 ## 开发工作流
 
@@ -64,7 +64,7 @@ scripts/            可重复执行的工程脚本
 3. 从最新 `main` 创建 `feature/<issue>-<name>` 或 `fix/<issue>-<name>`。
 4. 实现并运行相关类型检查、Lint、测试和构建。
 5. 推送分支并创建关联 Issue 的 Pull Request。
-6. 至少一名非作者评审和必需 CI 通过后合并。
+6. 至少一名非作者评审和 Pull Request `quality` CI 通过后合并。
 
 员工 1 的统一前端 P0 使用经批准的整体交付流程：一个总 Issue、一个长期功能分支、15 个里程碑和一个持续更新的 Draft PR；每个里程碑先本地通过再推送，全部门禁通过后才转 Ready。详见 [员工 1 统一前端完整实施计划](员工1_统一前端完整实施计划.md)。
 
@@ -75,18 +75,20 @@ scripts/            可重复执行的工程脚本
 前端工程进入仓库后，在根目录使用：
 
 ```powershell
-npm.cmd ci
-npm.cmd run dev:web
-npm.cmd run dev:web:api
-npm.cmd run typecheck:web
-npm.cmd run lint:web
-npm.cmd run test:web
-npm.cmd run build:web
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd run dev:web
+pnpm.cmd run dev:web:api
+pnpm.cmd run typecheck:web
+pnpm.cmd run lint:web
+pnpm.cmd run test:web
+pnpm.cmd run test:web:watch
+pnpm.cmd run build:web
+pnpm.cmd run verify:web:browser
 ```
 
-- `dev:web` 使用类型安全 Mock。
+- `dev:web` 使用 design-only 固定数据，Mock Adapter 默认拒绝所有未注册请求，不访问真实业务网络。
 - `dev:web:api` 通过 Vite 代理访问 `http://127.0.0.1:8000/api`。
-- 普通用户入口为 `http://localhost:5173`，管理中心为 `http://localhost:5173/admin`。
+- 普通用户入口为 `http://127.0.0.1:5173`，管理中心为 `http://127.0.0.1:5173/admin`。
 
 ## 安全
 

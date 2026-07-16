@@ -1,42 +1,49 @@
-# M01 可编辑视觉源
+# M01 V2 可编辑视觉源
 
-## 唯一来源
+## 当前来源
 
-M01 不使用外部 Figma 文件。仓库内以下文件共同构成可追溯、可编辑的视觉源：
+V2 不再使用 V1 `artifact.html` 作为生产像素事实。当前可编辑视觉源由以下内容共同构成：
 
-- [`artifact.html`](artifact.html)：页面结构、状态组合和响应式行为。
-- [`tokens.css`](tokens.css)：静态 artifact 与后续实现共同复用的视觉变量。
-- [`mock-data.json`](mock-data.json)：只服务设计状态的确定性示例数据。
-- [`assets/manifest.md`](assets/manifest.md)：资产来源、授权和“无自定义资产”决定。
+- [`V2-Redesign-Prompt.md`](V2-Redesign-Prompt.md)：原始需求输入。
+- [`PRD.md`](PRD.md) 与 [`Tech-Spec.md`](Tech-Spec.md)：批准后的页面与实现规则。
+- [`tokens-v2.css`](tokens-v2.css)：共享视觉变量。
+- [`mock-data.json`](mock-data.json)：确定性 design-only 数据。
+- `frontend/web/src/`：三页可运行 Vue 静态实现和共享组件。
 
-验收图必须从上述文件所在的同一 Git 提交生成。单独修改 PNG 不会改变设计基线。
+PNG 是由同一工作树生成的正式验收证据，不能单独编辑后作为设计变更。
 
 ## 视图入口
 
-静态 artifact 使用查询参数切换固定视图：
-
 ```text
-artifact.html?view=user
-artifact.html?view=admin
-artifact.html?view=states
+http://127.0.0.1:5173/login
+http://127.0.0.1:5173/
+http://127.0.0.1:5173/admin
+http://127.0.0.1:5173/403
+http://127.0.0.1:5173/does-not-exist
 ```
 
-`states` 视图在同一状态板中覆盖登录、加载、空、通用错误、403 和 404。所有入口均不得依赖网络资源，直接打开本地 HTML 也必须可查看。
+Mock 模式不需要后端，不发送业务 `/api` 请求。
 
-## 导出视口
+## 正式导出视口
 
-| 文件族 | 视口 |
+| 页面 | 视口 |
 |---|---:|
-| `*-1440.png` | 1440 × 1000 |
-| `*-1280.png` | 1280 × 900 |
-| `*-375.png` | 375 × 812 |
-| `system-states-1440.png` | 1440 × 1000 |
+| 登录、用户、管理 | 1920 × 1080 |
+| 登录、用户、管理、403、404 | 1440 × 1000 |
+| 登录、用户、管理、403、404 | 1280 × 900 |
+| 登录、用户、管理、403、404 | 375 × 812 |
+| 用户/管理折叠态 | 1440 × 1000 |
 
-Chrome 截图使用 1 倍设备缩放、隐藏滚动条，不加载扩展或用户浏览器配置。具体文件映射和验收点见 [`acceptance/manifest.md`](acceptance/manifest.md)。
+浏览器使用 DPR=1、独立临时 profile、隐藏滚动条，不加载扩展或用户会话。
 
-## 变更规则
+## 变更顺序
 
-1. 先修改 PRD、Tech-Spec 或 tokens 等上游事实来源。
-2. 同步静态 artifact 与 design-only Mock。
-3. 重新生成所有受影响尺寸的图片。
-4. 在 PR 中记录变更原因、用户影响和视觉差异。
+1. 更新 PRD、Tech-Spec、实施规格或 tokens。
+2. 同步 Mock、共享组件和三页实现。
+3. 运行全部本地门禁。
+4. 通过 `pnpm.cmd run verify:web:browser` 重新生成生产截图和机器报告。
+5. 人工检查桌面/移动布局、文字、间距、交互和长内容。
+
+## V1 归档
+
+`artifact.html`、`tokens.css` 与 `acceptance/` 原图片保持 V1 历史状态，仅用于追踪改版差异；V2 正式证据统一保存在 `docs/verification/m01-web-foundation/`，不回写或覆盖 V1 资产。

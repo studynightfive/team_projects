@@ -1,0 +1,468 @@
+{
+  "meta": {
+    "purpose": "M02-M14 本地页面视觉与交互数据，不代表 API 契约",
+    "updatedAt": "2026-07-16",
+    "apiRequestsAllowed": false
+  },
+  "sampleRoutes": {
+    "knowledgeBaseId": "product-handbook",
+    "documentId": "release-guide",
+    "conversationId": "conv-release-review"
+  },
+  "knowledgeBases": [
+    {
+      "id": "product-handbook",
+      "name": "产品与发布手册",
+      "description": "产品规范、发布流程和版本复盘的统一资料库。",
+      "type": "团队知识库",
+      "documents": 126,
+      "updated": "10 分钟前",
+      "tone": "blue"
+    },
+    {
+      "id": "engineering-playbook",
+      "name": "研发效能手册",
+      "description": "研发流程、质量门禁和故障处理经验。",
+      "type": "部门知识库",
+      "documents": 84,
+      "updated": "今天 09:20",
+      "tone": "green"
+    },
+    {
+      "id": "customer-insights",
+      "name": "客户洞察资料",
+      "description": "经过脱敏的访谈摘要、反馈分类和需求趋势。",
+      "type": "项目知识库",
+      "documents": 52,
+      "updated": "昨天 17:40",
+      "tone": "violet"
+    },
+    {
+      "id": "security-guides",
+      "name": "安全与合规指南",
+      "description": "权限、数据处理和发布前安全检查清单。",
+      "type": "制度知识库",
+      "documents": 38,
+      "updated": "7 月 14 日",
+      "tone": "amber"
+    }
+  ],
+  "documents": [
+    {
+      "id": "release-guide",
+      "knowledgeBaseId": "product-handbook",
+      "name": "统一发布流程与回滚指南.md",
+      "category": "发布流程",
+      "status": "已索引",
+      "pages": 18,
+      "updated": "10 分钟前",
+      "owner": "平台团队"
+    },
+    {
+      "id": "quality-gates",
+      "knowledgeBaseId": "product-handbook",
+      "name": "前端质量门禁清单.pdf",
+      "category": "质量规范",
+      "status": "已索引",
+      "pages": 12,
+      "updated": "今天 09:20",
+      "owner": "研发效能组"
+    },
+    {
+      "id": "incident-review",
+      "knowledgeBaseId": "product-handbook",
+      "name": "服务降级复盘模板.docx",
+      "category": "复盘模板",
+      "status": "处理中",
+      "pages": 8,
+      "updated": "昨天 18:05",
+      "owner": "SRE 团队"
+    },
+    {
+      "id": "release-checklist",
+      "knowledgeBaseId": "product-handbook",
+      "name": "版本发布检查表.xlsx",
+      "category": "发布流程",
+      "status": "需复核",
+      "pages": 6,
+      "updated": "7 月 14 日",
+      "owner": "产品运营组"
+    }
+  ],
+  "searchResults": [
+    {
+      "id": "result-release-guide",
+      "title": "统一发布流程与回滚指南",
+      "documentId": "release-guide",
+      "knowledgeBaseId": "product-handbook",
+      "page": 8,
+      "score": "96%",
+      "snippet": "发布窗口开始前必须完成质量门禁、数据库变更确认和回滚路径演练。",
+      "tags": ["发布", "回滚", "质量门禁"]
+    },
+    {
+      "id": "result-quality-gates",
+      "title": "前端质量门禁清单",
+      "documentId": "quality-gates",
+      "knowledgeBaseId": "product-handbook",
+      "page": 3,
+      "score": "91%",
+      "snippet": "合并前需要完成类型检查、Lint、单元测试、生产构建与关键视口验证。",
+      "tags": ["前端", "CI", "验收"]
+    },
+    {
+      "id": "result-incident-review",
+      "title": "服务降级复盘模板",
+      "documentId": "incident-review",
+      "knowledgeBaseId": "product-handbook",
+      "page": 2,
+      "score": "84%",
+      "snippet": "复盘记录需要区分触发条件、用户影响、恢复时间线和长期改进动作。",
+      "tags": ["故障", "复盘", "可靠性"]
+    }
+  ],
+  "conversations": [
+    {
+      "id": "conv-release-review",
+      "title": "发布前需要检查哪些内容？",
+      "preview": "发布前建议按质量、数据、运维和沟通四个维度确认……",
+      "updated": "10 分钟前",
+      "messages": 8,
+      "pinned": true
+    },
+    {
+      "id": "conv-search-strategy",
+      "title": "混合检索参数怎么设置",
+      "preview": "先使用中等 TopK，再根据召回结果调整阈值……",
+      "updated": "今天 09:30",
+      "messages": 5,
+      "pinned": false
+    },
+    {
+      "id": "conv-incident-template",
+      "title": "帮我整理一次故障复盘",
+      "preview": "可以按影响、时间线、根因和改进项组织……",
+      "updated": "昨天 16:18",
+      "messages": 12,
+      "pinned": false
+    },
+    {
+      "id": "conv-permission-design",
+      "title": "最小权限应该如何落地",
+      "preview": "页面可见性和服务端鉴权需要分别处理……",
+      "updated": "7 月 14 日",
+      "messages": 6,
+      "pinned": false
+    }
+  ],
+  "downloads": [
+    {
+      "id": "export-20260716-01",
+      "name": "统一发布流程与回滚指南.pdf",
+      "format": "PDF",
+      "status": "已完成",
+      "progress": 100,
+      "created": "今天 10:20",
+      "expires": "7 天后过期"
+    },
+    {
+      "id": "export-20260716-02",
+      "name": "发布资料合集.zip",
+      "format": "ZIP",
+      "status": "处理中",
+      "progress": 68,
+      "created": "今天 10:16",
+      "expires": "完成后保留 7 天"
+    },
+    {
+      "id": "export-20260715-03",
+      "name": "检索结果摘要.docx",
+      "format": "DOCX",
+      "status": "失败",
+      "progress": 36,
+      "created": "昨天 17:45",
+      "expires": "可重新创建"
+    },
+    {
+      "id": "export-20260708-04",
+      "name": "历史会话记录.md",
+      "format": "Markdown",
+      "status": "已过期",
+      "progress": 100,
+      "created": "7 月 8 日",
+      "expires": "已过期"
+    }
+  ],
+  "users": [
+    {
+      "id": "user-demo-01",
+      "name": "林晓晨",
+      "email": "xiaocheng@example.com",
+      "department": "产品中心",
+      "roles": ["知识库编辑者"],
+      "status": "正常",
+      "lastActive": "10 分钟前"
+    },
+    {
+      "id": "user-demo-02",
+      "name": "周予安",
+      "email": "yuan@example.com",
+      "department": "研发中心",
+      "roles": ["平台管理员", "知识库编辑者"],
+      "status": "正常",
+      "lastActive": "今天 09:42"
+    },
+    {
+      "id": "user-demo-03",
+      "name": "陈知夏",
+      "email": "zhixia@example.com",
+      "department": "客户成功部",
+      "roles": ["普通用户"],
+      "status": "待激活",
+      "lastActive": "尚未登录"
+    },
+    {
+      "id": "user-demo-04",
+      "name": "顾言川",
+      "email": "yanchuan@example.com",
+      "department": "运营中心",
+      "roles": ["普通用户"],
+      "status": "已停用",
+      "lastActive": "7 月 10 日"
+    }
+  ],
+  "roles": [
+    {
+      "id": "role-admin",
+      "name": "平台管理员",
+      "description": "查看并维护全部管理模块，本地预览不代表真实授权。",
+      "members": 3,
+      "permissions": 18,
+      "scope": "全部知识库"
+    },
+    {
+      "id": "role-editor",
+      "name": "知识库编辑者",
+      "description": "维护获授权知识库和文档。",
+      "members": 12,
+      "permissions": 8,
+      "scope": "指定知识库"
+    },
+    {
+      "id": "role-user",
+      "name": "普通用户",
+      "description": "浏览、检索、问答和导出获授权内容。",
+      "members": 86,
+      "permissions": 5,
+      "scope": "按数据权限"
+    }
+  ],
+  "models": [
+    {
+      "id": "model-chat-primary",
+      "name": "主问答模型",
+      "provider": "兼容接口 A",
+      "model": "chat-model-v2",
+      "purpose": "问答生成",
+      "status": "已启用",
+      "credential": "已配置",
+      "latency": "820 ms"
+    },
+    {
+      "id": "model-embedding-primary",
+      "name": "中文向量模型",
+      "provider": "本地服务",
+      "model": "embedding-model-zh",
+      "purpose": "向量化",
+      "status": "已启用",
+      "credential": "无需密钥",
+      "latency": "96 ms"
+    },
+    {
+      "id": "model-rerank",
+      "name": "结果重排模型",
+      "provider": "兼容接口 B",
+      "model": "rerank-model-v1",
+      "purpose": "结果重排",
+      "status": "已停用",
+      "credential": "已配置",
+      "latency": "未测试"
+    }
+  ],
+  "adminKnowledgeBases": [
+    {
+      "id": "kb-admin-01",
+      "name": "产品与发布手册",
+      "owner": "产品中心",
+      "documents": 126,
+      "members": 42,
+      "status": "正常",
+      "retrieval": "混合 / TopK 8 / 0.62"
+    },
+    {
+      "id": "kb-admin-02",
+      "name": "研发效能手册",
+      "owner": "研发中心",
+      "documents": 84,
+      "members": 36,
+      "status": "正常",
+      "retrieval": "向量 / TopK 10 / 0.58"
+    },
+    {
+      "id": "kb-admin-03",
+      "name": "客户洞察资料",
+      "owner": "客户成功部",
+      "documents": 52,
+      "members": 18,
+      "status": "归档中",
+      "retrieval": "关键词 / TopK 12 / 0.50"
+    }
+  ],
+  "adminDocuments": [
+    {
+      "id": "admin-doc-01",
+      "name": "统一发布流程与回滚指南.md",
+      "knowledgeBase": "产品与发布手册",
+      "size": "1.8 MB",
+      "status": "已索引",
+      "updated": "10 分钟前"
+    },
+    {
+      "id": "admin-doc-02",
+      "name": "前端质量门禁清单.pdf",
+      "knowledgeBase": "研发效能手册",
+      "size": "3.2 MB",
+      "status": "处理中",
+      "updated": "今天 09:20"
+    },
+    {
+      "id": "admin-doc-03",
+      "name": "服务降级复盘模板.docx",
+      "knowledgeBase": "研发效能手册",
+      "size": "860 KB",
+      "status": "失败",
+      "updated": "昨天 18:05"
+    },
+    {
+      "id": "admin-doc-04",
+      "name": "扫描版安全规范.pdf",
+      "knowledgeBase": "安全与合规指南",
+      "size": "8.6 MB",
+      "status": "需复核",
+      "updated": "7 月 14 日"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-demo-01",
+      "name": "前端质量门禁清单.pdf",
+      "stage": "向量索引",
+      "status": "处理中",
+      "progress": 72,
+      "detail": "已完成解析、清洗与分段",
+      "created": "今天 09:20"
+    },
+    {
+      "id": "task-demo-02",
+      "name": "服务降级复盘模板.docx",
+      "stage": "格式转换",
+      "status": "失败",
+      "progress": 34,
+      "detail": "本地预览：文档结构检查未通过",
+      "created": "昨天 18:05"
+    },
+    {
+      "id": "task-demo-03",
+      "name": "扫描版安全规范.pdf",
+      "stage": "OCR 复核",
+      "status": "需人工处理",
+      "progress": 58,
+      "detail": "3 页低置信度内容等待复核",
+      "created": "7 月 14 日"
+    },
+    {
+      "id": "task-demo-04",
+      "name": "统一发布流程与回滚指南.md",
+      "stage": "已完成",
+      "status": "成功",
+      "progress": 100,
+      "detail": "18 个章节，126 个片段",
+      "created": "7 月 13 日"
+    }
+  ],
+  "retrievalResults": [
+    {
+      "id": "test-result-01",
+      "documentId": "release-guide",
+      "knowledgeBaseId": "product-handbook",
+      "title": "统一发布流程与回滚指南",
+      "page": 8,
+      "score": "0.96",
+      "snippet": "发布窗口开始前必须完成质量门禁和回滚路径演练。"
+    },
+    {
+      "id": "test-result-02",
+      "documentId": "quality-gates",
+      "knowledgeBaseId": "product-handbook",
+      "title": "前端质量门禁清单",
+      "page": 3,
+      "score": "0.91",
+      "snippet": "合并前完成类型检查、Lint、测试、构建和关键视口验证。"
+    },
+    {
+      "id": "test-result-03",
+      "documentId": "incident-review",
+      "knowledgeBaseId": "product-handbook",
+      "title": "服务降级复盘模板",
+      "page": 2,
+      "score": "0.84",
+      "snippet": "复盘记录需要区分用户影响、恢复时间线和长期改进动作。"
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "audit-demo-01",
+      "time": "2026-07-16 10:24:18",
+      "operator": "周予安",
+      "action": "更新知识库参数",
+      "resource": "产品与发布手册",
+      "requestId": "demo-req-7f21",
+      "ip": "192.0.2.18",
+      "result": "成功",
+      "detail": "TopK: 6 → 8；阈值: 0.60 → 0.62"
+    },
+    {
+      "id": "audit-demo-02",
+      "time": "2026-07-16 09:52:06",
+      "operator": "林晓晨",
+      "action": "创建导出任务",
+      "resource": "发布资料合集.zip",
+      "requestId": "demo-req-6c14",
+      "ip": "198.51.100.24",
+      "result": "成功",
+      "detail": "请求内容已掩码，仅保留格式与文档数量。"
+    },
+    {
+      "id": "audit-demo-03",
+      "time": "2026-07-15 18:12:44",
+      "operator": "顾言川",
+      "action": "测试模型连接",
+      "resource": "结果重排模型",
+      "requestId": "demo-req-4a82",
+      "ip": "203.0.113.9",
+      "result": "失败",
+      "detail": "凭据、请求体和内部错误已隐藏。"
+    },
+    {
+      "id": "audit-demo-04",
+      "time": "2026-07-15 16:40:11",
+      "operator": "周予安",
+      "action": "停用用户",
+      "resource": "user-demo-04",
+      "requestId": "demo-req-3d55",
+      "ip": "192.0.2.42",
+      "result": "成功",
+      "detail": "仅展示资源标识，不展示账号敏感字段。"
+    }
+  ]
+}
