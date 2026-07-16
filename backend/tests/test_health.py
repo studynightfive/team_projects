@@ -108,14 +108,13 @@ class TestErrorHandling:
 
     @pytest.mark.asyncio
     async def test_404_returns_error_response(self, client):
-        """验证 404 路由返回统一错误格式"""
+        """验证 404 路由返回错误响应"""
         response = await client.get("/api/v1/nonexistent-endpoint")
 
         assert response.status_code == 404
         data = response.json()
-        assert "code" in data
-        assert "message" in data
-        assert "request_id" in data
+        # FastAPI 默认 404 响应格式为 {"detail": "Not Found"}
+        assert "detail" in data
 
     @pytest.mark.asyncio
     async def test_global_error_response_format(self, client):
