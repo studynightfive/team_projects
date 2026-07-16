@@ -2,10 +2,10 @@
 # 使用 SQLAlchemy 2.0 异步引擎
 # 采用异步会话管理，支持 PostgreSQL + pgvector
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
-from app.common.config import settings
 
+from app.common.config import settings
 
 # ============================================================
 # 数据库引擎：异步 PostgreSQL 连接

@@ -2,8 +2,8 @@
 # 使用 pydantic-settings 从环境变量加载配置
 # 所有 Secret 通过环境变量在运行时注入，不硬编码
 
+
 from pydantic_settings import BaseSettings
-from typing import List
 
 
 class Settings(BaseSettings):
@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # ============================================================
     # CORS 配置：允许跨域访问的域名列表
     # ============================================================
-    cors_origins: List[str] = ["http://localhost:5173", "http://localhost:80"]
+    cors_origins: list[str] = ["http://localhost:5173", "http://localhost:80"]
 
     # ============================================================
     # 数据库配置：PostgreSQL 连接信息

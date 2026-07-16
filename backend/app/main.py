@@ -1,16 +1,17 @@
 # 智能知识库平台 - FastAPI 应用入口
 # 负责创建 FastAPI 实例、注册中间件、加载路由、配置生命周期事件
 
-import structlog
+import time
+import uuid
 from contextlib import asynccontextmanager
+
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import uuid
-import time
 
-from app.common.config import settings
 from app.api.health import router as health_router
+from app.common.config import settings
 
 # 初始化结构化日志记录器
 logger = structlog.get_logger()

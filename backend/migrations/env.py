@@ -5,11 +5,10 @@
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 
 # Alembic Config 对象
 config = context.config
@@ -19,11 +18,13 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # 从应用配置中获取数据库 URL
-from app.common.config import settings
+from app.common.config import settings  # noqa: E402
+
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # 导入所有模型元数据（用于自动检测 schema 变更）
-from app.common.database import Base
+from app.common.database import Base  # noqa: E402
+
 target_metadata = Base.metadata
 
 
