@@ -1,0 +1,112 @@
+# Prometheus 告警规则
+# 方案第17.4节：监控必须覆盖告警
+
+groups:
+  # ============================================================
+  # P0 严重告警：需立即响应
+  # ============================================================
+  - name: critical_alerts
+    rules:
+      - alert: APIServiceDown
+        expr: up{job="api-server"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API 服务不可用"
+          description: "API Server 已停止响应超过1分钟，请立即检查。"
+
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "数据库不可用"
+          description: "PostgreSQL 已停止响应超过1分钟。"
+
+      - alert: WorkerHeartbeatTimeout
+        expr: worker_heartbeat_seconds > 60
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Worker 心跳超时"
+          description: "Worker 心跳超过60秒未更新，文档处理和导出任务可能停滞。"
+
+      - alert: DiskUsageHigh
+        expr: file_storage_used_bytes / 1073741824 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "磁盘使用超过90%"
+          description: "文件存储使用量已超过90%，上传和导出可能失败。"
+
+      - alert: APIErrorRateHigh
+        expr: rate(api_requests_total{status_code=~"5.."}[5m]) / rate(api_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API 错误率超过10%"
+          description: "5分钟内5xx错误占比超过10%，后端服务可能异常。"
+
+  # ============================================================
+  # P1 警告告警：需在1小时内关注
+  # ============================================================
+  - name: warning_alerts
+    rules:
+      - alert: APILatencyHigh
+        expr: histogram_quantile(0.95, rate(api_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API P95 延迟超过5秒"
+          description: "5分钟窗口内P95延迟超过5秒，性能下降。"
+
+      - alert: TaskQueueBacklog
+        expr: document_task_queue_length > 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "任务队列积压超过20"
+          description: "文档任务队列积压超过20个，处理能力可能不足。"
+
+      - alert: RetrievalNoHitRateHigh
+        expr: rate(retrieval_no_hits_total[5m]) / rate(retrieval_requests_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "检索无命中率超过50%"
+          description: "5分钟内无命中率超过50%，索引可能异常。"
+
+      - alert: ModelRequestFailureRateHigh
+        expr: rate(model_requests_total{status="failure"}[5m]) / rate(model_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "模型请求失败率超过5%"
+          description: "5分钟内模型请求失败率超过5%，模型服务可能异常。"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / 1073741824 > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 内存超过80%"
+          description: "Redis 内存使用超过80%，缓存或队列配置可能不足。"
+
+      - alert: SlowQueriesHigh
+        expr: rate(db_query_duration_seconds_bucket{le="1.0"}[1m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "慢查询过多"
+          description: "每分钟超过10个慢查询（>1秒），可能缺少索引或查询低效。"

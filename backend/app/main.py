@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.health import router as health_router
 from app.common.config import settings
+from app.common.metrics import metrics_endpoint, metrics_middleware
 
 # 初始化结构化日志记录器
 logger = structlog.get_logger()
@@ -144,6 +145,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ============================================================
 # 健康检查路由（/api/v1/health/live、/api/v1/health/ready）
 app.include_router(health_router, prefix="/api/v1")
+
+# Prometheus 指标路由（/api/v1/metrics）
+app.add_api_route("/api/v1/metrics", metrics_endpoint, methods=["GET"], tags=["metrics"])
+
+# 注册指标中间件（自动收集 API 请求指标）
+app.middleware("http")(metrics_middleware)
 
 
 # ============================================================
