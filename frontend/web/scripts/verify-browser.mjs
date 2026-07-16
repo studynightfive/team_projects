@@ -143,7 +143,7 @@ const localPageRoutes = [
     name: "knowledge-list",
     path: "/knowledge",
     shell: "user",
-    title: "知识库",
+    title: "企业知识库",
   },
   {
     name: "knowledge-detail",
@@ -161,13 +161,13 @@ const localPageRoutes = [
     name: "search",
     path: "/search",
     shell: "user",
-    title: "知识检索",
+    title: "搜索结果",
   },
   {
     name: "chat-new",
     path: "/chat",
     shell: "user",
-    title: "新会话",
+    title: "AI 助手",
   },
   {
     name: "chat-detail",
@@ -221,7 +221,7 @@ const localPageRoutes = [
     name: "admin-tasks",
     path: "/admin/tasks",
     shell: "admin",
-    title: "转换任务",
+    title: "任务中心",
   },
   {
     name: "admin-retrieval-tests",
@@ -558,7 +558,7 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
       metrics.contentInnerWidth <= 1280,
       metrics.contentInnerWidth,
     );
-    if (testCase.group === "m01") {
+    if (testCase.group === "m01" && testCase.shell === "admin") {
       recordCheck(
         checks,
         "桌面指标保持四列",
@@ -587,7 +587,7 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
       metrics.contentPaddingLeft === 16 && metrics.contentPaddingRight === 16,
       `${metrics.contentPaddingLeft}/${metrics.contentPaddingRight}`,
     );
-    if (testCase.group === "m01") {
+    if (testCase.group === "m01" && testCase.shell === "admin") {
       recordCheck(
         checks,
         "移动端指标单列",
@@ -598,7 +598,7 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     recordCheck(
       checks,
       "移动完整导航项正确",
-      drawer.navigationCount === (testCase.shell === "user" ? 6 : 11),
+      drawer.navigationCount === 11,
       drawer.navigationCount,
     );
     recordCheck(
@@ -625,15 +625,27 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
   if (testCase.group === "m01" && testCase.shell === "user") {
     recordCheck(
       checks,
-      "用户指标共四张",
-      metrics.statCardCount === 4,
-      metrics.statCardCount,
+      "AI 搜索首页主视觉存在",
+      metrics.searchHeroCount === 1,
+      metrics.searchHeroCount,
     );
     recordCheck(
       checks,
-      "团队动态内容存在",
-      metrics.activityCount === 4,
-      metrics.activityCount,
+      "高频任务共五项",
+      metrics.quickActionCount === 5,
+      metrics.quickActionCount,
+    );
+    recordCheck(
+      checks,
+      "继续工作与常用知识板块存在",
+      metrics.homeInformationSectionCount === 2,
+      metrics.homeInformationSectionCount,
+    );
+    recordCheck(
+      checks,
+      "数据源状态共四项",
+      metrics.dataSourceCardCount === 4,
+      metrics.dataSourceCardCount,
     );
   }
 
@@ -844,6 +856,7 @@ const run = async () => {
           }
           await document.fonts.ready;
           await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          await new Promise((resolve) => setTimeout(resolve, 100));
           return true;
         })()`,
       );
@@ -918,6 +931,10 @@ const run = async () => {
               .split(/\\s+/u).filter(Boolean).length,
             statCardCount: document.querySelectorAll(".stat-grid .stat-card").length,
             activityCount: document.querySelectorAll(".activity-list li").length,
+            searchHeroCount: document.querySelectorAll(".search-hero").length,
+            quickActionCount: document.querySelectorAll(".quick-action-list > button").length,
+            homeInformationSectionCount: document.querySelectorAll(".home-information-grid > section").length,
+            dataSourceCardCount: document.querySelectorAll(".data-source-summary-list > article").length,
             sparklineCount: document.querySelectorAll(".admin-stat-grid .sparkline").length,
             sparklinePointCount: document.querySelectorAll(".admin-stat-grid .sparkline-point").length,
             auditHeaderBackground: style(".audit-table thead th")?.backgroundColor,

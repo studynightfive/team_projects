@@ -6,7 +6,11 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "../api/client";
-import { adminNavigation, userNavigation } from "../data/foundation";
+import {
+  adminNavigation,
+  type NavigationChildItem,
+  userNavigation,
+} from "../data/foundation";
 import { renderAppAt } from "./renderApp";
 
 interface BusinessRouteCase {
@@ -21,7 +25,7 @@ const businessRoutes: readonly BusinessRouteCase[] = [
   {
     name: "knowledge-list",
     path: "/knowledge",
-    title: "知识库",
+    title: "企业知识库",
     shell: "user",
     activeNavigation: "企业知识库",
   },
@@ -91,7 +95,7 @@ const businessRoutes: readonly BusinessRouteCase[] = [
   {
     name: "chat-new",
     path: "/chat",
-    title: "新会话",
+    title: "AI 助手",
     shell: "user",
     activeNavigation: "AI 助手",
   },
@@ -107,7 +111,7 @@ const businessRoutes: readonly BusinessRouteCase[] = [
     path: "/conversations",
     title: "历史会话",
     shell: "user",
-    activeNavigation: "最近浏览",
+    activeNavigation: "历史会话",
   },
   {
     name: "downloads",
@@ -154,7 +158,7 @@ const businessRoutes: readonly BusinessRouteCase[] = [
   {
     name: "admin-tasks",
     path: "/admin/tasks",
-    title: "转换任务",
+    title: "任务中心",
     shell: "admin",
     activeNavigation: "文档与任务",
   },
@@ -185,8 +189,11 @@ const getButton = (wrapper: VueWrapper, label: string): DOMWrapper<Element> => {
 };
 
 const getDocumentButton = (label: string): HTMLButtonElement => {
+  const normalizedLabel = label.replace(/\s+/g, "");
   const button = Array.from(document.querySelectorAll("button")).find(
-    (candidate) => candidate.textContent?.includes(label) === true,
+    (candidate) =>
+      candidate.textContent?.replace(/\s+/g, "").includes(normalizedLabel) ===
+      true,
   );
   if (button === undefined) {
     throw new Error(`未找到文档按钮：${label}`);
@@ -230,6 +237,65 @@ describe("M02-M14 本地业务路由", () => {
       expect(sessionStorage).toHaveLength(0);
     },
   );
+
+  it("用户直达模块的侧栏、顶部标题和页面主标题保持一致", async () => {
+    const { wrapper, router } = await renderAppAt("/");
+
+    for (const item of userNavigation) {
+      await router.push(item.to);
+      await flushPromises();
+
+      expect(wrapper.get(".topbar-breadcrumb strong").text()).toBe(item.label);
+      if (item.to !== "/") {
+        expect(wrapper.get("h1").text()).toBe(item.label);
+      }
+    }
+  });
+
+  it.each([
+    { path: "/search", moduleName: "AI 搜索" },
+    {
+      path: "/knowledge/product-handbook",
+      moduleName: "企业知识库",
+    },
+    {
+      path: "/knowledge/product-handbook/documents/release-guide",
+      moduleName: "企业知识库",
+    },
+    {
+      path: "/chat/conv-release-review",
+      moduleName: "AI 助手",
+    },
+  ])("$path 的详情上下文归属于 $moduleName", async ({ path, moduleName }) => {
+    const { wrapper, router } = await renderAppAt(path);
+
+    expect(router.currentRoute.value.meta.parentTitle).toBe(moduleName);
+    expect(wrapper.get(".topbar-breadcrumb span").text()).toBe(moduleName);
+    const eyebrow = wrapper.find(".page-eyebrow");
+    if (eyebrow.exists()) {
+      expect(eyebrow.text()).toContain(moduleName);
+    } else {
+      expect(wrapper.get("h1").text()).toContain(moduleName);
+    }
+  });
+
+  it("管理端直达模块及组合导航子模块使用同一名称", async () => {
+    const directModules = adminNavigation.flatMap<NavigationChildItem>(
+      (item) => {
+        if ("children" in item) return item.children;
+        return item.to === "/admin" ? [] : [{ label: item.label, to: item.to }];
+      },
+    );
+    const { wrapper, router } = await renderAppAt("/admin/models");
+
+    for (const item of directModules) {
+      await router.push(item.to);
+      await flushPromises();
+
+      expect(wrapper.get(".admin-current-title").text()).toBe(item.label);
+      expect(wrapper.get("h1").text()).toBe(item.label);
+    }
+  });
 
   it("桌面与移动完整导航覆盖正式入口并保持可点击", async () => {
     expect(userNavigation.every((item) => item.to !== undefined)).toBe(true);
@@ -395,12 +461,79 @@ describe("M03-M07 用户页面本地交互", () => {
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
+  it("搜索历史重置关键词并在确认后批量删除当前筛选结果", async () => {
+    const requestSpy = vi.spyOn(apiClient, "request");
+    const history = await renderAppAt("/history");
+    const searchInput = history.wrapper.get(
+      'input[placeholder="搜索问题或来源"]',
+    );
+
+    await searchInput.setValue("差旅报销");
+    expect(history.wrapper.findAll(".history-list article")).toHaveLength(1);
+    await getButton(history.wrapper, "重置搜索").trigger("click");
+    expect((searchInput.element as HTMLInputElement).value).toBe("");
+    expect(history.wrapper.findAll(".history-list article")).toHaveLength(8);
+
+    await searchInput.setValue("差旅报销");
+    await getButton(history.wrapper, "批量删除当前筛选结果").trigger("click");
+    await flushPromises();
+    expect(document.querySelector(".ant-modal-confirm")).not.toBeNull();
+    expect(history.wrapper.find(".delete-confirmation").exists()).toBe(false);
+    expect(document.body.textContent).toContain("确认批量删除 1 条筛选结果？");
+    getDocumentButton("确认批量删除").click();
+    await flushPromises();
+    expect(history.wrapper.text()).toContain("没有符合条件的搜索记录");
+    expect(requestSpy).not.toHaveBeenCalled();
+  });
+
+  it("收藏与搜索历史单条删除使用模态弹窗，取消不会误删", async () => {
+    const favorites = await renderAppAt("/favorites");
+    const favoriteTitle = favorites.wrapper.get(".favorite-copy h2").text();
+
+    await favorites.wrapper
+      .get('button[aria-label^="删除收藏"]')
+      .trigger("click");
+    await flushPromises();
+    expect(document.querySelector(".ant-modal-confirm")).not.toBeNull();
+    expect(favorites.wrapper.find(".delete-confirmation").exists()).toBe(false);
+    expect(document.body.textContent).toContain("确认删除这条收藏？");
+    getDocumentButton("取消").click();
+    await flushPromises();
+    expect(favorites.wrapper.text()).toContain(favoriteTitle);
+
+    await favorites.wrapper
+      .get('button[aria-label^="删除收藏"]')
+      .trigger("click");
+    await flushPromises();
+    getDocumentButton("确认删除").click();
+    await flushPromises();
+    expect(favorites.wrapper.text()).not.toContain(favoriteTitle);
+    favorites.wrapper.unmount();
+
+    const history = await renderAppAt("/history");
+    await history.wrapper.get('button[aria-label^="删除"]').trigger("click");
+    await flushPromises();
+    expect(document.querySelector(".ant-modal-confirm")).not.toBeNull();
+    expect(history.wrapper.find(".delete-confirmation").exists()).toBe(false);
+    expect(document.body.textContent).toContain("确认删除这条搜索记录？");
+    getDocumentButton("取消").click();
+    await flushPromises();
+  });
+
   it("新问答逐段展示、停止和历史引用均不启动网络请求", async () => {
     const requestSpy = vi.spyOn(apiClient, "request");
     const chat = await renderAppAt("/chat");
+    const promptInput = chat.wrapper.get("#chat-prompt");
 
-    await chat.wrapper.get("#chat-prompt").setValue("如何准备发布？");
-    await chat.wrapper.get("form.composer").trigger("submit");
+    expect(chat.wrapper.findAll(".suggested-prompt")).toHaveLength(3);
+    await chat.wrapper.findAll(".suggested-prompt")[0]?.trigger("click");
+    expect((promptInput.element as HTMLTextAreaElement).value).toBe(
+      "发布上线前需要检查哪些内容？",
+    );
+    await promptInput.setValue("如何准备发布？");
+    await promptInput.trigger("keydown", { key: "Enter", shiftKey: true });
+    expect(chat.wrapper.findAll(".message")).toHaveLength(0);
+    await promptInput.trigger("keydown", { key: "Enter" });
     expect(chat.wrapper.text()).toContain("如何准备发布？");
     expect(chat.wrapper.get(".preview-status").text()).toBe("正在逐段展示");
     await getButton(chat.wrapper, "停止生成").trigger("click");
@@ -412,6 +545,12 @@ describe("M03-M07 用户页面本地交互", () => {
     expect(history.wrapper.get(".citation-card").attributes("href")).toContain(
       "/knowledge/product-handbook/documents/release-guide",
     );
+    expect(
+      history.wrapper.find(".citation-card .lucide-arrow-up-right").exists(),
+    ).toBe(false);
+    expect(
+      history.wrapper.find(".citation-card .lucide-chevron-right").exists(),
+    ).toBe(true);
     history.wrapper.unmount();
 
     const missing = await renderAppAt("/chat/missing-conversation");
@@ -431,7 +570,13 @@ describe("M03-M07 用户页面本地交互", () => {
     await conversations.wrapper
       .get('button[aria-label^="删除本地会话名称"]')
       .trigger("click");
-    await getButton(conversations.wrapper, "确认删除").trigger("click");
+    await flushPromises();
+    expect(document.querySelector(".ant-modal-confirm")).not.toBeNull();
+    expect(conversations.wrapper.find(".delete-confirmation").exists()).toBe(
+      false,
+    );
+    getDocumentButton("确认删除").click();
+    await flushPromises();
     expect(conversations.wrapper.text()).not.toContain("本地会话名称");
     conversations.wrapper.unmount();
 
@@ -446,7 +591,11 @@ describe("M03-M07 用户页面本地交互", () => {
     await downloads.wrapper
       .get('button[aria-label^="删除统一发布流程"]')
       .trigger("click");
-    await getButton(downloads.wrapper, "确认删除").trigger("click");
+    await flushPromises();
+    expect(document.querySelector(".ant-modal-confirm")).not.toBeNull();
+    expect(downloads.wrapper.find(".delete-confirmation").exists()).toBe(false);
+    getDocumentButton("确认删除").click();
+    await flushPromises();
     expect(downloads.wrapper.text()).toContain("没有匹配的导出任务");
     expect(requestSpy).not.toHaveBeenCalled();
   });

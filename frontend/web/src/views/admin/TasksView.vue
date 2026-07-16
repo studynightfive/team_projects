@@ -55,8 +55,8 @@ const updateTaskPreview = (id: string, action: "重试" | "复核"): void => {
 <template>
   <div class="business-page dashboard-page admin-local-page">
     <PageHeader
-      eyebrow="任务中心"
-      title="文档处理任务"
+      eyebrow="文档与任务"
+      title="任务中心"
       description="查看处理阶段、进度、失败原因和人工复核入口。"
     >
       <template #actions>

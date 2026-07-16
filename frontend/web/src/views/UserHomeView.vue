@@ -8,7 +8,7 @@ import AiSearchBox from "../components/search/AiSearchBox.vue";
 import SearchContextPanel from "../components/search/SearchContextPanel.vue";
 import SearchStatusBadge from "../components/search/SearchStatusBadge.vue";
 import {
-  ArrowUpRight,
+  ChevronRight,
   Database,
   FileUp,
   FlaskConical,
@@ -270,7 +270,7 @@ onBeforeUnmount(() => {
                 <strong>{{ action.label }}</strong>
                 <small>{{ action.description }}</small>
               </span>
-              <ArrowUpRight :size="16" aria-hidden="true" />
+              <ChevronRight :size="16" aria-hidden="true" />
             </button>
           </div>
         </section>
@@ -299,7 +299,7 @@ onBeforeUnmount(() => {
                   <small>{{ formatDate(history.createdAt) }} ·
                     {{ history.resultCount }} 条结果</small>
                 </span>
-                <ArrowUpRight :size="16" aria-hidden="true" />
+                <ChevronRight :size="16" aria-hidden="true" />
               </button>
             </div>
           </section>
@@ -327,7 +327,7 @@ onBeforeUnmount(() => {
                   <small>{{ space.department }} ·
                     {{ space.documentCount }} 份文档</small>
                 </span>
-                <ArrowUpRight :size="16" aria-hidden="true" />
+                <ChevronRight :size="16" aria-hidden="true" />
               </RouterLink>
             </div>
           </section>
@@ -367,6 +367,7 @@ onBeforeUnmount(() => {
       </main>
 
       <SearchContextPanel
+        class="home-search-context"
         :open="isContextOpen"
         :query="query || '尚未输入搜索问题'"
         :selected-sources="sources"
@@ -431,10 +432,18 @@ onBeforeUnmount(() => {
   font-weight: var(--font-weight-medium);
 }
 
+.search-hero-greeting,
+.search-hero h1,
+.search-hero-description {
+  font-family:
+    "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", SimSun,
+    "宋体", var(--font-sans);
+}
+
 .search-hero-greeting {
   margin-bottom: var(--space-2);
   color: var(--color-text-muted);
-  font-size: var(--font-size-14);
+  font-size: var(--font-size-16);
 }
 
 .search-hero h1 {
@@ -520,7 +529,7 @@ onBeforeUnmount(() => {
 
 .home-section-heading span {
   color: var(--color-primary);
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -544,15 +553,19 @@ onBeforeUnmount(() => {
 }
 
 .quick-action-list button {
+  position: relative;
+  display: grid;
   min-width: 0;
-  min-height: 84px;
+  min-height: 132px;
+  align-content: start;
+  justify-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-8);
   color: var(--color-text-secondary);
   background: var(--color-surface-subtle);
-  text-align: left;
+  text-align: center;
 }
 
 .quick-action-list button > span:nth-child(2),
@@ -565,6 +578,17 @@ onBeforeUnmount(() => {
   gap: var(--space-1);
 }
 
+.quick-action-list button > span:nth-child(2) {
+  width: 100%;
+  justify-items: center;
+}
+
+.quick-action-list button > svg {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+}
+
 .quick-action-list strong,
 .recent-search-list strong,
 .knowledge-space-list strong,
@@ -575,6 +599,12 @@ onBeforeUnmount(() => {
   font-weight: var(--font-weight-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.quick-action-list strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .quick-action-list small,
@@ -641,12 +671,28 @@ onBeforeUnmount(() => {
 }
 
 .data-source-summary-list article {
+  display: grid;
   min-width: 0;
+  min-height: 132px;
+  align-content: start;
+  justify-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-8);
   background: var(--color-surface-subtle);
+  text-align: center;
+}
+
+.data-source-summary-list article > span:nth-child(2) {
+  width: 100%;
+  justify-items: center;
+}
+
+.data-source-summary-list strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .mock-data-notice {
@@ -659,7 +705,11 @@ onBeforeUnmount(() => {
   .workbench-home-layout.context-open {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 320px;
-    gap: var(--space-5);
+    gap: var(--space-8);
+  }
+
+  .home-search-context {
+    margin-top: 189px;
   }
 }
 

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import InlineState from "../../components/InlineState.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import {
-  ArrowUpRight,
   BookOpen,
+  ChevronRight,
   Search,
   SquareLibrary,
   UsersRound,
@@ -29,6 +29,7 @@ const keyword = ref("");
 const department = ref("all");
 const selectedSpaceId = ref<string>("");
 const activeTab = ref<SpaceTab>("overview");
+const detailPanel = ref<HTMLElement>();
 
 const routeSpaceId = computed(() => {
   const queryValue = route.query.space;
@@ -86,9 +87,11 @@ watch(
   { immediate: true },
 );
 
-const openSpace = (spaceId: string): void => {
+const openSpace = async (spaceId: string): Promise<void> => {
   selectedSpaceId.value = spaceId;
   activeTab.value = "overview";
+  await nextTick();
+  detailPanel.value?.scrollIntoView?.({ behavior: "smooth", block: "start" });
 };
 
 const askSpace = (question?: string): void => {
@@ -165,135 +168,138 @@ const handleSpaceTabKeydown = (
       </select>
     </div>
 
-    <div v-if="filteredSpaces.length > 0" class="knowledge-space-grid">
-      <article
-        v-for="space in filteredSpaces"
-        :key="space.id"
-        :class="{ selected: selectedSpaceId === space.id }"
-      >
-        <header>
-          <div class="space-card-icon" aria-hidden="true">
-            <SquareLibrary :size="20" />
-          </div>
-          <span>{{ space.permissionType }}</span>
-        </header>
-        <h2>{{ space.name }}</h2>
-        <p>{{ space.description }}</p>
-        <dl>
-          <div>
-            <dt>所属部门</dt>
-            <dd>{{ space.department }}</dd>
-          </div>
-          <div>
-            <dt>负责人</dt>
-            <dd>{{ space.owner }}</dd>
-          </div>
-          <div>
-            <dt>成员</dt>
-            <dd>{{ space.memberCount.toLocaleString("zh-CN") }} 人</dd>
-          </div>
-          <div>
-            <dt>文档</dt>
-            <dd>{{ space.documentCount.toLocaleString("zh-CN") }} 份</dd>
-          </div>
-        </dl>
-        <button type="button" @click="openSpace(space.id)">
-          查看空间概览
-          <ArrowUpRight :size="16" aria-hidden="true" />
-        </button>
-      </article>
-    </div>
-
-    <InlineState
-      v-else
-      kind="empty"
-      title="没有匹配的知识空间"
-      description="请清空关键词或切换到全部部门。"
-    />
-
-    <section
-      v-if="selectedSpace"
-      class="space-detail-panel"
-      aria-labelledby="space-detail-title"
-    >
-      <header class="space-detail-heading">
-        <div>
-          <span>空间详情</span>
-          <h2 id="space-detail-title">{{ selectedSpace.name }}</h2>
-        </div>
-        <button class="primary-button" type="button" @click="askSpace()">
-          <Search :size="16" aria-hidden="true" />
-          向此空间提问
-        </button>
-      </header>
-
-      <div class="space-detail-tabs" role="tablist" aria-label="空间详情栏目">
-        <button
-          v-for="option in spaceTabOptions"
-          :id="`space-tab-${option.value}`"
-          :key="option.value"
-          type="button"
-          role="tab"
-          :aria-selected="activeTab === option.value"
-          aria-controls="space-detail-content"
-          :tabindex="activeTab === option.value ? 0 : -1"
-          @click="selectSpaceTab(option.value)"
-          @keydown="handleSpaceTabKeydown($event, option.value)"
+    <div class="space-browser-layout">
+      <div v-if="filteredSpaces.length > 0" class="knowledge-space-grid">
+        <article
+          v-for="space in filteredSpaces"
+          :key="space.id"
+          :class="{ selected: selectedSpaceId === space.id }"
         >
-          {{ option.label }}
-        </button>
+          <header>
+            <div class="space-card-icon" aria-hidden="true">
+              <SquareLibrary :size="20" />
+            </div>
+            <span>{{ space.permissionType }}</span>
+          </header>
+          <h2>{{ space.name }}</h2>
+          <p>{{ space.description }}</p>
+          <dl>
+            <div>
+              <dt>所属部门</dt>
+              <dd>{{ space.department }}</dd>
+            </div>
+            <div>
+              <dt>负责人</dt>
+              <dd>{{ space.owner }}</dd>
+            </div>
+            <div>
+              <dt>成员</dt>
+              <dd>{{ space.memberCount.toLocaleString("zh-CN") }} 人</dd>
+            </div>
+            <div>
+              <dt>文档</dt>
+              <dd>{{ space.documentCount.toLocaleString("zh-CN") }} 份</dd>
+            </div>
+          </dl>
+          <button type="button" @click="openSpace(space.id)">
+            查看空间概览
+            <ChevronRight :size="16" aria-hidden="true" />
+          </button>
+        </article>
       </div>
 
-      <div
-        id="space-detail-content"
-        class="space-detail-content"
-        role="tabpanel"
-        :aria-labelledby="`space-tab-${activeTab}`"
+      <InlineState
+        v-else
+        kind="empty"
+        title="没有匹配的知识空间"
+        description="请清空关键词或切换到全部部门。"
+      />
+
+      <section
+        v-if="selectedSpace"
+        ref="detailPanel"
+        class="space-detail-panel"
+        aria-labelledby="space-detail-title"
       >
-        <template v-if="activeTab === 'overview'">
-          <div class="space-overview-metric">
-            <div>
-              <BookOpen :size="18" aria-hidden="true" />
-              {{ selectedSpace.documentCount }} 份文档
-            </div>
-            <div>
-              <UsersRound :size="18" aria-hidden="true" />
-              {{ selectedSpace.memberCount }} 名成员
-            </div>
+        <header class="space-detail-heading">
+          <div>
+            <span>空间详情</span>
+            <h2 id="space-detail-title">{{ selectedSpace.name }}</h2>
           </div>
-          <p>{{ selectedSpace.description }}</p>
-        </template>
-        <template v-else-if="activeTab === 'documents'">
-          <p>
-            文档清单等待知识库 OpenAPI；当前空间共有
-            {{ selectedSpace.documentCount }} 份模拟文档。
-          </p>
-        </template>
-        <template v-else-if="activeTab === 'members'">
-          <p>
-            成员权限等待认证与知识库契约；当前仅展示负责人
-            {{ selectedSpace.owner }}。
-          </p>
-        </template>
-        <template v-else-if="activeTab === 'questions'">
-          <button
-            v-for="question in selectedSpace.recentQuestions"
-            :key="question"
-            class="space-question-button"
-            type="button"
-            @click="askSpace(question)"
-          >
-            {{ question }}
-            <ArrowUpRight :size="16" aria-hidden="true" />
+          <button class="primary-button" type="button" @click="askSpace()">
+            <Search :size="16" aria-hidden="true" />
+            向此空间提问
           </button>
-        </template>
-        <template v-else>
-          <p>
-            空间设置只对具备管理权限的用户开放；本地页面不会修改权限或服务端数据。
-          </p>
-        </template>
-      </div>
-    </section>
+        </header>
+
+        <div class="space-detail-tabs" role="tablist" aria-label="空间详情栏目">
+          <button
+            v-for="option in spaceTabOptions"
+            :id="`space-tab-${option.value}`"
+            :key="option.value"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === option.value"
+            aria-controls="space-detail-content"
+            :tabindex="activeTab === option.value ? 0 : -1"
+            @click="selectSpaceTab(option.value)"
+            @keydown="handleSpaceTabKeydown($event, option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+
+        <div
+          id="space-detail-content"
+          class="space-detail-content"
+          role="tabpanel"
+          :aria-labelledby="`space-tab-${activeTab}`"
+        >
+          <template v-if="activeTab === 'overview'">
+            <div class="space-overview-metric">
+              <div>
+                <BookOpen :size="18" aria-hidden="true" />
+                {{ selectedSpace.documentCount }} 份文档
+              </div>
+              <div>
+                <UsersRound :size="18" aria-hidden="true" />
+                {{ selectedSpace.memberCount }} 名成员
+              </div>
+            </div>
+            <p>{{ selectedSpace.description }}</p>
+          </template>
+          <template v-else-if="activeTab === 'documents'">
+            <p>
+              文档清单等待知识库 OpenAPI；当前空间共有
+              {{ selectedSpace.documentCount }} 份模拟文档。
+            </p>
+          </template>
+          <template v-else-if="activeTab === 'members'">
+            <p>
+              成员权限等待认证与知识库契约；当前仅展示负责人
+              {{ selectedSpace.owner }}。
+            </p>
+          </template>
+          <template v-else-if="activeTab === 'questions'">
+            <button
+              v-for="question in selectedSpace.recentQuestions"
+              :key="question"
+              class="space-question-button"
+              type="button"
+              @click="askSpace(question)"
+            >
+              {{ question }}
+              <ChevronRight :size="16" aria-hidden="true" />
+            </button>
+          </template>
+          <template v-else>
+            <p>
+              空间设置只对具备管理权限的用户开放；本地页面不会修改权限或服务端数据。
+            </p>
+          </template>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -351,9 +357,20 @@ const handleSpaceTabKeydown = (
   background: var(--color-surface);
 }
 
+.space-browser-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(440px, 0.9fr);
+  align-items: start;
+  gap: var(--space-5);
+}
+
+.space-browser-layout > .inline-state {
+  grid-column: 1 / -1;
+}
+
 .knowledge-space-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
 }
 
@@ -434,6 +451,8 @@ const handleSpaceTabKeydown = (
 }
 
 .space-detail-panel {
+  position: sticky;
+  top: calc(var(--topbar-height) + var(--space-5));
   padding: var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-12);
@@ -467,7 +486,7 @@ const handleSpaceTabKeydown = (
 
 .space-detail-tabs button {
   min-height: 36px;
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-2);
   border-radius: var(--radius-8);
   color: var(--color-text-muted);
   background: transparent;
@@ -505,9 +524,20 @@ const handleSpaceTabKeydown = (
   background: var(--color-primary-soft);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1300px) {
   .knowledge-space-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .space-browser-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .space-detail-panel {
+    position: static;
+    order: -1;
   }
 }
 
@@ -526,6 +556,11 @@ const handleSpaceTabKeydown = (
 
   .knowledge-space-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .space-detail-tabs button {
+    padding: 0 var(--space-1);
+    font-size: var(--font-size-12);
   }
 }
 </style>

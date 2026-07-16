@@ -43,7 +43,7 @@ const sourceLabels = {
 } satisfies Record<SearchSourceType, string>;
 
 const router = useRouter();
-const { message } = AntApp.useApp();
+const { message, modal } = AntApp.useApp();
 const keyword = ref("");
 const modeFilter = ref<"all" | SearchMode>("all");
 const favoriteOnly = ref(false);
@@ -52,8 +52,6 @@ const titleOverrides = ref<Record<string, string>>({});
 const favoriteOverrides = ref<Record<string, boolean>>({});
 const editingId = ref<string>();
 const editTitle = ref("");
-const pendingDeleteId = ref<string>();
-const pendingClearIds = ref<readonly string[]>([]);
 
 const getTitle = (item: SearchHistory): string =>
   titleOverrides.value[item.id] ?? item.query;
@@ -94,10 +92,6 @@ const historyGroups = computed<readonly HistoryGroup[]>(() => {
 
   return Array.from(groupedItems, ([label, items]) => ({ label, items }));
 });
-const pendingClearTitle = computed(
-  () => `确认批量清除 ${pendingClearIds.value.length} 条筛选结果？`,
-);
-
 const formatTime = (value: string): string =>
   new Date(value).toLocaleTimeString("zh-CN", {
     hour: "2-digit",
@@ -106,8 +100,6 @@ const formatTime = (value: string): string =>
   });
 
 const startRename = (item: SearchHistory): void => {
-  pendingDeleteId.value = undefined;
-  pendingClearIds.value = [];
   editingId.value = item.id;
   editTitle.value = getTitle(item);
 };
@@ -138,35 +130,51 @@ const toggleFavorite = (item: SearchHistory): void => {
   void message.success(nextValue ? "已加入本地收藏" : "已取消本地收藏");
 };
 
-const confirmDelete = (): void => {
-  if (!pendingDeleteId.value) return;
-
-  hiddenIds.value = new Set([...hiddenIds.value, pendingDeleteId.value]);
-  pendingDeleteId.value = undefined;
-  void message.success("记录已从当前页面移除，刷新后恢复模拟数据");
+const requestDelete = (historyId: string): void => {
+  editingId.value = undefined;
+  modal.confirm({
+    title: "确认删除这条搜索记录？",
+    content: "本操作只影响当前页面，刷新后会恢复固定模拟数据。",
+    okText: "确认删除",
+    okType: "danger",
+    cancelText: "取消",
+    centered: true,
+    autoFocusButton: "cancel",
+    onOk: () => {
+      hiddenIds.value = new Set([...hiddenIds.value, historyId]);
+      void message.success("记录已从当前页面移除，刷新后恢复模拟数据");
+    },
+  });
 };
 
-const requestClearFiltered = (): void => {
+const resetSearch = (): void => {
+  keyword.value = "";
+};
+
+const requestBulkDeleteFiltered = (): void => {
   const visibleIds = filteredHistory.value.map((item) => item.id);
   if (visibleIds.length === 0) {
-    void message.info("当前筛选条件下没有可清除的记录");
+    void message.info("当前筛选条件下没有可删除的记录");
     return;
   }
 
-  pendingDeleteId.value = undefined;
   editingId.value = undefined;
-  pendingClearIds.value = visibleIds;
-};
-
-const confirmClearFiltered = (): void => {
-  if (pendingClearIds.value.length === 0) return;
-
-  hiddenIds.value = new Set([...hiddenIds.value, ...pendingClearIds.value]);
-  const clearedCount = pendingClearIds.value.length;
-  pendingClearIds.value = [];
-  void message.success(
-    `已从当前页面清除 ${clearedCount} 条筛选结果，刷新后恢复模拟数据`,
-  );
+  modal.confirm({
+    title: `确认批量删除 ${visibleIds.length} 条筛选结果？`,
+    content:
+      "只删除点击按钮时当前筛选出的记录；其他记录不受影响，刷新后模拟数据会恢复。",
+    okText: "确认批量删除",
+    okType: "danger",
+    cancelText: "取消",
+    centered: true,
+    autoFocusButton: "cancel",
+    onOk: () => {
+      hiddenIds.value = new Set([...hiddenIds.value, ...visibleIds]);
+      void message.success(
+        `已从当前页面删除 ${visibleIds.length} 条筛选结果，刷新后恢复模拟数据`,
+      );
+    },
+  });
 };
 
 const repeatSearch = (item: SearchHistory): void => {
@@ -199,13 +207,22 @@ const repeatSearch = (item: SearchHistory): void => {
     >
       <template #actions>
         <button
-          class="secondary-button compact"
+          class="secondary-button compact history-panel-action"
+          type="button"
+          :disabled="keyword.length === 0"
+          @click="resetSearch"
+        >
+          <RotateCcw :size="15" aria-hidden="true" />
+          重置搜索
+        </button>
+        <button
+          class="secondary-button compact history-panel-action"
           type="button"
           :disabled="filteredHistory.length === 0"
-          @click="requestClearFiltered"
+          @click="requestBulkDeleteFiltered"
         >
           <Trash2 :size="15" aria-hidden="true" />
-          批量清除当前筛选结果
+          批量删除当前筛选结果
         </button>
       </template>
 
@@ -234,58 +251,6 @@ const repeatSearch = (item: SearchHistory): void => {
           <input v-model="favoriteOnly" type="checkbox" />
           只看收藏
         </label>
-      </div>
-
-      <div v-if="pendingDeleteId" class="delete-confirmation" role="alert">
-        <div>
-          <strong>确认删除这条搜索记录？</strong>
-          <p>本操作只影响当前页面，刷新后会恢复固定模拟数据。</p>
-        </div>
-        <div class="confirmation-actions">
-          <button
-            class="secondary-button compact"
-            type="button"
-            @click="pendingDeleteId = undefined"
-          >
-            取消
-          </button>
-          <button
-            class="primary-button compact"
-            type="button"
-            @click="confirmDelete"
-          >
-            确认删除
-          </button>
-        </div>
-      </div>
-
-      <div
-        v-if="pendingClearIds.length > 0"
-        class="delete-confirmation"
-        role="alert"
-      >
-        <div>
-          <strong>{{ pendingClearTitle }}</strong>
-          <p>
-            只清除点击按钮时当前筛选出的记录；其他记录不受影响，刷新后模拟数据会恢复。
-          </p>
-        </div>
-        <div class="confirmation-actions">
-          <button
-            class="secondary-button compact"
-            type="button"
-            @click="pendingClearIds = []"
-          >
-            取消
-          </button>
-          <button
-            class="primary-button compact"
-            type="button"
-            @click="confirmClearFiltered"
-          >
-            确认批量清除
-          </button>
-        </div>
       </div>
 
       <div v-if="historyGroups.length > 0" class="history-groups">
@@ -383,10 +348,7 @@ const repeatSearch = (item: SearchHistory): void => {
                   class="icon-action danger"
                   type="button"
                   :aria-label="`删除${getTitle(item)}`"
-                  @click="
-                    pendingClearIds = [];
-                    pendingDeleteId = item.id;
-                  "
+                  @click="requestDelete(item.id)"
                 >
                   <Trash2 :size="17" aria-hidden="true" />
                 </button>
@@ -423,7 +385,6 @@ const repeatSearch = (item: SearchHistory): void => {
 .history-filter-bar,
 .history-search-field,
 .favorite-filter,
-.confirmation-actions,
 .inline-actions,
 .history-title-row,
 .history-actions {
@@ -471,25 +432,6 @@ const repeatSearch = (item: SearchHistory): void => {
   color: var(--color-text-secondary);
 }
 
-.delete-confirmation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-5);
-  padding: var(--space-4);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-8);
-  background: var(--color-danger-soft);
-}
-
-.delete-confirmation p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-danger-text);
-  font-size: var(--font-size-13);
-}
-
-.confirmation-actions,
 .inline-actions,
 .history-actions {
   gap: var(--space-2);
@@ -606,8 +548,11 @@ const repeatSearch = (item: SearchHistory): void => {
 }
 
 @media (max-width: 767px) {
+  .history-panel-action {
+    grid-column: 1 / -1;
+  }
+
   .history-filter-bar,
-  .delete-confirmation,
   .history-list article {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -616,7 +561,6 @@ const repeatSearch = (item: SearchHistory): void => {
   .history-search-field,
   .history-filter-bar select,
   .favorite-filter,
-  .confirmation-actions,
   .history-actions {
     width: 100%;
   }
@@ -632,11 +576,6 @@ const repeatSearch = (item: SearchHistory): void => {
   .icon-action {
     width: 44px;
     height: 44px;
-  }
-
-  .confirmation-actions > * {
-    flex: 1;
-    min-height: 44px;
   }
 }
 </style>

@@ -37,19 +37,19 @@ export const createAppRouter = (history: RouterHistory): Router =>
             path: "knowledge",
             name: "knowledge-list",
             component: () => import("../views/user/KnowledgeListView.vue"),
-            meta: { title: "知识库", parentTitle: "用户工作区" },
+            meta: { title: "企业知识库", parentTitle: "用户工作区" },
           },
           {
             path: "knowledge/:kb_id",
             name: "knowledge-detail",
             component: () => import("../views/user/KnowledgeDetailView.vue"),
-            meta: { title: "文档目录", parentTitle: "知识库" },
+            meta: { title: "文档目录", parentTitle: "企业知识库" },
           },
           {
             path: "knowledge/:kb_id/documents/:document_id",
             name: "document-detail",
             component: () => import("../views/user/DocumentDetailView.vue"),
-            meta: { title: "文档预览", parentTitle: "知识库" },
+            meta: { title: "文档预览", parentTitle: "企业知识库" },
           },
           {
             path: "search",
@@ -91,13 +91,13 @@ export const createAppRouter = (history: RouterHistory): Router =>
             path: "chat",
             name: "chat-new",
             component: () => import("../views/user/ChatView.vue"),
-            meta: { title: "新会话", parentTitle: "智能问答" },
+            meta: { title: "AI 助手", parentTitle: "用户工作区" },
           },
           {
             path: "chat/:conversation_id",
             name: "chat-detail",
             component: () => import("../views/user/ChatView.vue"),
-            meta: { title: "会话详情", parentTitle: "智能问答" },
+            meta: { title: "会话详情", parentTitle: "AI 助手" },
           },
           {
             path: "conversations",
@@ -157,7 +157,7 @@ export const createAppRouter = (history: RouterHistory): Router =>
             path: "tasks",
             name: "admin-tasks",
             component: () => import("../views/admin/TasksView.vue"),
-            meta: { title: "转换任务", parentTitle: "管理中心" },
+            meta: { title: "任务中心", parentTitle: "管理中心" },
           },
           {
             path: "retrieval-tests",

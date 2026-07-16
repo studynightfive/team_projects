@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-16T05:08:13.983Z",
-  "sourceCommit": "0e2996034e071765d4656d336ec467b96645c911",
-  "sourceWorktreeDirty": false,
-  "baseUrl": "http://127.0.0.1:5174",
+  "generatedAt": "2026-07-16T12:59:01.497Z",
+  "sourceCommit": "3b45fc5824e64d6b37bd5c2ee0b534d5f586c085",
+  "sourceWorktreeDirty": true,
+  "baseUrl": "http://127.0.0.1:5173",
   "browser": "Chrome/150.0.7871.115",
   "results": [
     {
@@ -16,13 +16,13 @@
         "innerHeight": 1080,
         "clientWidth": 1920,
         "scrollWidth": 1920,
-        "scrollHeight": 1080,
+        "scrollHeight": 1691,
         "h1Count": 1,
-        "businessPageCount": 0,
-        "topbarTitle": "工作台",
+        "businessPageCount": 1,
+        "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 30,
+        "svgIconCount": 64,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -30,17 +30,21 @@
         "contentPaddingLeft": 32,
         "contentPaddingRight": 32,
         "contentInnerWidth": 1280,
-        "statColumnCount": 4,
-        "statCardCount": 4,
-        "activityCount": 4,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "searchHeroCount": 1,
+        "quickActionCount": 5,
+        "homeInformationSectionCount": 2,
+        "dataSourceCardCount": 4,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1720,
-        "minimumInteractiveHeight": 20,
+        "minimumInteractiveHeight": 1,
         "screenshotWidth": 1920,
         "screenshotHeight": 1080
       },
@@ -75,7 +79,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 30
+          "actual": 64
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -98,17 +102,22 @@
           "actual": 1280
         },
         {
-          "label": "桌面指标保持四列",
+          "label": "AI 搜索首页主视觉存在",
           "pass": true,
-          "actual": 4
+          "actual": 1
         },
         {
-          "label": "用户指标共四张",
+          "label": "高频任务共五项",
           "pass": true,
-          "actual": 4
+          "actual": 5
         },
         {
-          "label": "团队动态内容存在",
+          "label": "继续工作与常用知识板块存在",
+          "pass": true,
+          "actual": 2
+        },
+        {
+          "label": "数据源状态共四项",
           "pass": true,
           "actual": 4
         }
@@ -126,13 +135,13 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1000,
+        "scrollHeight": 1691,
         "h1Count": 1,
-        "businessPageCount": 0,
-        "topbarTitle": "工作台",
+        "businessPageCount": 1,
+        "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 30,
+        "svgIconCount": 64,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -140,17 +149,21 @@
         "contentPaddingLeft": 32,
         "contentPaddingRight": 32,
         "contentInnerWidth": 1136,
-        "statColumnCount": 4,
-        "statCardCount": 4,
-        "activityCount": 4,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "searchHeroCount": 1,
+        "quickActionCount": 5,
+        "homeInformationSectionCount": 2,
+        "dataSourceCardCount": 4,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
-        "minimumInteractiveHeight": 20,
+        "minimumInteractiveHeight": 1,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
       },
@@ -185,7 +198,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 30
+          "actual": 64
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -208,17 +221,22 @@
           "actual": 1136
         },
         {
-          "label": "桌面指标保持四列",
+          "label": "AI 搜索首页主视觉存在",
           "pass": true,
-          "actual": 4
+          "actual": 1
         },
         {
-          "label": "用户指标共四张",
+          "label": "高频任务共五项",
           "pass": true,
-          "actual": 4
+          "actual": 5
         },
         {
-          "label": "团队动态内容存在",
+          "label": "继续工作与常用知识板块存在",
+          "pass": true,
+          "actual": 2
+        },
+        {
+          "label": "数据源状态共四项",
           "pass": true,
           "actual": 4
         }
@@ -236,13 +254,13 @@
         "innerHeight": 900,
         "clientWidth": 1280,
         "scrollWidth": 1280,
-        "scrollHeight": 900,
+        "scrollHeight": 1691,
         "h1Count": 1,
-        "businessPageCount": 0,
-        "topbarTitle": "工作台",
+        "businessPageCount": 1,
+        "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 30,
+        "svgIconCount": 60,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -250,17 +268,21 @@
         "contentPaddingLeft": 32,
         "contentPaddingRight": 32,
         "contentInnerWidth": 976,
-        "statColumnCount": 4,
-        "statCardCount": 4,
-        "activityCount": 4,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "searchHeroCount": 1,
+        "quickActionCount": 5,
+        "homeInformationSectionCount": 2,
+        "dataSourceCardCount": 4,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
-        "minimumInteractiveHeight": 20,
+        "minimumInteractiveHeight": 1,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
       },
@@ -295,7 +317,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 30
+          "actual": 60
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -318,17 +340,22 @@
           "actual": 976
         },
         {
-          "label": "桌面指标保持四列",
+          "label": "AI 搜索首页主视觉存在",
           "pass": true,
-          "actual": 4
+          "actual": 1
         },
         {
-          "label": "用户指标共四张",
+          "label": "高频任务共五项",
           "pass": true,
-          "actual": 4
+          "actual": 5
         },
         {
-          "label": "团队动态内容存在",
+          "label": "继续工作与常用知识板块存在",
+          "pass": true,
+          "actual": 2
+        },
+        {
+          "label": "数据源状态共四项",
           "pass": true,
           "actual": 4
         }
@@ -346,13 +373,13 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 2151,
+        "scrollHeight": 3128,
         "h1Count": 1,
-        "businessPageCount": 0,
-        "topbarTitle": "工作台",
+        "businessPageCount": 1,
+        "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 30,
+        "svgIconCount": 60,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -360,12 +387,16 @@
         "contentPaddingLeft": 16,
         "contentPaddingRight": 16,
         "contentInnerWidth": 343,
-        "statColumnCount": 1,
-        "statCardCount": 4,
-        "activityCount": 4,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "searchHeroCount": 1,
+        "quickActionCount": 5,
+        "homeInformationSectionCount": 2,
+        "dataSourceCardCount": 4,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -375,7 +406,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 6,
+        "navigationCount": 11,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -411,7 +442,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 30
+          "actual": 60
         },
         {
           "label": "关键内容未越过视口",
@@ -439,14 +470,9 @@
           "actual": "16/16"
         },
         {
-          "label": "移动端指标单列",
-          "pass": true,
-          "actual": 1
-        },
-        {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 6
+          "actual": 11
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -469,12 +495,22 @@
           "actual": true
         },
         {
-          "label": "用户指标共四张",
+          "label": "AI 搜索首页主视觉存在",
           "pass": true,
-          "actual": 4
+          "actual": 1
         },
         {
-          "label": "团队动态内容存在",
+          "label": "高频任务共五项",
+          "pass": true,
+          "actual": 5
+        },
+        {
+          "label": "继续工作与常用知识板块存在",
+          "pass": true,
+          "actual": 2
+        },
+        {
+          "label": "数据源状态共四项",
           "pass": true,
           "actual": 4
         }
@@ -492,13 +528,13 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1000,
+        "scrollHeight": 1691,
         "h1Count": 1,
-        "businessPageCount": 0,
-        "topbarTitle": "工作台",
+        "businessPageCount": 1,
+        "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 30,
+        "svgIconCount": 64,
         "sidebarDisplay": "flex",
         "sidebarWidth": 64,
         "topbarHeight": 56,
@@ -506,17 +542,21 @@
         "contentPaddingLeft": 32,
         "contentPaddingRight": 32,
         "contentInnerWidth": 1280,
-        "statColumnCount": 4,
-        "statCardCount": 4,
-        "activityCount": 4,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "searchHeroCount": 1,
+        "quickActionCount": 5,
+        "homeInformationSectionCount": 2,
+        "dataSourceCardCount": 4,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1392,
-        "minimumInteractiveHeight": 20,
+        "minimumInteractiveHeight": 1,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
       },
@@ -551,7 +591,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 30
+          "actual": 64
         },
         {
           "label": "折叠侧栏宽度 64px",
@@ -574,17 +614,22 @@
           "actual": 1280
         },
         {
-          "label": "桌面指标保持四列",
+          "label": "AI 搜索首页主视觉存在",
           "pass": true,
-          "actual": 4
+          "actual": 1
         },
         {
-          "label": "用户指标共四张",
+          "label": "高频任务共五项",
           "pass": true,
-          "actual": 4
+          "actual": 5
         },
         {
-          "label": "团队动态内容存在",
+          "label": "继续工作与常用知识板块存在",
+          "pass": true,
+          "actual": 2
+        },
+        {
+          "label": "数据源状态共四项",
           "pass": true,
           "actual": 4
         }
@@ -619,6 +664,10 @@
         "statColumnCount": 4,
         "statCardCount": 4,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 4,
         "sparklinePointCount": 28,
         "auditHeaderBackground": "rgb(241, 245, 249)",
@@ -745,6 +794,10 @@
         "statColumnCount": 4,
         "statCardCount": 4,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 4,
         "sparklinePointCount": 28,
         "auditHeaderBackground": "rgb(241, 245, 249)",
@@ -871,6 +924,10 @@
         "statColumnCount": 4,
         "statCardCount": 4,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 4,
         "sparklinePointCount": 28,
         "auditHeaderBackground": "rgb(241, 245, 249)",
@@ -997,6 +1054,10 @@
         "statColumnCount": 1,
         "statCardCount": 4,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 4,
         "sparklinePointCount": 28,
         "auditHeaderBackground": "rgb(241, 245, 249)",
@@ -1159,6 +1220,10 @@
         "statColumnCount": 4,
         "statCardCount": 4,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 4,
         "sparklinePointCount": 28,
         "auditHeaderBackground": "rgb(241, 245, 249)",
@@ -1281,6 +1346,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -1394,6 +1463,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -1507,6 +1580,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -1620,6 +1697,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -1733,6 +1814,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -1804,6 +1889,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -1875,6 +1964,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -1956,6 +2049,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -2027,6 +2124,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -2098,6 +2199,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,

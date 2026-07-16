@@ -18,12 +18,11 @@ const typeLabels = {
 } satisfies Record<FavoriteType, string>;
 
 const router = useRouter();
-const { message } = AntApp.useApp();
+const { message, modal } = AntApp.useApp();
 const keyword = ref("");
 const typeFilter = ref<"all" | FavoriteType>("all");
 const tagFilter = ref("all");
 const hiddenIds = ref<ReadonlySet<string>>(new Set());
-const pendingDeleteId = ref<string>();
 const noteDrafts = ref<Record<string, string>>(
   Object.fromEntries(
     aiSearchMockData.favorites.map((item) => [item.id, item.note]),
@@ -107,12 +106,20 @@ const removeTag = (item: Favorite, tag: string): void => {
   if (tagFilter.value === tag) tagFilter.value = "all";
 };
 
-const confirmDelete = (): void => {
-  if (!pendingDeleteId.value) return;
-
-  hiddenIds.value = new Set([...hiddenIds.value, pendingDeleteId.value]);
-  pendingDeleteId.value = undefined;
-  void message.success("收藏已从当前页面移除，刷新后恢复模拟数据");
+const requestDelete = (favoriteId: string): void => {
+  modal.confirm({
+    title: "确认删除这条收藏？",
+    content: "本操作只影响当前页面，刷新后会恢复固定模拟数据。",
+    okText: "确认删除",
+    okType: "danger",
+    cancelText: "取消",
+    centered: true,
+    autoFocusButton: "cancel",
+    onOk: () => {
+      hiddenIds.value = new Set([...hiddenIds.value, favoriteId]);
+      void message.success("收藏已从当前页面移除，刷新后恢复模拟数据");
+    },
+  });
 };
 
 const openFavorite = (item: Favorite): void => {
@@ -180,29 +187,6 @@ const openFavorite = (item: Favorite): void => {
         </select>
       </div>
 
-      <div v-if="pendingDeleteId" class="delete-confirmation" role="alert">
-        <div>
-          <strong>确认删除这条收藏？</strong>
-          <p>本操作只影响当前页面，刷新后会恢复固定模拟数据。</p>
-        </div>
-        <div class="confirmation-actions">
-          <button
-            class="secondary-button compact"
-            type="button"
-            @click="pendingDeleteId = undefined"
-          >
-            取消
-          </button>
-          <button
-            class="primary-button compact"
-            type="button"
-            @click="confirmDelete"
-          >
-            确认删除
-          </button>
-        </div>
-      </div>
-
       <div v-if="filteredFavorites.length > 0" class="favorite-grid">
         <article v-for="item in filteredFavorites" :key="item.id">
           <header>
@@ -211,7 +195,7 @@ const openFavorite = (item: Favorite): void => {
               class="icon-action danger"
               type="button"
               :aria-label="`删除收藏${item.title}`"
-              @click="pendingDeleteId = item.id"
+              @click="requestDelete(item.id)"
             >
               <Trash2 :size="17" aria-hidden="true" />
             </button>
@@ -312,7 +296,6 @@ const openFavorite = (item: Favorite): void => {
 
 .favorite-filter-bar,
 .favorite-search-field,
-.confirmation-actions,
 .favorite-grid article > header,
 .favorite-grid article > footer,
 .tag-list,
@@ -339,11 +322,20 @@ const openFavorite = (item: Favorite): void => {
   background: var(--color-surface);
 }
 
+.favorite-search-field:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
 .favorite-search-field input {
   width: 100%;
   min-width: 0;
   border: 0;
   outline: 0;
+}
+
+.favorite-search-field input:focus-visible {
+  box-shadow: none;
 }
 
 .favorite-filter-bar select {
@@ -354,28 +346,6 @@ const openFavorite = (item: Favorite): void => {
   border-radius: var(--radius-8);
   color: var(--color-text);
   background: var(--color-surface);
-}
-
-.delete-confirmation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-5);
-  padding: var(--space-4);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-8);
-  background: var(--color-danger-soft);
-}
-
-.delete-confirmation p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-danger-text);
-  font-size: var(--font-size-13);
-}
-
-.confirmation-actions {
-  gap: var(--space-2);
 }
 
 .favorite-grid {
@@ -516,19 +486,16 @@ const openFavorite = (item: Favorite): void => {
 
 @media (max-width: 767px) {
   .favorite-filter-bar,
-  .delete-confirmation,
   .favorite-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
   }
 
   .favorite-search-field,
-  .favorite-filter-bar select,
-  .confirmation-actions {
+  .favorite-filter-bar select {
     width: 100%;
   }
 
-  .confirmation-actions > *,
   .favorite-grid article > footer > * {
     flex: 1;
     min-height: 44px;

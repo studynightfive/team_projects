@@ -8,13 +8,12 @@ import ResourcePanel from "../../components/ResourcePanel.vue";
 import { Download, RefreshCw, X } from "../../components/icons";
 import { localPageData } from "../../data/local-pages";
 
-const { message } = AntApp.useApp();
+const { message, modal } = AntApp.useApp();
 const query = ref("");
 const status = ref("全部状态");
 const visibleIds = ref<string[]>(
   localPageData.downloads.map((item) => item.id),
 );
-const pendingDeleteId = ref<string>();
 
 const statuses = computed(() => [
   "全部状态",
@@ -52,14 +51,20 @@ const recreateExport = (name: string): void => {
   void message.info(`${name} 的重新创建仅为本地预览，不会提交导出任务`);
 };
 
-const confirmDelete = (): void => {
-  if (!pendingDeleteId.value) return;
-
-  visibleIds.value = visibleIds.value.filter(
-    (id) => id !== pendingDeleteId.value,
-  );
-  pendingDeleteId.value = undefined;
-  void message.success("任务记录已从本地预览中移除");
+const requestDelete = (downloadId: string): void => {
+  modal.confirm({
+    title: "确认删除这条本地任务记录？",
+    content: "不会请求服务端，刷新后固定任务会恢复。",
+    okText: "确认删除",
+    okType: "danger",
+    cancelText: "取消",
+    centered: true,
+    autoFocusButton: "cancel",
+    onOk: () => {
+      visibleIds.value = visibleIds.value.filter((id) => id !== downloadId);
+      void message.success("任务记录已从本地预览中移除");
+    },
+  });
 };
 </script>
 
@@ -95,29 +100,6 @@ const confirmDelete = (): void => {
             <option v-for="item in statuses" :key="item">{{ item }}</option>
           </select>
         </label>
-      </div>
-
-      <div v-if="pendingDeleteId" class="delete-confirmation" role="alert">
-        <div>
-          <strong>确认删除这条本地任务记录？</strong>
-          <p>不会请求服务端，刷新后固定任务会恢复。</p>
-        </div>
-        <div>
-          <button
-            class="secondary-button compact"
-            type="button"
-            @click="pendingDeleteId = undefined"
-          >
-            取消
-          </button>
-          <button
-            class="primary-button compact"
-            type="button"
-            @click="confirmDelete"
-          >
-            确认删除
-          </button>
-        </div>
       </div>
 
       <div
@@ -188,7 +170,7 @@ const confirmDelete = (): void => {
                     class="delete-action"
                     type="button"
                     :aria-label="`删除${item.name}任务记录`"
-                    @click="pendingDeleteId = item.id"
+                    @click="requestDelete(item.id)"
                   >
                     <X :size="15" aria-hidden="true" />
                   </button>
@@ -244,9 +226,7 @@ const confirmDelete = (): void => {
   accent-color: var(--color-primary);
 }
 
-.table-actions,
-.delete-confirmation,
-.delete-confirmation > div:last-child {
+.table-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -279,21 +259,6 @@ const confirmDelete = (): void => {
   white-space: nowrap;
 }
 
-.delete-confirmation {
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid var(--red-100);
-  border-radius: var(--radius-8);
-  background: var(--color-danger-soft);
-}
-
-.delete-confirmation p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-danger-text);
-  font-size: var(--font-size-13);
-}
-
 @media (max-width: 767px) {
   .table-action,
   .delete-action {
@@ -302,10 +267,6 @@ const confirmDelete = (): void => {
 
   .delete-action {
     width: 44px;
-  }
-
-  .delete-confirmation {
-    display: grid;
   }
 }
 </style>
