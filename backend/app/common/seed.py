@@ -1,6 +1,7 @@
 # 数据库种子数据
 # 员工3 负责
 # 初始化默认权限码和管理员角色
+# ruff: noqa: E501
 
 import structlog
 from sqlalchemy import select

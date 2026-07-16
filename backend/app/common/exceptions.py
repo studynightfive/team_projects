@@ -5,7 +5,7 @@
 from app.common.schemas import ErrorCode, get_error_message
 
 
-class AppException(Exception):
+class AppException(Exception):  # noqa: N818
     """应用基础异常
 
     所有业务异常继承此类，由全局异常处理器捕获并返回统一格式。

@@ -133,5 +133,4 @@ class TestRefreshToken:
         expected_hash = hashlib.sha256(raw.encode()).hexdigest()
 
         raw2, hash2 = create_refresh_token("user-1")
-        actual_hash = hashlib.sha256(raw2.encode()).hexdigest()
-        assert actual_hash == hash2
+        assert hash2 == expected_hash

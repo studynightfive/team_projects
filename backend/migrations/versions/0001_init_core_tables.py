@@ -7,6 +7,7 @@ Create Date: 2026-07-16
 Initial migration: Create core tables for auth, users, roles, permissions, audit.
 Employee 3 responsibility per plan section 9.3.
 """
+# ruff: noqa: E501
 from collections.abc import Sequence
 
 import sqlalchemy as sa
