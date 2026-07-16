@@ -10,6 +10,8 @@ import { localPageData } from "../data/local-pages";
 
 const { message } = AntApp.useApp();
 
+const WEEKDAY_LABELS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+
 const greeting = computed(() => {
   const hour = new Date().getHours();
   if (hour < 6) return "晚上好";
@@ -17,6 +19,16 @@ const greeting = computed(() => {
   if (hour < 12) return "上午好";
   if (hour < 18) return "下午好";
   return "晚上好";
+});
+
+const todayLabel = computed(() => {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  return {
+    monthDay: `${month}月${day}日`,
+    weekday: WEEKDAY_LABELS[now.getDay()],
+  };
 });
 
 const showUpcomingNotice = (feature: string): void => {
@@ -35,7 +47,15 @@ const knowledgeRouteByName = new Map(
   <div class="dashboard-page user-dashboard">
     <header class="dashboard-heading">
       <div>
-        <h1>{{ greeting }}，{{ foundationData.userView.profile.name }}</h1>
+        <div class="dashboard-heading-greeting">
+          <h1>{{ greeting }}，{{ foundationData.userView.profile.name }}</h1>
+          <span class="dashboard-heading-date">
+            今天是<span class="dashboard-heading-date-accent">{{
+              todayLabel.monthDay
+            }}</span>
+            {{ todayLabel.weekday }}
+          </span>
+        </div>
         <p>今天有 3 个新文档等你审阅，2 个问题等待你的回答。</p>
       </div>
       <div class="dashboard-heading-actions">
