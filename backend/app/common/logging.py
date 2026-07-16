@@ -28,42 +28,37 @@ def setup_logging(
         level=getattr(logging, level.upper(), logging.INFO),
     )
 
-    # 配置 structlog 处理器链
-    structlog.configure(
-        processors=[
-            # 添加日志级别
-            structlog.stdlib.add_log_level,
-            # 过滤敏感字段（防止 Secret 泄露）
-            _filter_sensitive_fields,
-            # 添加时间戳
-            structlog.processors.TimeStamper(fmt="iso"),
-            # 添加调用者信息（文件名和行号，仅 DEBUG 模式）
+    # 构建处理器链
+    processors: list[Any] = [
+        structlog.stdlib.add_log_level,
+        _filter_sensitive_fields,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+    ]
+
+    # DEBUG 模式添加调用者信息
+    if level.upper() == "DEBUG":
+        processors.append(
             structlog.processors.CallsiteParameterAdder(
                 {
                     structlog.processors.CallsiteParameter.FILENAME,
                     structlog.processors.CallsiteParameter.LINENO,
                 }
-            ) if level.upper() == "DEBUG" else None,
-            # 堆栈信息（仅 ERROR 级别）
-            structlog.processors.StackInfoRenderer(),
-            # 格式化异常信息
-            structlog.processors.format_exc_info,
-            # 转换为 JSON 或控制台格式
-            structlog.dev.ConsoleRenderer()
-            if not json_format
-            else structlog.processors.JSONRenderer(),
-        ],
-        # 过滤 None 处理器
-        processor_merger=lambda processors: [
-            p for p in processors if p is not None
-        ],
-        # 包装标准库日志
+            )
+        )
+
+    # 输出格式：JSON 或控制台
+    if json_format:
+        processors.append(structlog.processors.JSONRenderer())
+    else:
+        processors.append(structlog.dev.ConsoleRenderer())
+
+    structlog.configure(
+        processors=processors,
         wrapper_class=structlog.stdlib.BoundLogger,
-        # 上下文缓存
         context_class=dict,
-        # 日志工厂
         logger_factory=structlog.stdlib.LoggerFactory(),
-        # 缓存日志器
         cache_logger_on_first_use=True,
     )
 
@@ -100,7 +95,6 @@ def _filter_sensitive_fields(
         key_lower = key.lower()
         if key_lower in sensitive_keys:
             event_dict[key] = "[REDACTED]"
-        # 检查事件字典中的敏感值
         elif isinstance(event_dict[key], str):
             for sensitive in sensitive_keys:
                 if sensitive in key_lower:
@@ -129,26 +123,9 @@ def log_request(
     """
     记录 API 请求日志（安全格式）
 
-    此函数确保所有日志记录遵循安全规范：
-    - 不记录 Authorization 头
-    - 不记录密码或密钥
-    - 不记录完整请求体或响应体
-    - 不记录内部存储路径或 SQL 语句
-
-    Args:
-        logger: structlog 日志器
-        request_id: 请求唯一标识
-        user_id: 当前用户 ID（匿名请求为 None）
-        action: 操作类型（如 auth.login, document.upload）
-        result: 操作结果（success/failure/denied）
-        resource_type: 资源类型（user/document/knowledge_base 等）
-        resource_id: 资源 ID
-        duration_ms: 请求耗时（毫秒）
-        error_code: 错误码（仅失败时）
-        error_message: 安全错误信息（仅失败时，不包含堆栈）
-        **extra: 额外字段（会经过敏感字段过滤）
+    不记录：Authorization 头、密码、密钥、完整请求体、内部路径、SQL 语句
     """
-    log_data = {
+    log_data: dict[str, Any] = {
         "request_id": request_id,
         "action": action,
         "result": result,
