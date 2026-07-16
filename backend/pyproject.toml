@@ -95,6 +95,10 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# 告诉 hatchling Python 包位于 app/ 目录下
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
 # 工具配置
 [tool.ruff]
 # Ruff Lint 配置
