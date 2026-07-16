@@ -3,6 +3,8 @@
 # 初始化默认权限码和管理员角色
 # ruff: noqa: E501
 
+from typing import cast
+
 import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -84,14 +86,16 @@ async def seed_default_admin(
 
     # 获取所有权限
     result = await db.execute(select(Permission))
-    all_permissions = result.scalars().all()
+    all_permissions = cast(list[Permission], result.scalars().all())
 
     # 创建管理员角色
     result = await db.execute(
         select(Role).where(Role.name == "超级管理员")
     )
-    admin_role = result.scalar_one_or_none()
-    if not admin_role:
+    existing_admin = result.scalar_one_or_none()
+    if existing_admin is not None:
+        admin_role: Role = existing_admin
+    else:
         admin_role = Role(
             name="超级管理员",
             description="拥有所有权限的超级管理员角色",
@@ -103,8 +107,10 @@ async def seed_default_admin(
     result = await db.execute(
         select(Role).where(Role.name == "普通用户")
     )
-    user_role = result.scalar_one_or_none()
-    if not user_role:
+    existing_user_role = result.scalar_one_or_none()
+    if existing_user_role is not None:
+        user_role: Role = existing_user_role
+    else:
         basic_permissions = [
             p for p in all_permissions
             if not p.code.startswith("admin.")

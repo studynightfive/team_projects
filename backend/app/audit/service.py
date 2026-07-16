@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import cast
 
 import structlog
 from sqlalchemy import func, select
@@ -30,13 +31,7 @@ async def write_audit_log(
     result: str = "success",
     request_id: str | None = None,
 ) -> None:
-    """写入审计日志
-
-    不在审计日志中记录：
-    - 密码、密钥、Token
-    - 完整请求体
-    - 内部路径或 SQL
-    """
+    """写入审计日志。不记录密码、密钥、Token、完整请求体。"""
     entry = AuditLog(
         user_id=user_id,
         action=action,
@@ -49,7 +44,6 @@ async def write_audit_log(
         request_id=request_id,
     )
     db.add(entry)
-    # 不在此处 commit，由调用方控制事务
 
 
 async def list_audit_logs(
@@ -95,7 +89,7 @@ async def list_audit_logs(
         .offset(offset)
         .limit(page_size)
     )
-    logs = result_obj.scalars().all()
+    logs = cast(list[AuditLog], result_obj.scalars().all())
 
     # 批量获取用户名
     user_ids = {log.user_id for log in logs if log.user_id}

@@ -2,6 +2,8 @@
 # 员工3 负责
 # 角色的 CRUD 操作和权限分配
 
+from typing import cast
+
 import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,7 +48,7 @@ async def list_roles(
     result = await db.execute(
         query.order_by(Role.created_at.desc()).offset(offset).limit(page_size)
     )
-    roles = result.scalars().all()
+    roles = cast(list[Role], result.scalars().all())
 
     items = [
         RoleListItem(
@@ -68,7 +70,7 @@ async def list_all_roles(db: AsyncSession) -> list[RoleListItem]:
     result = await db.execute(
         select(Role).where(Role.status == "active").order_by(Role.name)
     )
-    roles = result.scalars().all()
+    roles = cast(list[Role], result.scalars().all())
 
     return [
         RoleListItem(
@@ -106,7 +108,7 @@ async def create_role(db: AsyncSession, data: CreateRoleRequest) -> RoleResponse
         result = await db.execute(
             select(Permission).where(Permission.id.in_(data.permission_ids))
         )
-        permissions = result.scalars().all()
+        permissions = cast(list[Permission], result.scalars().all())
         if len(permissions) != len(data.permission_ids):
             raise NotFoundException(
                 code=ErrorCode.PERMISSION_NOT_FOUND,
@@ -173,7 +175,7 @@ async def set_role_permissions(
         result = await db.execute(
             select(Permission).where(Permission.id.in_(data.permission_ids))
         )
-        permissions = result.scalars().all()
+        permissions = cast(list[Permission], result.scalars().all())
         if len(permissions) != len(data.permission_ids):
             raise NotFoundException(
                 code=ErrorCode.PERMISSION_NOT_FOUND,
@@ -201,7 +203,7 @@ async def list_permissions(
     query = query.order_by(Permission.module, Permission.action)
 
     result = await db.execute(query)
-    permissions = result.scalars().all()
+    permissions = cast(list[Permission], result.scalars().all())
 
     return [
         PermissionResponse(

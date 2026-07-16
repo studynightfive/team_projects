@@ -2,6 +2,8 @@
 # 员工3 负责
 # 用户的 CRUD 操作和密码重置
 
+from typing import cast
+
 import structlog
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -57,7 +59,7 @@ async def list_users(
     result = await db.execute(
         query.order_by(User.created_at.desc()).offset(offset).limit(page_size)
     )
-    users = result.scalars().all()
+    users = cast(list[User], result.scalars().all())
 
     items = [
         UserListItem(
@@ -102,7 +104,7 @@ async def create_user(db: AsyncSession, data: CreateUserRequest) -> UserResponse
         result = await db.execute(
             select(Role).where(Role.id.in_(data.role_ids))
         )
-        roles = result.scalars().all()
+        roles = cast(list[Role], result.scalars().all())
         if len(roles) != len(data.role_ids):
             raise NotFoundException(
                 code=ErrorCode.ROLE_NOT_FOUND,
@@ -139,7 +141,7 @@ async def update_user(
         result = await db.execute(
             select(Role).where(Role.id.in_(data.role_ids))
         )
-        roles = result.scalars().all()
+        roles = cast(list[Role], result.scalars().all())
         if len(roles) != len(data.role_ids):
             raise NotFoundException(
                 code=ErrorCode.ROLE_NOT_FOUND,
@@ -187,10 +189,7 @@ def _to_user_response(user: User) -> UserResponse:
         username=user.username,
         display_name=user.display_name,
         status=user.status,
-        roles=[
-            {"id": r.id, "name": r.name}
-            for r in user.roles
-        ],
+        roles=[{"id": r.id, "name": r.name} for r in user.roles],
         last_login_at=user.last_login_at,
         created_at=user.created_at,
         updated_at=user.updated_at,

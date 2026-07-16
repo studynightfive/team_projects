@@ -164,10 +164,10 @@ async def refresh_access_token(
         raise TokenExpiredException()
 
     # 查询用户
-    result = await db.execute(
+    user_result = await db.execute(
         select(User).where(User.id == token_record.user_id)
     )
-    user = result.scalar_one_or_none()
+    user = user_result.scalar_one_or_none()
 
     if user is None:
         raise TokenInvalidException()

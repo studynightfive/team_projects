@@ -126,11 +126,9 @@ class TestRefreshToken:
         assert h1 != h2
 
     def test_refresh_token_hash_consistent(self):
-        """Same raw token produces same hash."""
+        """Raw token's SHA-256 hash matches the returned hash."""
         import hashlib
 
-        raw, _ = create_refresh_token("user-1")
-        expected_hash = hashlib.sha256(raw.encode()).hexdigest()
-
-        raw2, hash2 = create_refresh_token("user-1")
-        assert hash2 == expected_hash
+        raw, token_hash = create_refresh_token("user-1")
+        computed_hash = hashlib.sha256(raw.encode()).hexdigest()
+        assert token_hash == computed_hash
