@@ -2,6 +2,8 @@
 # 使用 SQLAlchemy 2.0 异步引擎
 # 采用异步会话管理，支持 PostgreSQL + pgvector
 
+from collections.abc import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -48,7 +50,7 @@ class Base(DeclarativeBase):
 # ============================================================
 # 数据库会话依赖注入
 # ============================================================
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     FastAPI 依赖注入函数
     在请求处理期间提供数据库会话
