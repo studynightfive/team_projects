@@ -92,7 +92,7 @@ async def seed_default_admin(
     result = await db.execute(
         select(Role).where(Role.name == "超级管理员")
     )
-    existing_admin = result.scalar_one_or_none()
+    existing_admin = cast(Role | None, result.scalar_one_or_none())
     if existing_admin is not None:
         admin_role: Role = existing_admin
     else:
@@ -107,7 +107,7 @@ async def seed_default_admin(
     result = await db.execute(
         select(Role).where(Role.name == "普通用户")
     )
-    existing_user_role = result.scalar_one_or_none()
+    existing_user_role = cast(Role | None, result.scalar_one_or_none())
     if existing_user_role is not None:
         user_role: Role = existing_user_role
     else:

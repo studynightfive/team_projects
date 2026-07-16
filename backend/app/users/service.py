@@ -18,6 +18,7 @@ from app.common.models import Role, User
 from app.common.schemas import ErrorCode
 from app.users.schemas import (
     CreateUserRequest,
+    RoleBrief,
     UpdateUserRequest,
     UserListItem,
     UserResponse,
@@ -68,7 +69,7 @@ async def list_users(
             display_name=u.display_name,
             status=u.status,
             roles=[
-                {"id": r.id, "name": r.name}
+                RoleBrief(id=r.id, name=r.name)
                 for r in u.roles
             ],
             last_login_at=u.last_login_at,
@@ -189,7 +190,7 @@ def _to_user_response(user: User) -> UserResponse:
         username=user.username,
         display_name=user.display_name,
         status=user.status,
-        roles=[{"id": r.id, "name": r.name} for r in user.roles],
+        roles=[RoleBrief(id=r.id, name=r.name) for r in user.roles],
         last_login_at=user.last_login_at,
         created_at=user.created_at,
         updated_at=user.updated_at,
