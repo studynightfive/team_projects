@@ -1,0 +1,169 @@
+# ============================================================
+# 智能知识库平台 - Docker Compose 编排（开发/联调环境）
+# 用途：本地开发和联调，启动全部 5 个服务
+# 版本基线：Docker Compose 2.32.4（方案第13.1节）
+# ============================================================
+
+# 服务名称定义
+# 方案第3.2节：首期部署单元为 web、api-server、worker、postgres、redis
+name: knowledge-base-platform
+
+services:
+  # ============================================================
+  # 1. Web 服务：Nginx + Vue SPA 静态资源
+  # 对外暴露 80 端口，处理前端路由和 API 反向代理
+  # ============================================================
+  web:
+    build:
+      # 构建上下文：项目根目录
+      context: ..
+      # Dockerfile 路径
+      dockerfile: deploy/docker/web.Dockerfile
+    # 容器名称（便于 docker compose 命令操作）
+    container_name: kb-web
+    # 对外暴露端口：宿主机 80 -> 容器 80
+    ports:
+      - "80:80"
+    # 依赖：api-server 先启动，web 后启动
+    depends_on:
+      - api-server
+    # 网络：加入应用网络
+    networks:
+      - app-network
+    # 重启策略：异常退出时自动重启
+    restart: unless-stopped
+
+  # ============================================================
+  # 2. API Server 服务：FastAPI 同步接口和 SSE
+  # 仅内部网络访问，由 Nginx 反向代理
+  # ============================================================
+  api-server:
+    build:
+      context: ..
+      dockerfile: deploy/docker/api-server.Dockerfile
+    container_name: kb-api-server
+    # 仅暴露端口给内部网络，不映射到宿主机
+    # Nginx 通过 Docker 内部网络访问 api-server:8000
+    expose:
+      - "8000"
+    # 环境变量：数据库连接、Redis 连接、密钥
+    # 所有 Secret 通过环境变量传入，不硬编码
+    environment:
+      # 数据库连接 URL（异步驱动 asyncpg）
+      # 格式：postgresql+asyncpg://用户名:密码@主机:端口/数据库名
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base
+      # Redis 连接 URL
+      - REDIS_URL=redis://redis:6379/0
+      # JWT 签名密钥
+      - SECRET_KEY=${SECRET_KEY}
+      # 应用版本
+      - APP_VERSION=0.1.0
+      # 调试模式（开发环境可以开启）
+      - DEBUG=${DEBUG:-false}
+    # 依赖：等数据库和 Redis 健康检查通过后再启动
+    depends_on:
+      postgres:
+        condition: service_healthy  # 等待 PostgreSQL 健康检查通过
+      redis:
+        condition: service_healthy  # 等待 Redis 健康检查通过
+    # 挂载卷：文件存储目录
+    volumes:
+      - storage_data:/app/storage
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # ============================================================
+  # 3. Worker 服务：异步文档处理和导出
+  # 不对外暴露端口，通过 Redis 队列接收任务
+  # ============================================================
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/docker/worker.Dockerfile
+    container_name: kb-worker
+    # Worker 不暴露端口
+    # 通过 Redis 队列接收任务，不处理 HTTP 请求
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - storage_data:/app/storage
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # ============================================================
+  # 4. PostgreSQL 服务：业务数据 + 全文检索 + 向量检索
+  # 使用 pgvector/pgvector 镜像（内置 pgvector 扩展）
+  # 仅内部网络访问，不暴露到宿主机
+  # ============================================================
+  postgres:
+    # 使用 pgvector 官方镜像（PostgreSQL 17 + pgvector 0.8.0）
+    image: pgvector/pgvector:pg17
+    container_name: kb-postgres
+    environment:
+      # 数据库名称
+      - POSTGRES_DB=knowledge_base
+      # 数据库密码（从环境变量传入）
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    # 挂载卷：持久化数据库数据
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # 健康检查：使用 pg_isready 检查 PostgreSQL 是否就绪
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d knowledge_base"]
+      interval: 10s   # 每 10 秒检查一次
+      timeout: 5s     # 超时 5 秒
+      retries: 5      # 连续失败 5 次标记为 unhealthy
+      start_period: 10s  # 启动后等待 10 秒再开始检查
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # ============================================================
+  # 5. Redis 服务：任务队列 + 短期缓存 + 分布式锁
+  # 仅内部网络访问，不暴露到宿主机
+  # ============================================================
+  redis:
+    # Redis 7.4.9 Alpine 镜像（精确版本，体积小）
+    image: redis:7.4.9-alpine
+    container_name: kb-redis
+    # 健康检查：使用 redis-cli ping 检查 Redis 是否就绪
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+# ============================================================
+# Docker 卷定义
+# 持久化存储，容器重启数据不丢失
+# ============================================================
+volumes:
+  # PostgreSQL 数据卷：数据库文件
+  postgres_data:
+    name: kb-postgres-data
+  # 文件存储卷：上传的原始文件、Markdown、assets
+  storage_data:
+    name: kb-storage-data
+
+# ============================================================
+# Docker 网络定义
+# 所有服务在同一个 bridge 网络中通信
+# postgres 和 redis 不暴露到宿主机（仅内部网络）
+# ============================================================
+networks:
+  app-network:
+    name: kb-network
+    driver: bridge

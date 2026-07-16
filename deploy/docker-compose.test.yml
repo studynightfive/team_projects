@@ -1,0 +1,161 @@
+# ============================================================
+# 智能知识库平台 - Docker Compose 测试环境
+# 用途：CI 和自动化测试，测试完成后自动退出
+# 与开发环境的关键区别：
+#   1. 不暴露端口到宿主机（避免端口冲突）
+#   2. 测试完成后自动退出（--abort-on-container-exit）
+#   3. 使用测试专用环境变量（TESTING=true）
+# ============================================================
+
+name: knowledge-base-platform-test
+
+services:
+  # ============================================================
+  # Web 服务（测试环境）
+  # ============================================================
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/docker/web.Dockerfile
+    container_name: kb-test-web
+    # 测试环境不暴露端口，避免与开发环境冲突
+    expose:
+      - "80"
+    depends_on:
+      - api-server
+    networks:
+      - test-network
+    # 测试环境不需要自动重启
+    restart: "no"
+
+  # ============================================================
+  # API Server 服务（测试环境）
+  # ============================================================
+  api-server:
+    build:
+      context: ..
+      dockerfile: deploy/docker/api-server.Dockerfile
+    container_name: kb-test-api-server
+    expose:
+      - "8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base_test
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=test-secret-key-not-for-production
+      - APP_VERSION=0.1.0
+      # 测试模式：启用测试专用配置
+      - TESTING=true
+      - DEBUG=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - test_storage_data:/app/storage
+    networks:
+      - test-network
+    restart: "no"
+
+  # ============================================================
+  # Worker 服务（测试环境）
+  # ============================================================
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/docker/worker.Dockerfile
+    container_name: kb-test-worker
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base_test
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=test-secret-key-not-for-production
+      - TESTING=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - test_storage_data:/app/storage
+    networks:
+      - test-network
+    restart: "no"
+
+  # ============================================================
+  # PostgreSQL 服务（测试环境）
+  # ============================================================
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: kb-test-postgres
+    environment:
+      - POSTGRES_DB=knowledge_base_test
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-test-postgres-password}
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d knowledge_base_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - test-network
+    restart: "no"
+
+  # ============================================================
+  # Redis 服务（测试环境）
+  # ============================================================
+  redis:
+    image: redis:7.4.9-alpine
+    container_name: kb-test-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - test-network
+    restart: "no"
+
+  # ============================================================
+  # 测试运行器：运行测试后自动退出
+  # 这是测试环境的核心服务，执行完成后整个 Compose 退出
+  # ============================================================
+  test-runner:
+    build:
+      context: ..
+      dockerfile: deploy/docker/api-server.Dockerfile
+    container_name: kb-test-runner
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base_test
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=test-secret-key-not-for-production
+      - TESTING=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - test-network
+    restart: "no"
+    # 运行测试命令
+    # 测试完成后容器退出，其他服务也通过 --abort-on-container-exit 退出
+    command: >
+      sh -c "
+      echo '=== 运行后端测试 ===' &&
+      uv run --project backend pytest backend/tests -v &&
+      echo '=== 测试完成 ==='
+      "
+
+volumes:
+  test_postgres_data:
+    name: kb-test-postgres-data
+  test_storage_data:
+    name: kb-test-storage-data
+
+networks:
+  test-network:
+    name: kb-test-network
+    driver: bridge

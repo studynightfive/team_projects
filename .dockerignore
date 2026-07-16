@@ -1,0 +1,48 @@
+# ============================================================
+# .dockerignore - Docker 构建时排除的文件
+# 减小构建上下文大小，防止敏感文件进入镜像
+# ============================================================
+
+# 环境变量和密钥（绝对不能进入镜像）
+.env
+.env.*
+*.pem
+*.key
+
+# Git 目录
+.git
+.gitignore
+
+# Node.js
+node_modules/
+frontend/web/dist/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# 测试和覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 文档和提示词（不需要进入镜像）
+*.md
+!README.md
+
+# 备份和存储
+storage/
+backups/
+logs/

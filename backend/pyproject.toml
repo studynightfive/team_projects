@@ -1,0 +1,117 @@
+# 智能知识库平台 - 后端项目配置
+# 使用 uv 管理 Python 依赖，精确版本锁定（方案第13.3节）
+
+[project]
+name = "knowledge-base-platform"
+version = "0.1.0"
+description = "智能知识库平台 - FastAPI 后端服务"
+requires-python = "==3.10.20"
+
+# 核心依赖 - 所有版本精确锁定，不使用 ^ 或 ~
+dependencies = [
+    # ============================================================
+    # Web 框架与服务器
+    # ============================================================
+    "fastapi==0.139.0",           # FastAPI 框架：异步 Web API
+    "uvicorn[standard]==0.51.0",  # ASGI 服务器：高性能异步服务器
+
+    # ============================================================
+    # 数据验证与配置
+    # ============================================================
+    "pydantic==2.13.4",           # Pydantic：数据验证和序列化
+    "pydantic-settings==2.12.0",  # Pydantic Settings：环境变量配置管理
+
+    # ============================================================
+    # 数据库与 ORM
+    # ============================================================
+    "SQLAlchemy==2.0.51",         # SQLAlchemy：异步 ORM
+    "asyncpg==0.30.0",            # asyncpg：PostgreSQL 异步驱动
+    "alembic==1.16.5",            # Alembic：数据库迁移管理
+    "pgvector==0.5.0",            # pgvector：向量检索扩展
+
+    # ============================================================
+    # 缓存与任务队列
+    # ============================================================
+    "redis==6.4.0",               # Redis：异步 Redis 客户端
+    "arq==0.26.3",                # ARQ：基于 Redis 的异步任务队列
+
+    # ============================================================
+    # 认证与安全
+    # ============================================================
+    "PyJWT[crypto]==2.10.1",      # PyJWT：JWT Token 生成与验证
+    "argon2-cffi==25.1.0",        # Argon2：密码哈希（方案第5.3节要求）
+    "python-multipart==0.0.20",   # python-multipart：文件上传解析
+
+    # ============================================================
+    # HTTP 客户端与序列化
+    # ============================================================
+    "httpx==0.28.1",              # HTTPX：异步 HTTP 客户端（模型调用）
+    "orjson==3.11.4",             # orjson：高性能 JSON 序列化
+
+    # ============================================================
+    # 日志与监控
+    # ============================================================
+    "structlog==25.4.0",          # Structlog：结构化日志
+    "prometheus-client==0.23.1",  # Prometheus Client：指标采集
+
+    # ============================================================
+    # 文档处理（方案第6.2节支持的格式）
+    # ============================================================
+    "tenacity==9.1.2",            # Tenacity：重试策略
+    "docling[rapidocr]==2.112.0", # Docling：文档解析与转换
+    "python-magic==0.4.27",       # python-magic：MIME 类型识别
+    "Pillow==11.3.0",             # Pillow：图片处理
+    "pandas==2.3.3",              # Pandas：表格数据处理（CSV/Excel）
+    "openpyxl==3.1.5",            # openpyxl：Excel 文件读写
+    "python-docx==1.2.0",         # python-docx：Word 文件读写
+    "pypdf==5.9.0",               # pypdf：PDF 文件处理
+    "beautifulsoup4==4.14.2",     # BeautifulSoup4：HTML 解析与清洗
+
+    # ============================================================
+    # Markdown 处理与安全清洗
+    # ============================================================
+    "markdown-it-py==4.0.0",      # markdown-it-py：Markdown 渲染
+    "mdit-py-plugins==0.5.0",     # mdit-py-plugins：Markdown 扩展插件
+    "bleach==6.2.0",              # Bleach：HTML 安全清洗（方案第15.4节）
+
+    # ============================================================
+    # 导出
+    # ============================================================
+    "weasyprint==66.0",           # WeasyPrint：HTML/CSS 转 PDF
+]
+
+# 开发依赖组
+[dependency-groups]
+dev = [
+    "pytest==8.4.2",              # Pytest：测试框架
+    "pytest-asyncio==1.1.0",      # pytest-asyncio：异步测试支持
+    "pytest-cov==7.0.0",          # pytest-cov：测试覆盖率
+    "ruff==0.12.12",              # Ruff：快速 Lint 和格式化
+    "mypy==1.18.2",               # Mypy：静态类型检查
+]
+
+# 构建系统配置
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# 工具配置
+[tool.ruff]
+# Ruff Lint 配置
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+# Mypy 类型检查配置
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+# Pytest 测试配置
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=70"
