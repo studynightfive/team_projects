@@ -1,0 +1,24 @@
+From: attacker@evil.com
+To: victim@example.com
+Subject: 损坏的MIME邮件
+Date: Tue, 15 Jul 2026 10:00:00 +0800
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="----BOUNDARY"
+
+------BOUNDARY
+Content-Type: text/plain; charset="UTF-8"
+
+这是正常文本部分。
+
+------BOUNDARY
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="test.pdf"
+
+%PDF-1.4 这是一段伪造的PDF内容
+
+------BOUNDARY
+Content-Type: text/html; charset="UTF-8"
+
+<html><body><p>HTML部分</p></body></html>
+
+------BOUNDARY--

@@ -1,0 +1,57 @@
+{
+  "description": "OCR 样本 Ground Truth",
+  "note": "以下预期文本在图片样本制作完成后验证。图片样本（clear-cn.png, clear-en.png, table-scan.jpg, document-photo.jpg）需要手动制作。",
+  "samples": {
+    "clear-cn.png": {
+      "expected_text": "智能知识库平台\n\n版本：0.1.0\n\n平台面向需要集中管理内部文档并进行检索、问答和引用核验的团队。\n\n核心功能：\n1. 多格式文档上传与自动转换\n2. OCR文字识别与版面分析\n3. 关键词、向量和混合检索\n4. 流式问答与引用溯源\n5. 文档五格式导出",
+      "min_confidence": 0.7,
+      "key_phrases": ["智能知识库平台", "文档上传", "OCR", "检索", "问答"],
+      "language": "zh-CN",
+      "expected_char_count": 120
+    },
+    "clear-en.png": {
+      "expected_text": "Knowledge Base Platform\n\nVersion 0.1.0\n\nA comprehensive platform for team document management, retrieval, Q&A and citation verification.\n\nCore Features:\n1. Multi-format document upload and conversion\n2. OCR text recognition and layout analysis\n3. Keyword, vector and hybrid search\n4. Streaming Q&A with citation tracing\n5. Five-format document export",
+      "min_confidence": 0.7,
+      "key_phrases": ["Knowledge Base Platform", "document upload", "OCR", "search", "Q&A"],
+      "language": "en-US",
+      "expected_char_count": 300
+    },
+    "table-scan.jpg": {
+      "expected_text": "产品名称 一月 二月 三月 合计\n知识库平台 120 135 150 405\n文档处理引擎 85 92 88 265\n检索增强模块 65 70 78 213",
+      "min_confidence": 0.5,
+      "key_phrases": ["知识库平台", "文档处理引擎", "检索增强模块"],
+      "language": "zh-CN",
+      "expected_char_count": 80
+    },
+    "document-photo.jpg": {
+      "expected_text": "项目进度报告\n\n本周完成：\n- 前端骨架搭建\n- 后端API基础\n- CI/CD流水线配置\n\n下周计划：\n- 认证模块开发\n- 文档上传功能\n- 测试样本库建立",
+      "min_confidence": 0.4,
+      "key_phrases": ["项目进度", "前端", "后端", "CI/CD", "认证"],
+      "language": "zh-CN",
+      "expected_char_count": 80
+    },
+    "low-resolution.png": {
+      "expected_text": "",
+      "min_confidence": 0.0,
+      "key_phrases": [],
+      "language": "zh-CN",
+      "note": "低分辨率图片，预期OCR置信度极低或无法识别",
+      "expected_char_count": 0
+    },
+    "rotated.jpg": {
+      "expected_text": "旋转测试文本\n\n这段文字被旋转了90度，需要OCR引擎进行旋转校正后才能正确识别。",
+      "min_confidence": 0.3,
+      "key_phrases": ["旋转", "OCR"],
+      "language": "zh-CN",
+      "expected_char_count": 40
+    },
+    "no-text.png": {
+      "expected_text": "",
+      "min_confidence": 0.0,
+      "key_phrases": [],
+      "language": "zh-CN",
+      "note": "纯色块图片，无文字，预期OCR返回空结果",
+      "expected_char_count": 0
+    }
+  }
+}

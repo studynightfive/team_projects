@@ -1,0 +1,10 @@
+document_id,document_name,section_no,heading,page_no,chunk_no,content,source_url,tags
+doc-001,项目计划书,1,项目背景,1,1,"本项目旨在建立一个智能知识库平台，面向团队内部文档管理。","https://example.com/docs/001",项目,计划,知识库
+doc-001,项目计划书,2,技术方案,1,2,"采用前后端分离架构，前端Vue3，后端FastAPI。","https://example.com/docs/001",技术,架构
+doc-001,项目计划书,3,实施计划,2,3,"首期8周，分5个阶段推进。","https://example.com/docs/001",计划,时间
+doc-002,用户手册,1,快速入门,1,1,"登录系统后，可以在左侧导航栏选择知识库。","https://example.com/docs/002",用户,入门
+doc-002,用户手册,2,文档上传,2,2,"点击上传按钮，选择文件后自动开始处理。","https://example.com/docs/002",上传,文档
+doc-002,用户手册,3,检索问答,3,3,"在搜索框输入关键词，系统返回相关文档片段。","https://example.com/docs/002",检索,问答
+doc-003,API文档,1,认证接口,1,1,"POST /api/v1/auth/login 用于用户登录。","https://example.com/docs/003",API,认证
+doc-003,API文档,2,文档接口,2,2,"POST /api/v1/documents 用于上传文档。","https://example.com/docs/003",API,文档
+doc-003,API文档,3,检索接口,3,3,"POST /api/v1/retrieval/search 用于检索。","https://example.com/docs/003",API,检索

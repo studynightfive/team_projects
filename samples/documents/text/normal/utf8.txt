@@ -1,0 +1,29 @@
+# 智能知识库平台 - 测试文本文件
+
+这是一个UTF-8编码的中文文本文件，用于测试文本解析器的编码识别能力。
+
+平台面向需要集中管理内部文档并进行检索、问答和引用核验的团队，解决以下问题：
+
+- 文档分散在PDF、Office、图片、网页、表格和文本文件中，无法统一检索。
+- 扫描件和图片没有可搜索文本，需要OCR和版面分析。
+- 大模型回答缺少可核验引用，用户无法确认答案来自哪里。
+- 用户、角色和知识库权限分散，容易发生越权访问。
+
+首期产品目标：
+
+1. 用户能够登录后查看获授权知识库和文档。
+2. 常见文档能够进入统一转换流程并生成标准Markdown。
+3. 文档可以进行关键词、向量和混合检索。
+4. 用户能够获得流式回答，并查看文档、页码、原文片段和相关度。
+5. 管理员使用同一个Web应用进入管理中心，不维护第二套登录和基础组件。
+
+This is an English paragraph for testing mixed language content.
+The platform supports both Chinese and English document processing.
+Numbers and special characters: 12345, @#$%, (test), [link](https://example.com).
+
+技术栈版本固定：
+Python 3.10.20
+FastAPI 0.139.0
+PostgreSQL 17.10
+Redis 7.4.9
+Node.js 22.23.1

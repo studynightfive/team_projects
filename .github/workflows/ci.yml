@@ -108,3 +108,7 @@ jobs:
       - name: 后端测试
         if: steps.projects.outputs.backend == 'true'
         run: uv run --project backend pytest backend/tests
+
+      - name: 样本库验证
+        if: steps.projects.outputs.backend == 'true'
+        run: uv run python scripts/validate_samples.py

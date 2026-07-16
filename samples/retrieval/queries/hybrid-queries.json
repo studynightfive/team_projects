@@ -1,0 +1,53 @@
+{
+  "description": "混合检索查询集",
+  "queries": [
+    {
+      "id": "hyb-001",
+      "query": "数据库备份策略",
+      "expected_doc_count_min": 1,
+      "min_relevance_score": 0.5,
+      "expected_keywords": ["数据库", "备份"],
+      "description": "混合匹配：精确匹配备份，同时语义匹配相关策略"
+    },
+    {
+      "id": "hyb-002",
+      "query": "Vue前端架构设计",
+      "expected_doc_count_min": 1,
+      "min_relevance_score": 0.5,
+      "expected_keywords": ["Vue", "前端"],
+      "description": "混合匹配：精确匹配Vue，同时语义匹配架构设计"
+    },
+    {
+      "id": "hyb-003",
+      "query": "PDF文档OCR处理方法",
+      "expected_doc_count_min": 1,
+      "min_relevance_score": 0.5,
+      "expected_keywords": ["PDF", "OCR"],
+      "description": "混合匹配：精确匹配PDF/OCR，同时语义匹配处理方法"
+    },
+    {
+      "id": "hyb-004",
+      "query": "用户登录认证流程",
+      "expected_doc_count_min": 1,
+      "min_relevance_score": 0.5,
+      "expected_keywords": ["登录", "认证", "用户"],
+      "description": "混合匹配：精确匹配认证相关词，同时语义匹配流程"
+    },
+    {
+      "id": "hyb-005",
+      "query": "Redis缓存配置",
+      "expected_doc_count_min": 1,
+      "min_relevance_score": 0.5,
+      "expected_keywords": ["Redis", "缓存"],
+      "description": "混合匹配：精确匹配Redis，同时语义匹配配置"
+    },
+    {
+      "id": "hyb-006",
+      "query": "nonexistent_query_for_testing_empty_results",
+      "expected_doc_count_min": 0,
+      "min_relevance_score": 0.8,
+      "expected_keywords": [],
+      "description": "无匹配：查询不存在的主题，验证空结果处理"
+    }
+  ]
+}

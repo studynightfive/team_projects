@@ -1,0 +1,47 @@
+{
+  "description": "向量检索查询集",
+  "queries": [
+    {
+      "id": "vec-001",
+      "query": "如何部署系统",
+      "expected_semantic_match": true,
+      "min_relevance_score": 0.5,
+      "description": "语义匹配：查找部署相关的内容"
+    },
+    {
+      "id": "vec-002",
+      "query": "怎样保护数据安全",
+      "expected_semantic_match": true,
+      "min_relevance_score": 0.5,
+      "description": "语义匹配：查找安全相关的内容"
+    },
+    {
+      "id": "vec-003",
+      "query": "系统由哪些部分组成",
+      "expected_semantic_match": true,
+      "min_relevance_score": 0.5,
+      "description": "语义匹配：查找架构相关的内容"
+    },
+    {
+      "id": "vec-004",
+      "query": "文档怎么上传",
+      "expected_semantic_match": true,
+      "min_relevance_score": 0.5,
+      "description": "语义匹配：查找文档上传相关的内容"
+    },
+    {
+      "id": "vec-005",
+      "query": "how to search documents",
+      "expected_semantic_match": true,
+      "min_relevance_score": 0.3,
+      "description": "英文语义：查找检索相关的内容"
+    },
+    {
+      "id": "vec-006",
+      "query": "zxy123abc_nonexistent_topic_xyz",
+      "expected_semantic_match": false,
+      "min_relevance_score": 0.8,
+      "description": "无匹配：查询不存在的主题，验证空结果"
+    }
+  ]
+}

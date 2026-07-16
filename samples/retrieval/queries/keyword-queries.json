@@ -1,0 +1,54 @@
+{
+  "description": "关键词检索查询集",
+  "queries": [
+    {
+      "id": "kw-001",
+      "query": "项目计划",
+      "expected_doc_count_min": 1,
+      "expected_keywords": ["计划", "项目"],
+      "description": "精确匹配：查找项目计划相关文档"
+    },
+    {
+      "id": "kw-002",
+      "query": "数据库备份",
+      "expected_doc_count_min": 1,
+      "expected_keywords": ["数据库", "备份"],
+      "description": "精确匹配：查找数据库备份相关内容"
+    },
+    {
+      "id": "kw-003",
+      "query": "FastAPI",
+      "expected_doc_count_min": 1,
+      "expected_keywords": ["FastAPI"],
+      "description": "英文关键词：查找FastAPI相关内容"
+    },
+    {
+      "id": "kw-004",
+      "query": "xyznonexistent123",
+      "expected_doc_count_min": 0,
+      "expected_keywords": [],
+      "description": "无匹配：查询不存在的关键词，验证空结果处理"
+    },
+    {
+      "id": "kw-005",
+      "query": "用户权限管理",
+      "expected_doc_count_min": 1,
+      "expected_keywords": ["用户", "权限", "管理"],
+      "description": "多关键词：查找用户权限管理相关内容"
+    },
+    {
+      "id": "kw-006",
+      "query": "Docker Compose",
+      "expected_doc_count_min": 1,
+      "expected_keywords": ["Docker", "Compose"],
+      "description": "英文多词：查找Docker Compose相关内容"
+    },
+    {
+      "id": "kw-007",
+      "query": "OCR 识别",
+      "expected_doc_count_min": 1,
+      "expected_keywords": ["OCR", "识别"],
+      "description": "中英混合：查找OCR识别相关内容"
+    }
+  ]
+}

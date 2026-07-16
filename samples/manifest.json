@@ -1,0 +1,822 @@
+{
+  "version": "1.0",
+  "description": "智能知识库平台 - 测试样本清单",
+  "updated_at": "2026-07-16",
+  "samples": [
+    {
+      "id": "pdf-001",
+      "path": "documents/pdf/normal/simple-text.pdf",
+      "format": "pdf",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "paragraphs"
+      ],
+      "page_count": 3,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "纯文本中文PDF，3页，含标题和正文段落",
+      "status": "ready"
+    },
+    {
+      "id": "pdf-002",
+      "path": "documents/pdf/normal/with-table.pdf",
+      "format": "pdf",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "tables"
+      ],
+      "page_count": 2,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含表格的中文PDF，2页",
+      "status": "ready"
+    },
+    {
+      "id": "pdf-003",
+      "path": "documents/pdf/normal/with-images.pdf",
+      "format": "pdf",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "images"
+      ],
+      "page_count": 3,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含图片的中文PDF，3页",
+      "status": "pending"
+    },
+    {
+      "id": "pdf-004",
+      "path": "documents/pdf/scanned/scanned-cn.pdf",
+      "format": "pdf",
+      "category": "scanned",
+      "language": "zh-CN",
+      "features": [
+        "scanned",
+        "ocr"
+      ],
+      "page_count": 1,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "中文扫描件PDF，用于OCR测试",
+      "status": "pending"
+    },
+    {
+      "id": "pdf-005",
+      "path": "documents/pdf/scanned/scanned-en.pdf",
+      "format": "pdf",
+      "category": "scanned",
+      "language": "en-US",
+      "features": [
+        "scanned",
+        "ocr"
+      ],
+      "page_count": 1,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "英文扫描件PDF，用于OCR测试",
+      "status": "pending"
+    },
+    {
+      "id": "pdf-006",
+      "path": "documents/pdf/abnormal/corrupted.pdf",
+      "format": "pdf",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "corrupted"
+      ],
+      "page_count": 0,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "损坏的PDF文件（截断），测试错误处理",
+      "status": "ready"
+    },
+    {
+      "id": "word-001",
+      "path": "documents/word/normal/simple.docx",
+      "format": "docx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "paragraphs"
+      ],
+      "page_count": 2,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "纯文本中文Word，含标题和正文",
+      "status": "ready"
+    },
+    {
+      "id": "word-002",
+      "path": "documents/word/normal/with-table.docx",
+      "format": "docx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "tables"
+      ],
+      "page_count": 2,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含表格的中文Word文档",
+      "status": "ready"
+    },
+    {
+      "id": "word-003",
+      "path": "documents/word/normal/with-images.docx",
+      "format": "docx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "images"
+      ],
+      "page_count": 3,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含图片的中文Word文档",
+      "status": "ready"
+    },
+    {
+      "id": "word-004",
+      "path": "documents/word/legacy/simple.doc",
+      "format": "doc",
+      "category": "legacy",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "legacy"
+      ],
+      "page_count": 1,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "旧格式.doc文件，测试LibreOffice转换",
+      "status": "pending"
+    },
+    {
+      "id": "word-005",
+      "path": "documents/word/abnormal/corrupted.docx",
+      "format": "docx",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "corrupted"
+      ],
+      "page_count": 0,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "损坏的DOCX文件，测试错误处理",
+      "status": "pending"
+    },
+    {
+      "id": "excel-001",
+      "path": "documents/excel/normal/simple.xlsx",
+      "format": "xlsx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "tables"
+      ],
+      "page_count": 1,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "简单表格Excel文件",
+      "status": "ready"
+    },
+    {
+      "id": "excel-002",
+      "path": "documents/excel/normal/merged-cells.xlsx",
+      "format": "xlsx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "tables",
+        "merged-cells"
+      ],
+      "page_count": 1,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含合并单元格的Excel文件",
+      "status": "ready"
+    },
+    {
+      "id": "excel-003",
+      "path": "documents/excel/normal/multi-sheet.xlsx",
+      "format": "xlsx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "tables",
+        "multi-sheet"
+      ],
+      "page_count": 3,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "多工作表Excel文件",
+      "status": "ready"
+    },
+    {
+      "id": "excel-004",
+      "path": "documents/excel/legacy/simple.xls",
+      "format": "xls",
+      "category": "legacy",
+      "language": "zh-CN",
+      "features": [
+        "tables",
+        "legacy"
+      ],
+      "page_count": 1,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "旧格式.xls文件",
+      "status": "pending"
+    },
+    {
+      "id": "excel-005",
+      "path": "documents/excel/abnormal/empty.xlsx",
+      "format": "xlsx",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "empty"
+      ],
+      "page_count": 0,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "空工作簿Excel文件",
+      "status": "ready"
+    },
+    {
+      "id": "pptx-001",
+      "path": "documents/powerpoint/normal/simple.pptx",
+      "format": "pptx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "slides"
+      ],
+      "page_count": 5,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "简单中文PPT，含标题和正文",
+      "status": "ready"
+    },
+    {
+      "id": "pptx-002",
+      "path": "documents/powerpoint/normal/with-notes.pptx",
+      "format": "pptx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "slides",
+        "notes"
+      ],
+      "page_count": 3,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含备注的中文PPT",
+      "status": "ready"
+    },
+    {
+      "id": "pptx-003",
+      "path": "documents/powerpoint/legacy/simple.ppt",
+      "format": "ppt",
+      "category": "legacy",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "legacy"
+      ],
+      "page_count": 3,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "旧格式.ppt文件",
+      "status": "pending"
+    },
+    {
+      "id": "pptx-004",
+      "path": "documents/powerpoint/abnormal/no-content.pptx",
+      "format": "pptx",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "empty"
+      ],
+      "page_count": 0,
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "无内容的PPT",
+      "status": "ready"
+    },
+    {
+      "id": "md-001",
+      "path": "documents/markdown/normal/basic.md",
+      "format": "markdown",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "headings",
+        "paragraphs"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "基础Markdown文件，含中文标题和段落",
+      "status": "ready"
+    },
+    {
+      "id": "md-002",
+      "path": "documents/markdown/normal/with-code.md",
+      "format": "markdown",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "code-blocks"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含代码块的Markdown文件",
+      "status": "ready"
+    },
+    {
+      "id": "md-003",
+      "path": "documents/markdown/normal/with-table.md",
+      "format": "markdown",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "tables"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含表格的Markdown文件",
+      "status": "ready"
+    },
+    {
+      "id": "md-004",
+      "path": "documents/markdown/normal/with-images.md",
+      "format": "markdown",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "images"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含图片引用的Markdown文件",
+      "status": "ready"
+    },
+    {
+      "id": "md-005",
+      "path": "documents/markdown/abnormal/malicious-html.md",
+      "format": "markdown",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "xss",
+        "malicious"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含危险HTML的Markdown文件（XSS清洗测试）",
+      "status": "ready"
+    },
+    {
+      "id": "md-006",
+      "path": "documents/markdown/abnormal/empty.md",
+      "format": "markdown",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "empty"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "空Markdown文件",
+      "status": "ready"
+    },
+    {
+      "id": "txt-001",
+      "path": "documents/text/normal/utf8.txt",
+      "format": "txt",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "utf8"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "UTF-8编码中文文本",
+      "status": "ready"
+    },
+    {
+      "id": "txt-002",
+      "path": "documents/text/normal/gbk.txt",
+      "format": "txt",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "gbk"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "GBK编码中文文本，测试编码自动识别",
+      "status": "ready"
+    },
+    {
+      "id": "txt-003",
+      "path": "documents/text/normal/long-lines.txt",
+      "format": "txt",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "long-lines"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "超长行文本文件，测试长文本处理",
+      "status": "ready"
+    },
+    {
+      "id": "txt-004",
+      "path": "documents/text/abnormal/binary-blob.txt",
+      "format": "txt",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "binary",
+        "mismatch"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "实际是二进制文件但扩展名为.txt，测试MIME识别",
+      "status": "ready"
+    },
+    {
+      "id": "csv-001",
+      "path": "documents/csv/normal/utf8.csv",
+      "format": "csv",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "tables",
+        "utf8"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "UTF-8编码CSV文件",
+      "status": "ready"
+    },
+    {
+      "id": "csv-002",
+      "path": "documents/csv/normal/with-special-chars.csv",
+      "format": "csv",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "tables",
+        "special-chars"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含特殊字符的CSV文件（逗号、引号、换行）",
+      "status": "ready"
+    },
+    {
+      "id": "csv-003",
+      "path": "documents/csv/abnormal/inconsistent-columns.csv",
+      "format": "csv",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "tables",
+        "inconsistent"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "列数不一致的CSV文件",
+      "status": "ready"
+    },
+    {
+      "id": "csv-004",
+      "path": "documents/csv/abnormal/empty.csv",
+      "format": "csv",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "empty"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "空CSV文件",
+      "status": "ready"
+    },
+    {
+      "id": "html-001",
+      "path": "documents/html/normal/article.html",
+      "format": "html",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "html"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "简单文章HTML页面",
+      "status": "ready"
+    },
+    {
+      "id": "html-002",
+      "path": "documents/html/normal/with-table.html",
+      "format": "html",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "tables",
+        "html"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含表格的HTML页面",
+      "status": "ready"
+    },
+    {
+      "id": "html-003",
+      "path": "documents/html/abnormal/with-script.html",
+      "format": "html",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "xss",
+        "malicious",
+        "html"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "含脚本和事件属性的HTML（清洗测试）",
+      "status": "ready"
+    },
+    {
+      "id": "html-004",
+      "path": "documents/html/abnormal/deeply-nested.html",
+      "format": "html",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "html",
+        "nested"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "100层嵌套div的HTML，测试解析器深度限制",
+      "status": "ready"
+    },
+    {
+      "id": "epub-001",
+      "path": "documents/epub/normal/simple.epub",
+      "format": "epub",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "ebook"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "简单EPUB电子书",
+      "status": "pending"
+    },
+    {
+      "id": "epub-002",
+      "path": "documents/epub/abnormal/corrupted.epub",
+      "format": "epub",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "corrupted",
+        "ebook"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "损坏的EPUB文件",
+      "status": "pending"
+    },
+    {
+      "id": "img-001",
+      "path": "documents/images/normal/clear-cn.png",
+      "format": "png",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "image",
+        "ocr"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "清晰中文文字截图，用于OCR测试",
+      "status": "pending"
+    },
+    {
+      "id": "img-002",
+      "path": "documents/images/normal/clear-en.png",
+      "format": "png",
+      "category": "normal",
+      "language": "en-US",
+      "features": [
+        "image",
+        "ocr"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "清晰英文文字截图，用于OCR测试",
+      "status": "pending"
+    },
+    {
+      "id": "img-003",
+      "path": "documents/images/normal/table-scan.jpg",
+      "format": "jpg",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "image",
+        "tables",
+        "ocr"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "表格扫描件，用于OCR表格识别测试",
+      "status": "pending"
+    },
+    {
+      "id": "img-004",
+      "path": "documents/images/normal/document-photo.jpg",
+      "format": "jpg",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "image",
+        "ocr",
+        "photo"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "文档照片，用于OCR鲁棒性测试",
+      "status": "pending"
+    },
+    {
+      "id": "img-005",
+      "path": "documents/images/abnormal/low-resolution.png",
+      "format": "png",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "image",
+        "low-resolution"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "低分辨率图片（50x50），测试OCR边界",
+      "status": "pending"
+    },
+    {
+      "id": "img-006",
+      "path": "documents/images/abnormal/rotated.jpg",
+      "format": "jpg",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "image",
+        "rotated"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "旋转90度的图片，测试OCR旋转校正",
+      "status": "pending"
+    },
+    {
+      "id": "img-007",
+      "path": "documents/images/abnormal/no-text.png",
+      "format": "png",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "image",
+        "no-text"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "纯色块无文字图片，测试OCR空结果处理",
+      "status": "pending"
+    },
+    {
+      "id": "email-001",
+      "path": "documents/email/normal/simple.eml",
+      "format": "eml",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "email"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "简单中文邮件，含主题、发件人和正文",
+      "status": "ready"
+    },
+    {
+      "id": "email-002",
+      "path": "documents/email/abnormal/corrupted-mime.eml",
+      "format": "eml",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "corrupted",
+        "email"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "MIME边界损坏的邮件",
+      "status": "ready"
+    },
+    {
+      "id": "odf-001",
+      "path": "documents/open-documents/normal/simple.odt",
+      "format": "odt",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "opendocument"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "OpenDocument文本文件",
+      "status": "pending"
+    },
+    {
+      "id": "odf-002",
+      "path": "documents/open-documents/normal/simple.ods",
+      "format": "ods",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "tables",
+        "opendocument"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "OpenDocument电子表格",
+      "status": "pending"
+    },
+    {
+      "id": "odf-003",
+      "path": "documents/open-documents/normal/simple.rtf",
+      "format": "rtf",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": [
+        "text",
+        "rtf"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "RTF富文本文件",
+      "status": "ready"
+    },
+    {
+      "id": "odf-004",
+      "path": "documents/open-documents/abnormal/empty.odt",
+      "format": "odt",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": [
+        "empty",
+        "opendocument"
+      ],
+      "file_size_bytes": 0,
+      "sha256": "",
+      "description": "空ODT文件",
+      "status": "pending"
+    }
+  ]
+}
