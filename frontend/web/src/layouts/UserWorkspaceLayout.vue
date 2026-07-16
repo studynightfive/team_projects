@@ -4,18 +4,22 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import WorkspaceShell from "../components/WorkspaceShell.vue";
-import { Bell, CircleHelp, Search } from "../components/icons";
+import { Bell, CircleHelp, Database, Search } from "../components/icons";
 import {
   foundationData,
   userMobileNavigation,
   userNavigation,
 } from "../data/foundation";
+import { aiSearchMockData } from "../mocks/ai-search";
 
 const { message } = AntApp.useApp();
 const route = useRoute();
 const router = useRouter();
 const searchInputRef = ref<HTMLInputElement>();
 const globalSearch = ref("");
+const connectedSourceCount = aiSearchMockData.dataSources.filter(
+  (source) => source.connectionStatus === "connected",
+).length;
 
 const currentTitle = computed(() =>
   typeof route.meta.title === "string" ? route.meta.title : "工作台",
@@ -52,7 +56,7 @@ onBeforeUnmount(() =>
 <template>
   <WorkspaceShell
     variant="user"
-    area-title="用户工作区"
+    area-title="企业 AI 搜索工作台"
     :navigation="userNavigation"
     navigation-label="工作区"
     :mobile-navigation="userMobileNavigation"
@@ -88,6 +92,17 @@ onBeforeUnmount(() =>
         </label>
 
         <div class="topbar-actions">
+          <RouterLink
+            class="topbar-source-status"
+            to="/data-sources"
+            :aria-label="`${connectedSourceCount} 个数据源连接正常，共 ${aiSearchMockData.dataSources.length} 个`"
+          >
+            <Database :size="16" aria-hidden="true" />
+            <span>{{ connectedSourceCount }}/{{
+              aiSearchMockData.dataSources.length
+            }}
+              数据源可用</span>
+          </RouterLink>
           <button
             class="icon-button notification-button"
             type="button"

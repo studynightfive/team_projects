@@ -21,12 +21,15 @@
     "@lucide/vue": "1.24.0",
     "ant-design-vue": "4.2.6",
     "axios": "1.18.1",
+    "dompurify": "3.3.0",
+    "markdown-it": "14.1.0",
     "pinia": "3.0.4",
     "vue": "3.5.39",
     "vue-router": "4.6.3"
   },
   "devDependencies": {
     "@eslint/js": "9.39.1",
+    "@types/markdown-it": "14.1.2",
     "@types/node": "22.20.1",
     "@vitejs/plugin-vue": "6.0.8",
     "@vue/test-utils": "2.4.11",

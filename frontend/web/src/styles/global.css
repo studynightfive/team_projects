@@ -21,7 +21,9 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-body.drawer-open {
+body.drawer-open,
+body.preview-drawer-open,
+body.source-filter-drawer-open {
   overflow: hidden;
 }
 
@@ -300,6 +302,13 @@ p {
   letter-spacing: 0.06em;
 }
 
+.app-sidebar > nav {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
 .sidebar-navigation {
   display: grid;
   gap: var(--space-1);
@@ -465,7 +474,8 @@ p {
   left: calc(100% + var(--space-2));
 }
 
-.sidebar-profile-menu button {
+.sidebar-profile-menu button,
+.sidebar-profile-menu a {
   display: flex;
   min-height: 40px;
   align-items: center;
@@ -475,6 +485,7 @@ p {
   color: var(--color-text-secondary);
   background: transparent;
   text-align: left;
+  text-decoration: none;
 }
 
 /* 顶栏 */
@@ -595,6 +606,22 @@ p {
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
+}
+
+.topbar-source-status {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-success-text);
+  background: var(--color-success-soft);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .notification-button {
@@ -2247,6 +2274,8 @@ p {
 /* M02-M14 本地业务页面共享模式 */
 .business-page {
   display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
 }
 
@@ -2767,6 +2796,7 @@ p {
   }
 
   .sidebar-profile-menu button:hover,
+  .sidebar-profile-menu a:hover,
   .mobile-drawer-link:hover {
     background: var(--color-surface-subtle);
   }
@@ -2798,7 +2828,8 @@ p {
   }
 
   .topbar-workspace-link,
-  .topbar-divider {
+  .topbar-divider,
+  .topbar-source-status {
     display: none;
   }
 
@@ -2909,6 +2940,7 @@ p {
   .global-search,
   .topbar-divider,
   .topbar-workspace-link,
+  .topbar-source-status,
   .topbar-actions > .icon-button:not(.notification-button),
   .environment-select,
   .admin-topbar-actions .secondary-button {

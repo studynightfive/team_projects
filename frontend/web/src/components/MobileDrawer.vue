@@ -120,7 +120,9 @@ onBeforeUnmount(() => {
       :aria-label="dialogLabel"
     >
       <div class="mobile-drawer-header">
-        <PlatformLogo />
+        <PlatformLogo
+          :name="variant === 'user' ? '企业 AI 搜索工作台' : '智能知识库平台'"
+        />
         <button
           ref="closeButtonRef"
           class="mobile-drawer-close icon-button"

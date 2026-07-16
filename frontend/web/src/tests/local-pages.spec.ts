@@ -23,49 +23,91 @@ const businessRoutes: readonly BusinessRouteCase[] = [
     path: "/knowledge",
     title: "知识库",
     shell: "user",
-    activeNavigation: "知识库",
+    activeNavigation: "企业知识库",
   },
   {
     name: "knowledge-detail",
     path: "/knowledge/product-handbook",
     title: "文档目录",
     shell: "user",
-    activeNavigation: "知识库",
+    activeNavigation: "企业知识库",
   },
   {
     name: "document-detail",
     path: "/knowledge/product-handbook/documents/release-guide",
     title: "文档预览",
     shell: "user",
-    activeNavigation: "知识库",
+    activeNavigation: "企业知识库",
   },
   {
     name: "search",
     path: "/search",
-    title: "知识检索",
+    title: "搜索结果",
     shell: "user",
-    activeNavigation: "检索",
+    activeNavigation: "AI 搜索",
+  },
+  {
+    name: "deep-research",
+    path: "/research",
+    title: "深度研究",
+    shell: "user",
+    activeNavigation: "深度研究",
+  },
+  {
+    name: "knowledge-spaces",
+    path: "/spaces",
+    title: "我的空间",
+    shell: "user",
+    activeNavigation: "我的空间",
+  },
+  {
+    name: "search-favorites",
+    path: "/favorites",
+    title: "收藏内容",
+    shell: "user",
+    activeNavigation: "收藏内容",
+  },
+  {
+    name: "search-history",
+    path: "/history",
+    title: "搜索历史",
+    shell: "user",
+    activeNavigation: "搜索历史",
+  },
+  {
+    name: "data-sources",
+    path: "/data-sources",
+    title: "数据源",
+    shell: "user",
+    activeNavigation: "数据源",
+  },
+  {
+    name: "search-settings",
+    path: "/settings",
+    title: "搜索设置",
+    shell: "user",
+    activeNavigation: "搜索设置",
   },
   {
     name: "chat-new",
     path: "/chat",
     title: "新会话",
     shell: "user",
-    activeNavigation: "智能问答",
+    activeNavigation: "AI 助手",
   },
   {
     name: "chat-detail",
     path: "/chat/conv-release-review",
     title: "会话详情",
     shell: "user",
-    activeNavigation: "智能问答",
+    activeNavigation: "AI 助手",
   },
   {
     name: "conversations",
     path: "/conversations",
     title: "历史会话",
     shell: "user",
-    activeNavigation: "历史会话",
+    activeNavigation: "最近浏览",
   },
   {
     name: "downloads",
@@ -201,10 +243,10 @@ describe("M02-M14 本地业务路由", () => {
         .map((link) => link.attributes("href")),
     ).toEqual(userNavigation.map((item) => item.to));
     await userApp.wrapper
-      .get('.mobile-drawer-list a[href="/search"]')
+      .get('.mobile-drawer-list a[href="/"]')
       .trigger("click");
     await flushPromises();
-    expect(userApp.router.currentRoute.value.path).toBe("/search");
+    expect(userApp.router.currentRoute.value.path).toBe("/");
     userApp.wrapper.unmount();
 
     const adminApp = await renderAppAt("/admin/users");
@@ -234,7 +276,7 @@ describe("M02-M14 本地业务路由", () => {
     await flushPromises();
 
     expect(document.body.textContent).toContain("个人资料");
-    expect(document.body.textContent).toContain("等待认证 OpenAPI");
+    expect(document.body.textContent).toContain("等待认证服务接入");
     expect(router.resolve("/profile").name).toBe("not-found");
     expect(requestSpy).not.toHaveBeenCalled();
   });
@@ -304,7 +346,7 @@ describe("M03-M07 用户页面本地交互", () => {
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
-  it("三种检索模式保留参数且空条件不会伪造请求", async () => {
+  it("AI 搜索保留查询参数、切换结果视图且空问题不会访问业务 API", async () => {
     const requestSpy = vi.spyOn(apiClient, "request");
     const home = await renderAppAt("/");
     await home.wrapper.get("#global-search-input").setValue("回滚");
@@ -315,33 +357,41 @@ describe("M03-M07 用户页面本地交互", () => {
     expect(home.router.currentRoute.value.path).toBe("/search");
     expect(home.router.currentRoute.value.query.q).toBe("回滚");
     expect(
-      (
-        home.wrapper.get('.query-field input[type="search"]')
-          .element as HTMLInputElement
-      ).value,
+      (home.wrapper.get("#ai-search-query").element as HTMLTextAreaElement)
+        .value,
     ).toBe("回滚");
     home.wrapper.unmount();
 
     const { wrapper } = await renderAppAt("/search?q=发布");
+    await vi.waitFor(() => {
+      expect(wrapper.find(".result-tabs").exists()).toBe(true);
+    });
 
-    await getButton(wrapper, "关键词").trigger("click");
-    const query = wrapper.get('.query-field input[type="search"]');
+    await wrapper.get('select[title="选择搜索模式"]').setValue("precise");
+    const query = wrapper.get("#ai-search-query");
     await query.setValue("复盘");
-    await wrapper.get("form.search-form").trigger("submit");
+    await wrapper.get("form.ai-search-box").trigger("submit");
+    await flushPromises();
+    await vi.waitFor(() => {
+      expect(wrapper.find(".result-tabs").exists()).toBe(true);
+      expect(wrapper.text()).toContain("本地模拟，无真实耗时");
+    });
 
-    expect(getButton(wrapper, "关键词").attributes("aria-pressed")).toBe(
-      "true",
-    );
-    expect(wrapper.findAll(".search-results article")).toHaveLength(1);
+    expect(
+      wrapper.find<HTMLSelectElement>('select[title="选择搜索模式"]').element
+        .value,
+    ).toBe("precise");
 
-    const threshold = wrapper.findAll<HTMLInputElement>(
-      'input[type="range"]',
-    )[1];
-    await threshold?.setValue(90);
-    expect(wrapper.findAll(".search-results article")).toHaveLength(0);
+    await getButton(wrapper, "原始结果").trigger("click");
+    expect(wrapper.findAll(".source-result-item")).toHaveLength(10);
+    await wrapper
+      .get('input[placeholder="在结果中搜索"]')
+      .setValue("不存在的结果");
+    expect(wrapper.findAll(".source-result-item")).toHaveLength(0);
+    expect(wrapper.text()).toContain("没有符合条件的结果");
 
     await query.setValue("");
-    await wrapper.get("form.search-form").trigger("submit");
+    await wrapper.get("form.ai-search-box").trigger("submit");
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
