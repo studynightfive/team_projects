@@ -1,5 +1,6 @@
 export {
   ArrowUpRight,
+  Award,
   Bell,
   BookOpen,
   BookOpenText,
@@ -26,6 +27,7 @@ export {
   LibraryBig,
   ListChecks,
   LoaderCircle,
+  Lock,
   LogOut,
   Menu,
   MessageSquarePlus,
