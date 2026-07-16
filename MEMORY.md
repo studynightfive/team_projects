@@ -38,3 +38,4 @@
   - `redis` 从方案定版 `6.4.0` 降级为 `5.2.1`：`arq==0.26.3` 的依赖约束为 `redis>=4.2.0,<6`，不兼容 redis 6.x。后续若需升级 redis 6.x，必须同步升级 arq 到支持 redis 6 的版本。
   - `pydantic-settings` 从方案定版 `2.12.0` 升级为 `2.14.0`：`docling==2.112.0` 的传递依赖 `docling-core` 要求 `pydantic-settings>=2.14.0`。后续若需降级 pydantic-settings，必须同步降级 docling 到兼容版本。
   - 以上两个版本偏离已体现于 `backend/pyproject.toml` 和 `backend/uv.lock`，CI 中的 `uv sync --frozen` 以此为准。
+  - 2026-07-16 CI 中 uv 从方案定版 `0.8.22` 升级为 `0.11.26`：本地生成 `uv.lock` 使用的 uv 版本为 0.11.26，旧版 CI 无法正确解析 lock 文件路径。`uv sync` 命令同步改为 `cd backend && uv sync --frozen`。
