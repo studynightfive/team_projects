@@ -5,10 +5,12 @@ withDefaults(
   defineProps<{
     compact?: boolean;
     inverse?: boolean;
+    name?: string;
   }>(),
   {
     compact: false,
     inverse: false,
+    name: "智能知识库平台",
   },
 );
 </script>
@@ -18,6 +20,6 @@ withDefaults(
     <span class="platform-logo-mark" aria-hidden="true">
       <BookOpenText :size="20" :stroke-width="1.8" />
     </span>
-    <span v-if="!compact" class="platform-logo-name">智能知识库平台</span>
+    <span v-if="!compact" class="platform-logo-name">{{ name }}</span>
   </div>
 </template>

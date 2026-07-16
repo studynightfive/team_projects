@@ -11,6 +11,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  Settings2,
   UserRound,
 } from "./icons";
 import PlatformLogo from "./PlatformLogo.vue";
@@ -68,7 +69,11 @@ const runProfileAction = async (label: string): Promise<void> => {
     @keydown.escape="closeProfileMenu()"
   >
     <div class="sidebar-brand-row">
-      <PlatformLogo :compact="collapsed" inverse />
+      <PlatformLogo
+        :compact="collapsed"
+        :name="variant === 'user' ? '企业 AI 搜索工作台' : '智能知识库平台'"
+        inverse
+      />
       <button
         class="sidebar-collapse-button"
         type="button"
@@ -170,7 +175,23 @@ const runProfileAction = async (label: string): Promise<void> => {
           <UserRound :size="16" aria-hidden="true" />
           个人中心
         </button>
-        <button type="button" @click="runProfileAction('系统设置')">
+        <button
+          v-if="variant === 'user'"
+          type="button"
+          @click="runProfileAction('偏好设置')"
+        >
+          <Settings :size="16" aria-hidden="true" />
+          偏好设置
+        </button>
+        <RouterLink
+          v-if="variant === 'user'"
+          to="/settings"
+          @click="closeProfileMenu"
+        >
+          <Settings2 :size="16" aria-hidden="true" />
+          搜索设置
+        </RouterLink>
+        <button v-else type="button" @click="runProfileAction('系统设置')">
           <Settings :size="16" aria-hidden="true" />
           系统设置
         </button>

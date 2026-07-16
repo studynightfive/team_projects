@@ -25,7 +25,13 @@ export const createAppRouter = (history: RouterHistory): Router =>
             path: "",
             name: "user-home",
             component: UserHomeView,
-            meta: { title: "工作台", parentTitle: "首页" },
+            meta: { title: "AI 搜索", parentTitle: "企业知识中心" },
+          },
+          {
+            path: "research",
+            name: "deep-research",
+            component: () => import("../views/user/DeepResearchView.vue"),
+            meta: { title: "深度研究", parentTitle: "AI 搜索" },
           },
           {
             path: "knowledge",
@@ -49,7 +55,37 @@ export const createAppRouter = (history: RouterHistory): Router =>
             path: "search",
             name: "search",
             component: () => import("../views/user/SearchView.vue"),
-            meta: { title: "知识检索", parentTitle: "用户工作区" },
+            meta: { title: "搜索结果", parentTitle: "AI 搜索" },
+          },
+          {
+            path: "spaces",
+            name: "knowledge-spaces",
+            component: () => import("../views/user/KnowledgeSpacesView.vue"),
+            meta: { title: "我的空间", parentTitle: "企业知识中心" },
+          },
+          {
+            path: "favorites",
+            name: "search-favorites",
+            component: () => import("../views/user/FavoritesView.vue"),
+            meta: { title: "收藏内容", parentTitle: "企业知识中心" },
+          },
+          {
+            path: "history",
+            name: "search-history",
+            component: () => import("../views/user/SearchHistoryView.vue"),
+            meta: { title: "搜索历史", parentTitle: "AI 搜索" },
+          },
+          {
+            path: "data-sources",
+            name: "data-sources",
+            component: () => import("../views/user/DataSourcesView.vue"),
+            meta: { title: "数据源", parentTitle: "企业知识中心" },
+          },
+          {
+            path: "settings",
+            name: "search-settings",
+            component: () => import("../views/user/SearchSettingsView.vue"),
+            meta: { title: "搜索设置", parentTitle: "AI 搜索" },
           },
           {
             path: "chat",

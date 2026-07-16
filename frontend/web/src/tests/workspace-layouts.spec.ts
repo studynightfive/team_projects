@@ -10,9 +10,12 @@ import {
 import { renderAppAt } from "./renderApp";
 
 describe("M01 V2 工作区布局", () => {
-  it("普通用户布局呈现六项导航、四张指标与团队动态", async () => {
+  it("普通用户布局呈现完整导航与 AI 搜索工作台", async () => {
     const requestSpy = vi.spyOn(apiClient, "request");
     const { wrapper } = await renderAppAt("/");
+    await vi.waitFor(() => {
+      expect(wrapper.get("h1").text()).toBe("今天想查找什么？");
+    });
     const navigationLabels = wrapper
       .findAll(".app-sidebar .sidebar-navigation-item")
       .map((item) => item.text().trim());
@@ -24,11 +27,15 @@ describe("M01 V2 工作区布局", () => {
     expect(wrapper.findAll("h1")).toHaveLength(1);
     expect(wrapper.find("header.workspace-topbar").exists()).toBe(true);
     expect(wrapper.find("main.workspace-content").exists()).toBe(true);
-    expect(wrapper.findAll(".user-stat-grid .stat-card")).toHaveLength(4);
-    expect(wrapper.findAll(".knowledge-row")).toHaveLength(4);
-    expect(wrapper.findAll(".activity-list li")).toHaveLength(4);
-    expect(wrapper.text()).toContain("产品需求资料库");
-    expect(wrapper.text()).toContain("团队动态");
+    expect(wrapper.findAll(".search-suggestion-list button")).toHaveLength(6);
+    expect(wrapper.findAll(".quick-action-list button")).toHaveLength(5);
+    expect(wrapper.findAll(".recent-search-list button")).toHaveLength(4);
+    expect(wrapper.findAll(".knowledge-space-list a")).toHaveLength(3);
+    expect(wrapper.findAll(".data-source-summary-list article")).toHaveLength(
+      4,
+    );
+    expect(wrapper.text()).toContain("企业知识中心");
+    expect(wrapper.text()).toContain("模拟数据");
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
@@ -76,7 +83,7 @@ describe("M01 V2 工作区布局", () => {
     expect(toggle.attributes("aria-label")).toBe("展开侧边栏");
     expect(
       wrapper.get(".sidebar-navigation-item").attributes("aria-label"),
-    ).toBe("工作台");
+    ).toBe("AI 搜索");
     expect(
       wrapper.get(".sidebar-profile-trigger").attributes("aria-label"),
     ).toBe("李明");

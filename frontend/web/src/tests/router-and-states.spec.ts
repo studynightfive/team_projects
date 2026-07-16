@@ -49,7 +49,9 @@ describe("M01 V2 路由与通用状态", () => {
 
   it("进入普通用户工作台与管理中心 V2 页面", async () => {
     const userApp = await renderAppAt("/");
-    expect(userApp.wrapper.get("h1").text()).toContain("李明");
+    await vi.waitFor(() => {
+      expect(userApp.wrapper.get("h1").text()).toBe("今天想查找什么？");
+    });
     userApp.wrapper.unmount();
 
     const adminApp = await renderAppAt("/admin");

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { App as AntApp, Modal as AntModal } from "ant-design-vue";
-import { ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
 import {
@@ -38,6 +38,8 @@ const isDrawerOpen = ref(false);
 const isSidebarCollapsed = ref(false);
 const isProfileOpen = ref(false);
 const menuButtonRef = ref<HTMLButtonElement>();
+let tabletViewportQuery: MediaQueryList | undefined;
+let desktopCollapsedPreference = false;
 
 const showNotice = (notice: string): void => {
   void message.info(notice);
@@ -46,6 +48,35 @@ const showNotice = (notice: string): void => {
 const openProfile = (): void => {
   isProfileOpen.value = true;
 };
+
+const syncSidebarForViewport = (
+  viewport: MediaQueryListEvent | MediaQueryList,
+): void => {
+  isSidebarCollapsed.value = viewport.matches
+    ? true
+    : desktopCollapsedPreference;
+};
+
+const toggleSidebar = (): void => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value;
+  if (tabletViewportQuery?.matches !== true) {
+    desktopCollapsedPreference = isSidebarCollapsed.value;
+  }
+};
+
+onMounted(() => {
+  if (typeof window.matchMedia !== "function") return;
+
+  tabletViewportQuery = window.matchMedia(
+    "(min-width: 768px) and (max-width: 1180px)",
+  );
+  syncSidebarForViewport(tabletViewportQuery);
+  tabletViewportQuery.addEventListener?.("change", syncSidebarForViewport);
+});
+
+onBeforeUnmount(() => {
+  tabletViewportQuery?.removeEventListener?.("change", syncSidebarForViewport);
+});
 </script>
 
 <template>
@@ -53,7 +84,11 @@ const openProfile = (): void => {
     :id="`${variant}-view`"
     class="workspace-shell"
     :class="[`variant-${variant}`, { 'sidebar-collapsed': isSidebarCollapsed }]"
-    data-design-source="V2-Redesign-Prompt.md"
+    :data-design-source="
+      variant === 'user'
+        ? 'docs/design/ai-search-workbench/PRD.md'
+        : 'V2-Redesign-Prompt.md'
+    "
   >
     <AppSidebar
       :variant="variant"
@@ -63,7 +98,7 @@ const openProfile = (): void => {
       :identity-name="identityName"
       :identity-role="identityRole"
       :identity-initial="identityInitial"
-      @toggle-collapse="isSidebarCollapsed = !isSidebarCollapsed"
+      @toggle-collapse="toggleSidebar"
       @notice="showNotice"
       @open-profile="isProfileOpen = true"
     />
@@ -132,7 +167,7 @@ const openProfile = (): void => {
       :width="480"
     >
       <div class="profile-preview">
-        <span class="local-preview-badge">M02 本地预览</span>
+        <span class="local-preview-badge">本地模拟资料</span>
         <div class="profile-preview-identity">
           <span class="avatar" aria-hidden="true">{{ identityInitial }}</span>
           <div>
@@ -147,16 +182,15 @@ const openProfile = (): void => {
           </div>
           <div>
             <dt>会话状态</dt>
-            <dd>等待认证 OpenAPI</dd>
+            <dd>等待认证服务接入</dd>
           </div>
           <div>
             <dt>资料来源</dt>
-            <dd>确定性 design-only 数据</dd>
+            <dd>固定演示数据</dd>
           </div>
         </dl>
         <p class="profile-preview-note">
-          独立个人资料路由不在正式路由表内；真实姓名、部门和权限将在 `/me`
-          契约确认后接入。
+          当前个人资料仅用于界面演示；真实姓名、部门和权限将在个人资料接口确认后接入。
         </p>
       </div>
     </AntModal>
