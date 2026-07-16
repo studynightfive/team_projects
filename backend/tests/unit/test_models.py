@@ -1,8 +1,6 @@
 """Unit tests for database ORM models."""
 import uuid
 
-import pytest
-
 from app.common.models import (
     AuditLog,
     KnowledgeBasePermission,

@@ -12,7 +12,7 @@ from app.common.exceptions import (
     NotFoundException,
     ValidationException,
 )
-from app.common.models import Role, User, user_roles
+from app.common.models import Role, User
 from app.common.schemas import ErrorCode
 from app.users.schemas import (
     CreateUserRequest,

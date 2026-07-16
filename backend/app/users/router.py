@@ -11,16 +11,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user, require_permission
 from app.common.database import get_db
 from app.common.models import User
-from app.common.schemas import APIResponse, PaginatedData
+from app.common.schemas import APIResponse
 from app.users.schemas import (
     CreateUserRequest,
     ResetPasswordRequest,
     UpdateUserRequest,
-    UserResponse,
 )
 from app.users.service import (
     create_user,
-    get_user,
     list_users,
     reset_user_password,
     update_user,

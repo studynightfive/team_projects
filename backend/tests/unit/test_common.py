@@ -1,5 +1,4 @@
 """Unit tests for common schemas, error codes, and exceptions."""
-import pytest
 
 from app.common.exceptions import (
     AppException,

@@ -1,5 +1,4 @@
 """Unit tests for auth security module."""
-import time
 
 import jwt
 import pytest
@@ -74,8 +73,9 @@ class TestJWTAccessToken:
     def test_decode_expired_token_raises(self):
         """Decoding an expired token raises ExpiredSignatureError."""
         # Create a token and immediately decrease its expiry
-        import jwt as jwt_module
         from datetime import datetime, timedelta, timezone
+
+        import jwt as jwt_module
 
         now = datetime.now(timezone.utc)
         payload = {

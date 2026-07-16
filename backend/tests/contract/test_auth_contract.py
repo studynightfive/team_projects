@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 import pytest
-
 from httpx import ASGITransport, AsyncClient
 
 from app.common.config import settings

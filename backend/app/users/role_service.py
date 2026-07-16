@@ -11,7 +11,7 @@ from app.common.exceptions import (
     NotFoundException,
     ValidationException,
 )
-from app.common.models import Permission, Role, role_permissions
+from app.common.models import Permission, Role
 from app.common.schemas import ErrorCode
 from app.users.role_schemas import (
     CreateRoleRequest,

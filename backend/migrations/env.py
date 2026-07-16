@@ -23,10 +23,9 @@ from app.common.config import settings  # noqa: E402
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # 导入所有模型元数据（用于自动检测 schema 变更）
-from app.common.database import Base  # noqa: E402
-
 # 导入模型确保它们注册到 Base.metadata
 import app.common.models  # noqa: E402, F401
+from app.common.database import Base  # noqa: E402
 
 target_metadata = Base.metadata
 

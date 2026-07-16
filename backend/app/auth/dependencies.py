@@ -2,14 +2,13 @@
 # 员工3 负责
 # 提供 get_current_user、require_permission 等 FastAPI 依赖
 
-from typing import Callable
+from collections.abc import Callable
 
 import jwt
-from fastapi import Cookie, Depends, Header, Request
+from fastapi import Depends, Header, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.schemas import MeData, UserRoleData, KnowledgeBaseAccessData
 from app.auth.security import decode_access_token
 from app.common.database import get_db
 from app.common.exceptions import (
@@ -19,7 +18,7 @@ from app.common.exceptions import (
     UnauthorizedException,
     UserDisabledException,
 )
-from app.common.models import KnowledgeBasePermission, User
+from app.common.models import User
 
 
 async def get_current_user(

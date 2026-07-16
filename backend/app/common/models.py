@@ -7,12 +7,10 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Boolean,
     Column,
     DateTime,
     ForeignKey,
     Index,
-    Integer,
     String,
     Table,
     Text,
@@ -22,7 +20,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.database import Base
-
 
 # ============================================================
 # 关联表：user_roles（用户与角色多对多）

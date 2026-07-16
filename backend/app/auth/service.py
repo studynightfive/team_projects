@@ -8,12 +8,10 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.schemas import LoginData, MeData, UserRoleData, KnowledgeBaseAccessData
+from app.auth.schemas import KnowledgeBaseAccessData, LoginData, MeData, UserRoleData
 from app.auth.security import (
     create_access_token,
     create_refresh_token,
-    decode_access_token,
-    hash_password,
     verify_password,
 )
 from app.common.config import settings
