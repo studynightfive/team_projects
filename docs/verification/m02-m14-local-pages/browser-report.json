@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-07-15T17:33:32.868Z",
-  "sourceCommit": "c71e6b90fb79c5d4eeb1a23b28b77d731cc872e7",
+  "generatedAt": "2026-07-16T05:08:13.986Z",
+  "sourceCommit": "0e2996034e071765d4656d336ec467b96645c911",
   "sourceWorktreeDirty": false,
-  "baseUrl": "http://127.0.0.1:5173",
-  "browser": "Chrome/150.0.7871.114",
+  "baseUrl": "http://127.0.0.1:5174",
+  "browser": "Chrome/150.0.7871.115",
   "results": [
     {
       "group": "local-pages",
