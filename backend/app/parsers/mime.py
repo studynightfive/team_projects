@@ -12,7 +12,7 @@ from app.common.schemas import ErrorCode
 try:
     import magic as python_magic
 except Exception:  # pragma: no cover - optional native lib
-    python_magic = None
+    python_magic = None  # type: ignore[assignment]
 
 
 # Extension -> expected MIME families

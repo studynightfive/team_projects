@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-import bleach
+import bleach  # type: ignore[import-untyped]
 
 from app.parsers.base import ParsedAsset, ParsedDocument
 

@@ -7,10 +7,9 @@ import json
 import re
 import shutil
 from pathlib import Path
-from app.common.config import Settings, settings as _settings
 
-def get_settings() -> Settings:
-    return _settings
+from app.common.config import Settings
+from app.common.config import settings as app_settings
 
 _UNSAFE_NAME = re.compile(r"[^\w.\u4e00-\u9fff\-]+", re.UNICODE)
 
@@ -41,7 +40,7 @@ def compute_file_sha256(path: Path, chunk_size: int = 1024 * 1024) -> str:
 
 class DocumentStorage:
     def __init__(self, settings: Settings | None = None) -> None:
-        self.settings = settings or get_settings()
+        self.settings = settings if settings is not None else app_settings
         self.root = Path(self.settings.storage_root) / "documents"
         self.root.mkdir(parents=True, exist_ok=True)
 

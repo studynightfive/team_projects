@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from app.common.exceptions import ForbiddenException
-from app.common.models import KnowledgeBasePermission, User
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.common.exceptions import ForbiddenException
+from app.common.models import KnowledgeBasePermission, User
 
 
 def user_permission_codes(user: User) -> set[str]:

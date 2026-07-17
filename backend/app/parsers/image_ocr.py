@@ -10,15 +10,12 @@ from pathlib import Path
 
 from PIL import Image, ImageFilter, ImageOps
 
-from app.common.config import settings as get_settings_obj
-
-def get_settings():
-    return get_settings_obj
+from app.common.config import settings as app_settings
 from app.parsers.base import DocumentParser, ParsedAsset, ParsedBlock, ParsedDocument
 
 
 def preprocess_image_bytes(data: bytes) -> bytes:
-    image = Image.open(BytesIO(data))
+    image: Image.Image = Image.open(BytesIO(data))
     image = ImageOps.exif_transpose(image)
     image = image.convert("L")
     image = ImageOps.autocontrast(image)
@@ -33,9 +30,9 @@ def preprocess_image_bytes(data: bytes) -> bytes:
 
 
 async def ocr_image_bytes(data: bytes, *, language: str | None = None) -> tuple[str, float]:
-    settings = get_settings()
-    lang = language or settings.ocr_default_languages
-    tesseract = shutil.which(settings.tesseract_bin)
+    cfg = app_settings
+    lang = language or cfg.ocr_default_languages
+    tesseract = shutil.which(cfg.tesseract_bin)
     if not tesseract:
         # Deterministic fallback for environments without Tesseract:
         # expose placeholder so pipeline continues; tests can monkeypatch.
@@ -60,7 +57,7 @@ async def ocr_image_bytes(data: bytes, *, language: str | None = None) -> tuple[
             stderr=asyncio.subprocess.PIPE,
         )
         try:
-            await asyncio.wait_for(proc.communicate(), timeout=settings.tesseract_timeout_seconds)
+            await asyncio.wait_for(proc.communicate(), timeout=cfg.tesseract_timeout_seconds)
         except asyncio.TimeoutError:
             proc.kill()
             return "", 0.0

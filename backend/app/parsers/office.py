@@ -7,21 +7,22 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from app.common.config import settings as app_settings
 from app.common.exceptions import AppException
 from app.common.schemas import ErrorCode
-from app.common.config import settings as get_settings_obj
-
-def get_settings():
-    return get_settings_obj
 from app.parsers.base import DocumentParser, ParsedAsset, ParsedBlock, ParsedDocument
 
 
 async def convert_with_libreoffice(source: Path, target_ext: str = "docx") -> Path:
     """Convert legacy Office / ODF via LibreOffice; raises when unavailable or failed."""
-    settings = get_settings()
-    soffice = shutil.which(settings.libreoffice_bin) or shutil.which("libreoffice")
+    cfg = app_settings
+    soffice = shutil.which(cfg.libreoffice_bin) or shutil.which("libreoffice")
     if not soffice:
-        raise AppException(code=ErrorCode.CONVERSION_FAILED, message="LibreOffice 未安装，无法转换旧格式文档", status_code=500)
+        raise AppException(
+            code=ErrorCode.CONVERSION_FAILED,
+            message="LibreOffice 未安装，无法转换旧格式文档",
+            status_code=500,
+        )
     out_dir = Path(tempfile.mkdtemp(prefix="lo-convert-"))
     cmd = [
         soffice,
@@ -41,16 +42,28 @@ async def convert_with_libreoffice(source: Path, target_ext: str = "docx") -> Pa
     )
     try:
         _, stderr = await asyncio.wait_for(
-            proc.communicate(), timeout=settings.libreoffice_timeout_seconds
+            proc.communicate(), timeout=cfg.libreoffice_timeout_seconds
         )
     except asyncio.TimeoutError as exc:
         proc.kill()
-        raise AppException(code=ErrorCode.CONVERSION_FAILED, message="LibreOffice 转换超时", status_code=500) from exc
+        raise AppException(
+            code=ErrorCode.CONVERSION_FAILED,
+            message="LibreOffice 转换超时",
+            status_code=500,
+        ) from exc
     if proc.returncode != 0:
-        raise AppException(code=ErrorCode.CONVERSION_FAILED, message=f"LibreOffice 转换失败: {stderr.decode(errors='ignore')[:200]}", status_code=500)
+        raise AppException(
+            code=ErrorCode.CONVERSION_FAILED,
+            message=f"LibreOffice 转换失败: {stderr.decode(errors='ignore')[:200]}",
+            status_code=500,
+        )
     outputs = list(out_dir.glob(f"*.{target_ext}"))
     if not outputs:
-        raise AppException(code=ErrorCode.CONVERSION_FAILED, message="LibreOffice 未产出目标文件", status_code=500)
+        raise AppException(
+            code=ErrorCode.CONVERSION_FAILED,
+            message="LibreOffice 未产出目标文件",
+            status_code=500,
+        )
     return outputs[0]
 
 
@@ -131,7 +144,7 @@ class XlsxParser(DocumentParser):
         return extension == ".xlsx" or "spreadsheetml" in mime_type
 
     async def parse(self, source_path: str) -> ParsedDocument:
-        from openpyxl import load_workbook
+        from openpyxl import load_workbook  # type: ignore[import-untyped]
 
         path = Path(source_path)
         wb = load_workbook(str(path), data_only=True, read_only=True)

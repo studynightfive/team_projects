@@ -7,10 +7,8 @@ import json
 import math
 import re
 
-from app.common.config import Settings, settings as _settings
-
-def get_settings() -> Settings:
-    return _settings
+from app.common.config import Settings
+from app.common.config import settings as app_settings
 from app.documents.chunking import Chunk
 
 _TOKEN_RE = re.compile(r"[\w\u4e00-\u9fff]+", re.UNICODE)
@@ -39,7 +37,7 @@ def deterministic_embedding(text: str, dimensions: int) -> list[float]:
 
 class DocumentIndexingService:
     def __init__(self, settings: Settings | None = None) -> None:
-        self.settings = settings or get_settings()
+        self.settings = settings if settings is not None else app_settings
 
     def build_search_document(self, chunk: Chunk, *, document_id: str, title: str) -> dict:
         tokens = tokenize(chunk.content)

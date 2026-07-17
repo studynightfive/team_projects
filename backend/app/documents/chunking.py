@@ -5,11 +5,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from app.common.config import Settings
+from app.common.config import settings as app_settings
 from app.common.exceptions import ValidationException
-from app.common.config import Settings, settings as _settings
-
-def get_settings() -> Settings:
-    return _settings
 
 
 @dataclass
@@ -31,13 +29,13 @@ _PAGE_ANCHOR_RE = re.compile(r'<a id="page-(\d+)"></a>')
 
 class Chunker:
     def __init__(self, settings: Settings | None = None) -> None:
-        self.settings = settings or get_settings()
+        self.settings = settings if settings is not None else app_settings
 
     def validate_params(self, chunk_size: int, overlap: int) -> tuple[int, int]:
         if chunk_size < self.settings.chunk_size_min or chunk_size > self.settings.chunk_size_max:
             raise ValidationException(
-                f"chunk_size 必须在 {self.settings.chunk_size_min}-{self.settings.chunk_size_max}",
-            )
+            f"chunk_size 必须在 {self.settings.chunk_size_min}-{self.settings.chunk_size_max}",
+        )
         if overlap < self.settings.chunk_overlap_min or overlap >= chunk_size:
             raise ValidationException("chunk_overlap 非法")
         return chunk_size, overlap

@@ -9,7 +9,8 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.config import Settings, settings as app_settings
+from app.common.config import Settings
+from app.common.config import settings as app_settings
 from app.common.exceptions import AppException, ForbiddenException, NotFoundException
 from app.common.models import User
 from app.common.schemas import ErrorCode
