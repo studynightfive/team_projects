@@ -42,3 +42,10 @@
   - `pydantic-settings` 从方案定版 `2.12.0` 升级为 `2.14.0`：`docling==2.112.0` 的传递依赖 `docling-core` 要求 `pydantic-settings>=2.14.0`。后续若需降级 pydantic-settings，必须同步降级 docling 到兼容版本。
   - 以上两个版本偏离已体现于 `backend/pyproject.toml` 和 `backend/uv.lock`，CI 中的 `uv sync --frozen` 以此为准。
   - 2026-07-16 CI 中 uv 从方案定版 `0.8.22` 升级为 `0.11.26`：本地生成 `uv.lock` 使用的 uv 版本为 0.11.26，旧版 CI 无法正确解析 lock 文件路径。`uv sync` 命令同步改为 `cd backend && uv sync --frozen`。
+
+## 员工 4 文档处理（2026-07-17）
+
+- 模块：`backend/app/documents`、`backend/app/parsers`
+- 迁移：`backend/migrations/versions/0002_documents_tables.py`
+- 默认 `WORKER_INLINE=true`；ARQ 任务 `process_document_task`
+- 向量当前为本地确定性 stub（`embedding_json`），供员工 5 替换为真实 embedding/pgvector

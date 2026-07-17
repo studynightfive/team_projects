@@ -59,6 +59,9 @@ dependencies = [
     "python-docx==1.2.0",         # python-docx：Word 文件读写
     "pypdf==5.9.0",               # pypdf：PDF 文件处理
     "beautifulsoup4==4.14.2",     # BeautifulSoup4：HTML 解析与清洗
+    "lxml==5.3.0",                # lxml：HTML/XML 解析后端
+    "chardet==5.2.0",             # chardet：文本编码识别
+    "ebooklib==0.18",             # ebooklib：EPUB 解析
     # ============================================================
     # Markdown 处理与安全清洗
     # ============================================================
@@ -102,6 +105,10 @@ target-version = "py310"
 select = ["E", "F", "I", "N", "W", "UP"]
 # 排除自动生成的迁移文件
 exclude = ["migrations/versions/"]
+
+[tool.ruff.lint.per-file-ignores]
+"app/documents/*" = ["E501"]
+"app/parsers/*" = ["E501"]
 
 [tool.mypy]
 # Mypy 类型检查配置

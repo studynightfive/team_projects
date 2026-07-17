@@ -62,6 +62,28 @@ class Settings(BaseSettings):
     model_api_key: str = ""
 
     # ============================================================
+    # 文档处理（员工 4）
+    # ============================================================
+    max_upload_files: int = 20
+    allowed_upload_extensions: str = (
+        ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.md,.markdown,.txt,.log,.rst,.org,"
+        ".csv,.tsv,.html,.htm,.xml,.json,.epub,.odt,.ods,.odp,.rtf,"
+        ".jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.eml"
+    )
+    libreoffice_bin: str = "soffice"
+    libreoffice_timeout_seconds: int = 120
+    tesseract_bin: str = "tesseract"
+    tesseract_timeout_seconds: int = 60
+    ocr_default_languages: str = "chi_sim+eng"
+    chunk_size_default: int = 800
+    chunk_overlap_default: int = 120
+    chunk_size_min: int = 200
+    chunk_size_max: int = 4000
+    chunk_overlap_min: int = 0
+    embedding_dimensions: int = 8
+    worker_inline: bool = True
+
+    # ============================================================
     # Pydantic Settings 配置
     # ============================================================
     model_config = {
@@ -72,6 +94,18 @@ class Settings(BaseSettings):
         # 环境变量名大小写敏感
         "case_sensitive": False,
     }
+
+    @property
+    def max_upload_bytes(self) -> int:
+        return self.max_upload_size
+
+    @property
+    def allowed_extensions(self) -> set[str]:
+        return {
+            ext.strip().lower()
+            for ext in self.allowed_upload_extensions.split(",")
+            if ext.strip()
+        }
 
 
 # 全局配置实例

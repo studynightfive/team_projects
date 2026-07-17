@@ -84,10 +84,21 @@ class ErrorCode:
     KB_NOT_FOUND = 13000
     KB_ACCESS_DENIED = 13001
     DOCUMENT_NOT_FOUND = 13002
+    UPLOAD_INVALID = 13003
+    UPLOAD_TOO_LARGE = 13004
+    UPLOAD_MIME_MISMATCH = 13005
+    DUPLICATE_POLICY = 13006
+    ASSET_NOT_FOUND = 13008
 
     # ---- 转换和 OCR (14000–14999) ----
     CONVERSION_FAILED = 14000
     OCR_FAILED = 14001
+    PARSER_NOT_FOUND = 14002
+    PARSE_FAILED = 14003
+    MANUAL_REVIEW = 14005
+    TASK_NOT_FOUND = 14006
+    TASK_NOT_RETRYABLE = 14007
+    INDEX_FAILED = 14008
 
     # ---- 检索和问答 (15000–15999) ----
     SEARCH_FAILED = 15000
@@ -130,8 +141,19 @@ ERROR_MESSAGES: dict[int, str] = {
     ErrorCode.KB_NOT_FOUND: "知识库不存在",
     ErrorCode.KB_ACCESS_DENIED: "无权访问该知识库",
     ErrorCode.DOCUMENT_NOT_FOUND: "文档不存在",
+    ErrorCode.UPLOAD_INVALID: "上传参数无效",
+    ErrorCode.UPLOAD_TOO_LARGE: "文件超过大小限制",
+    ErrorCode.UPLOAD_MIME_MISMATCH: "文件头与扩展名不一致",
+    ErrorCode.DUPLICATE_POLICY: "不支持的 duplicate_policy",
+    ErrorCode.ASSET_NOT_FOUND: "资源不存在",
     ErrorCode.CONVERSION_FAILED: "文档转换失败",
     ErrorCode.OCR_FAILED: "OCR 识别失败",
+    ErrorCode.PARSER_NOT_FOUND: "未找到解析器",
+    ErrorCode.PARSE_FAILED: "文档解析失败",
+    ErrorCode.MANUAL_REVIEW: "需要人工处理",
+    ErrorCode.TASK_NOT_FOUND: "任务不存在",
+    ErrorCode.TASK_NOT_RETRYABLE: "当前状态不可重试",
+    ErrorCode.INDEX_FAILED: "索引失败",
     ErrorCode.SEARCH_FAILED: "检索失败",
     ErrorCode.CHAT_FAILED: "问答失败",
     ErrorCode.EXPORT_FAILED: "导出失败",
