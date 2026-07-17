@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     # ============================================================
     storage_root: str = "./storage"
     max_upload_size: int = 104857600
+    # 员工4 documents 模块使用的别名（与 max_upload_size 同值）
+    max_upload_bytes: int = 104857600
 
     # ============================================================
     # 模型配置
@@ -59,6 +61,12 @@ class Settings(BaseSettings):
     # ============================================================
     max_upload_files: int = 20
     allowed_upload_extensions: str = (
+        ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.md,.markdown,.txt,.log,.rst,.org,"
+        ".csv,.tsv,.html,.htm,.xml,.json,.epub,.odt,.ods,.odp,.rtf,"
+        ".jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.eml"
+    )
+    # 员工4 documents 模块使用的别名（与 allowed_upload_extensions 同值）
+    allowed_extensions: str = (
         ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.md,.markdown,.txt,.log,.rst,.org,"
         ".csv,.tsv,.html,.htm,.xml,.json,.epub,.odt,.ods,.odp,.rtf,"
         ".jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.eml"
