@@ -14,25 +14,26 @@ FROM node:22.23.1-alpine AS builder
 # 设置工作目录
 WORKDIR /app
 
-# 设置 Node.js 环境变量
-# 生产构建模式
-ENV NODE_ENV=production
+# 启用仓库固定的 pnpm 版本
+RUN corepack enable && corepack prepare pnpm@11.13.0 --activate
 
-# 复制 package.json 和 package-lock.json
-# 先复制依赖文件，利用 Docker 构建缓存
-COPY package.json package-lock.json ./
+# 先复制依赖清单，利用 Docker 构建缓存
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY frontend/web/package.json ./frontend/web/package.json
 
-# 安装前端依赖
-# npm ci 使用 package-lock.json 中的精确版本
-RUN npm ci
+# 构建依赖位于 devDependencies，生产镜像只保留最终静态产物
+RUN pnpm install --frozen-lockfile
 
 # 复制前端源代码
 COPY frontend/web/ ./frontend/web/
 COPY frontend/web/vite.config.ts ./frontend/web/
+COPY docs/design/m01-web-foundation/tokens-v2.css ./docs/design/m01-web-foundation/tokens-v2.css
+COPY docs/design/m01-web-foundation/mock-data.json ./docs/design/m01-web-foundation/mock-data.json
+COPY docs/design/m02-m14-local-pages/mock-data.json ./docs/design/m02-m14-local-pages/mock-data.json
 
 # 构建前端应用
 # 输出目录：frontend/web/dist/
-RUN npm run build:web
+RUN NODE_ENV=production pnpm run build:web
 
 # ----------------------------------------------------------
 # 阶段 2：运行阶段 - Nginx 静态资源服务器
