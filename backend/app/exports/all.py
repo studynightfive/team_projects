@@ -3,21 +3,20 @@
 5 种格式：PDF（WeasyPrint）/ DOCX（python-docx）/ Markdown / CSV / TXT
 多文档 ZIP 打包；下载 URL HMAC 签名；过期清理。
 """
+
 from __future__ import annotations
 
 import asyncio
-import io
 import os
-import shutil
 import zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Literal, Protocol
+from typing import Literal, Protocol
 from uuid import uuid4
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, func, select
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
@@ -31,7 +30,7 @@ from app.common.exceptions import ForbiddenException, NotFoundException, Validat
 from app.common.models import User
 from app.common.schemas import APIResponse, PaginatedData
 from app.exports._shared.signing import is_expired, sign_download_token, verify_download_token
-from app.exports._shared.storage import root, task_dir, task_file_path
+from app.exports._shared.storage import root, task_file_path
 from app.rag._shared.audit_helper import audit
 
 logger = structlog.get_logger()
@@ -53,14 +52,17 @@ class ExportTask(Base):
     )
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"), primary_key=True,
+        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        primary_key=True,
         default=lambda: str(uuid4()),
     )
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     format: Mapped[str] = mapped_column(String(16), nullable=False)
-    document_ids: Mapped[list[str]] = mapped_column(ARRAY(UUID(as_uuid=False).with_variant(String(36), "sqlite")), nullable=False)
+    document_ids: Mapped[list[str]] = mapped_column(
+        ARRAY(UUID(as_uuid=False).with_variant(String(36), "sqlite")), nullable=False
+    )
     options: Mapped[dict] = mapped_column(JSONB, default=dict)
     status: Mapped[str] = mapped_column(String(16), default="pending")
     progress: Mapped[int] = mapped_column(Integer, default=0)
@@ -115,9 +117,15 @@ class ExportTaskResponse(BaseModel):
 # Exporter 抽象与实现（提示词 05 §4.2）
 # ============================================================
 class ExportContent:
-    def __init__(self, document_id: str, title: str, markdown: str,
-                 assets: list[Path] | None = None, citations: list[dict] | None = None,
-                 metadata: dict | None = None):
+    def __init__(
+        self,
+        document_id: str,
+        title: str,
+        markdown: str,
+        assets: list[Path] | None = None,
+        citations: list[dict] | None = None,
+        metadata: dict | None = None,
+    ):
         self.document_id = document_id
         self.title = title
         self.markdown = markdown
@@ -128,7 +136,10 @@ class ExportContent:
 
 class Exporter(Protocol):
     format_name: str
-    async def export(self, content: ExportContent, output_path: str, options: ExportOptions) -> str: ...
+
+    async def export(
+        self, content: ExportContent, output_path: str, options: ExportOptions
+    ) -> str: ...
 
 
 class MarkdownExporter:
@@ -138,7 +149,8 @@ class MarkdownExporter:
         body = f"# {content.title}\n\n{content.markdown}\n"
         if options.include_citations and content.citations:
             body += "\n## 引用\n\n" + "\n".join(
-                f"- doc={c.get('doc_id')} chunk={c.get('chunk_id')} score={c.get('score')}" for c in content.citations
+                f"- doc={c.get('doc_id')} chunk={c.get('chunk_id')} score={c.get('score')}"
+                for c in content.citations
             )
         Path(output_path).write_text(body, encoding="utf-8")
         return output_path
@@ -149,6 +161,7 @@ class TxtExporter:
 
     async def export(self, content: ExportContent, output_path: str, options: ExportOptions) -> str:
         from markdown_it import MarkdownIt
+
         md = MarkdownIt().render(content.markdown)
         Path(output_path).write_text(f"{content.title}\n\n{md}", encoding="utf-8")
         return output_path
@@ -159,6 +172,7 @@ class CsvExporter:
 
     async def export(self, content: ExportContent, output_path: str, options: ExportOptions) -> str:
         import csv
+
         with open(output_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["section", "content"])
@@ -207,7 +221,11 @@ class PdfExporter:
         body_html = _markdown_to_html(content.markdown)
         html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
         @page {{ size: {options.page_size}; margin: 2cm; }}
-        body {{ font-family: 'Noto Sans CJK SC', sans-serif; font-size: {options.font_size}pt; line-height: 1.6; }}
+        body {{
+            font-family: 'Noto Sans CJK SC', sans-serif;
+            font-size: {options.font_size}pt;
+            line-height: 1.6;
+        }}
         h1 {{ font-size: {options.font_size + 6}pt; }}
         h2 {{ font-size: {options.font_size + 4}pt; }}
         </style></head><body>
@@ -288,7 +306,7 @@ async def _run_export(db: AsyncSession, task_id: str) -> None:
                 raise ValidationException(message=f"unsupported format: {task.format}")
             opts = ExportOptions.model_validate(task.options or {})
             ext = task.format if task.format != "markdown" else "md"
-            filename = f"{i+1:02d}_{doc_id[:8]}.{ext}"
+            filename = f"{i + 1:02d}_{doc_id[:8]}.{ext}"
             output_path = task_file_path(task_id, filename)
             await exporter.export(content, output_path, opts)
             files.append(output_path)
@@ -320,7 +338,9 @@ async def _run_export(db: AsyncSession, task_id: str) -> None:
 async def cleanup_expired(db: AsyncSession) -> int:
     """把过期的 task 标记 expired 并删除文件。返回清理数。"""
     now = datetime.now(timezone.utc)
-    res = await db.execute(select(ExportTask).where(ExportTask.expires_at < now, ExportTask.status != "expired"))
+    res = await db.execute(
+        select(ExportTask).where(ExportTask.expires_at < now, ExportTask.status != "expired")
+    )
     tasks = res.scalars().all()
     count = 0
     for task in tasks:
@@ -342,16 +362,26 @@ def _task_to_response(task: ExportTask) -> dict:
     download_url = None
     if task.status == "done" and task.file_path:
         expires = int(task.expires_at.timestamp())
-        token = sign_download_token(export_id=task.id, user_id=task.user_id, expires_at_unix=expires)
+        token = sign_download_token(
+            export_id=task.id, user_id=task.user_id, expires_at_unix=expires
+        )
         download_url = f"/api/v1/exports/{task.id}/download?token={token}&expires={expires}"
     return {
-        "id": task.id, "user_id": task.user_id, "format": task.format,
-        "document_ids": task.document_ids, "options": task.options or {},
-        "status": task.status, "progress": task.progress,
-        "file_path": task.file_path, "file_size": task.file_size,
-        "download_url": download_url, "expires_at": task.expires_at,
-        "error_code": task.error_code, "error_message": task.error_message,
-        "created_at": task.created_at, "finished_at": task.finished_at,
+        "id": task.id,
+        "user_id": task.user_id,
+        "format": task.format,
+        "document_ids": task.document_ids,
+        "options": task.options or {},
+        "status": task.status,
+        "progress": task.progress,
+        "file_path": task.file_path,
+        "file_size": task.file_size,
+        "download_url": download_url,
+        "expires_at": task.expires_at,
+        "error_code": task.error_code,
+        "error_message": task.error_message,
+        "created_at": task.created_at,
+        "finished_at": task.finished_at,
     }
 
 
@@ -364,20 +394,31 @@ async def create_export_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     task = ExportTask(
-        user_id=user.id, format=payload.format,
-        document_ids=payload.document_ids, options=payload.options.model_dump(),
-        status="pending", progress=0,
+        user_id=user.id,
+        format=payload.format,
+        document_ids=payload.document_ids,
+        options=payload.options.model_dump(),
+        status="pending",
+        progress=0,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=settings.export_default_ttl_hours),
     )
     db.add(task)
     await db.commit()
-    await audit(db, action="export_create", user_id=user.id,
-                resource_type="export_task", resource_id=task.id, request=request)
+    await audit(
+        db,
+        action="export_create",
+        user_id=user.id,
+        resource_type="export_task",
+        resource_id=task.id,
+        request=request,
+    )
     await db.commit()
 
     # 同步执行（生产用 arq 异步队列）
     try:
-        await asyncio.wait_for(_run_export(db, task.id), timeout=settings.export_task_timeout_seconds)
+        await asyncio.wait_for(
+            _run_export(db, task.id), timeout=settings.export_task_timeout_seconds
+        )
     except asyncio.TimeoutError:
         logger.warning("export_timeout", task_id=task.id)
     return APIResponse(data=_task_to_response(task)).model_dump()
@@ -400,7 +441,9 @@ async def list_exports_endpoint(
     offset = (page - 1) * page_size
     res = await db.execute(q.order_by(ExportTask.created_at.desc()).offset(offset).limit(page_size))
     items = [_task_to_response(t) for t in res.scalars().all()]
-    return APIResponse(data=PaginatedData(items=items, page=page, page_size=page_size, total=total).model_dump()).model_dump()
+    return APIResponse(
+        data=PaginatedData(items=items, page=page, page_size=page_size, total=total).model_dump()
+    ).model_dump()
 
 
 @router.get("/{export_id}")
@@ -439,8 +482,7 @@ async def delete_export_endpoint(
             pass
     await db.delete(task)
     await db.commit()
-    await audit(db, action="export_delete", user_id=user.id,
-                resource_id=export_id, request=request)
+    await audit(db, action="export_delete", user_id=user.id, resource_id=export_id, request=request)
     await db.commit()
     return APIResponse().model_dump()
 
@@ -462,12 +504,15 @@ async def download_export_endpoint(
         raise ForbiddenException(message="无权下载此文件")
     if is_expired(expires):
         raise NotFoundException(code=16001, message="下载链接已过期")
-    if not verify_download_token(export_id=task.id, user_id=task.user_id, expires_at_unix=expires, token=token):
+    if not verify_download_token(
+        export_id=task.id, user_id=task.user_id, expires_at_unix=expires, token=token
+    ):
         raise ForbiddenException(message="签名无效")
     if not task.file_path or not os.path.exists(task.file_path):
         raise NotFoundException()
-    await audit(db, action="export_download", user_id=user.id,
-                resource_id=export_id, request=request)
+    await audit(
+        db, action="export_download", user_id=user.id, resource_id=export_id, request=request
+    )
     await db.commit()
     return FileResponse(
         task.file_path,
@@ -485,7 +530,8 @@ async def cleanup_endpoint(
 ):
     """管理员触发的过期清理；定时任务也会调用 _run_cleanup。"""
     count = await cleanup_expired(db)
-    await audit(db, action="export_cleanup", user_id=user.id,
-                detail=f"cleaned {count}", request=request)
+    await audit(
+        db, action="export_cleanup", user_id=user.id, detail=f"cleaned {count}", request=request
+    )
     await db.commit()
     return APIResponse(data={"cleaned": count}).model_dump()

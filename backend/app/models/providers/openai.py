@@ -1,9 +1,10 @@
 """OpenAI 兼容 Provider（含 DeepSeek / Ollama 兼容模式；提示词 01 §4.3）"""
+
 from __future__ import annotations
 
 import json
 import time
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import httpx
 import structlog
@@ -33,14 +34,21 @@ class OpenAICompatibleProvider:
         return self._client
 
     async def chat(
-        self, *, model_name: str, messages: list[dict],
-        temperature: float = 0.2, max_tokens: int | None = None,
-        stream: bool = False, timeout: float | None = None,
+        self,
+        *,
+        model_name: str,
+        messages: list[dict],
+        temperature: float = 0.2,
+        max_tokens: int | None = None,
+        stream: bool = False,
+        timeout: float | None = None,
     ) -> AsyncIterator[str] | str:
         client = await self._client_get()
         payload = {
-            "model": model_name, "messages": messages,
-            "temperature": temperature, "stream": stream,
+            "model": model_name,
+            "messages": messages,
+            "temperature": temperature,
+            "stream": stream,
         }
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
@@ -65,10 +73,15 @@ class OpenAICompatibleProvider:
                                 yield delta
                         except Exception:
                             continue
+
         return gen()
 
     async def embed(
-        self, *, model_name: str, inputs: list[str], timeout: float | None = None,
+        self,
+        *,
+        model_name: str,
+        inputs: list[str],
+        timeout: float | None = None,
     ) -> list[list[float]]:
         client = await self._client_get()
         r = await client.post("/embeddings", json={"model": model_name, "input": inputs})
@@ -76,8 +89,13 @@ class OpenAICompatibleProvider:
         return [item["embedding"] for item in r.json()["data"]]
 
     async def rerank(
-        self, *, model_name: str, query: str, documents: list[str],
-        top_n: int = 10, timeout: float | None = None,
+        self,
+        *,
+        model_name: str,
+        query: str,
+        documents: list[str],
+        top_n: int = 10,
+        timeout: float | None = None,
     ) -> list[dict]:
         """Cohere 兼容 /rerank 端点。"""
         client = await self._client_get()
@@ -105,19 +123,24 @@ class OpenAICompatibleProvider:
                 latency_ms = int((time.time() - start) * 1000)
                 if r.status_code in (200, 401):
                     return {
-                        "ok": True, "latency_ms": latency_ms,
+                        "ok": True,
+                        "latency_ms": latency_ms,
                         "model_info": {"reachable": True, "status_code": r.status_code},
                     }
                 return {
-                    "ok": False, "latency_ms": latency_ms,
-                    "error_code": "provider_unreachable", "error_message": f"HTTP {r.status_code}",
+                    "ok": False,
+                    "latency_ms": latency_ms,
+                    "error_code": "provider_unreachable",
+                    "error_message": f"HTTP {r.status_code}",
                 }
             finally:
                 await client.aclose()
         except Exception as exc:
             return {
-                "ok": False, "latency_ms": int((time.time() - start) * 1000),
-                "error_code": "network_error", "error_message": str(exc)[:200],
+                "ok": False,
+                "latency_ms": int((time.time() - start) * 1000),
+                "error_code": "network_error",
+                "error_message": str(exc)[:200],
             }
 
 

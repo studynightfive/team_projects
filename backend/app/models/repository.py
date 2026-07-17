@@ -2,6 +2,7 @@
 
 由 Alembic 迁移创建表；此处仅声明 SQLAlchemy 模型以供 repository 读写。
 """
+
 from __future__ import annotations
 
 import uuid
@@ -22,7 +23,9 @@ class ModelProvider(Base):
     base_url: Mapped[str] = mapped_column(String(512), nullable=False)
     enabled: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class Model(Base):
@@ -46,4 +49,6 @@ class Model(Base):
     top_n: Mapped[int | None] = mapped_column(nullable=True)
     enabled: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

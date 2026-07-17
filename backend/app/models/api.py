@@ -1,4 +1,5 @@
 """模型管理路由（提示词 01）"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request, status
@@ -22,18 +23,29 @@ router = APIRouter(prefix="/api/v1/models", tags=["models"])
 
 def _to_provider_response(p) -> dict:
     return {
-        "code": p.code, "display_name": p.display_name, "base_url": p.base_url,
-        "enabled": p.enabled, "created_at": p.created_at, "updated_at": p.updated_at,
+        "code": p.code,
+        "display_name": p.display_name,
+        "base_url": p.base_url,
+        "enabled": p.enabled,
+        "created_at": p.created_at,
+        "updated_at": p.updated_at,
     }
 
 
 def _to_model_response(m) -> dict:
     return {
-        "id": m.id, "provider_code": m.provider_code, "model_name": m.model_name,
-        "kind": m.kind, "parameters": m.parameters or {},
+        "id": m.id,
+        "provider_code": m.provider_code,
+        "model_name": m.model_name,
+        "kind": m.kind,
+        "parameters": m.parameters or {},
         "api_key_set": bool(m.api_key_encrypted),
-        "dimensions": m.dimensions, "distance": m.distance, "top_n": m.top_n,
-        "enabled": m.enabled, "created_at": m.created_at, "updated_at": m.updated_at,
+        "dimensions": m.dimensions,
+        "distance": m.distance,
+        "top_n": m.top_n,
+        "enabled": m.enabled,
+        "created_at": m.created_at,
+        "updated_at": m.updated_at,
     }
 
 
@@ -59,8 +71,14 @@ async def upsert_provider_endpoint(
 ):
     provider = await service.upsert_provider(db, payload)
     await db.commit()
-    await audit(db, action="model_provider_upsert", user_id=user.id,
-                resource_type="model_provider", resource_id=provider.code, request=request)
+    await audit(
+        db,
+        action="model_provider_upsert",
+        user_id=user.id,
+        resource_type="model_provider",
+        resource_id=provider.code,
+        request=request,
+    )
     await db.commit()
     return APIResponse(data=_to_provider_response(provider)).model_dump()
 
@@ -76,7 +94,9 @@ async def patch_provider_endpoint(
 ):
     provider = await service.patch_provider(db, code, payload)
     await db.commit()
-    await audit(db, action="model_provider_patch", user_id=user.id, resource_id=code, request=request)
+    await audit(
+        db, action="model_provider_patch", user_id=user.id, resource_id=code, request=request
+    )
     await db.commit()
     return APIResponse(data=_to_provider_response(provider)).model_dump()
 
@@ -91,7 +111,9 @@ async def delete_provider_endpoint(
 ):
     await service.delete_provider(db, code)
     await db.commit()
-    await audit(db, action="model_provider_delete", user_id=user.id, resource_id=code, request=request)
+    await audit(
+        db, action="model_provider_delete", user_id=user.id, resource_id=code, request=request
+    )
     await db.commit()
     return APIResponse().model_dump()
 
@@ -120,8 +142,14 @@ async def create_model_endpoint(
 ):
     model = await service.create_model(db, payload)
     await db.commit()
-    await audit(db, action="model_create", user_id=user.id, resource_type="model",
-                resource_id=model.id, request=request)
+    await audit(
+        db,
+        action="model_create",
+        user_id=user.id,
+        resource_type="model",
+        resource_id=model.id,
+        request=request,
+    )
     await db.commit()
     return APIResponse(data=_to_model_response(model)).model_dump()
 
@@ -167,8 +195,12 @@ async def test_model_endpoint(
 ):
     result = await service.test_model(db, model_id)
     await audit(
-        db, action="model_test", user_id=user.id, resource_id=model_id,
-        result="success" if result.ok else "failure", request=request,
+        db,
+        action="model_test",
+        user_id=user.id,
+        resource_id=model_id,
+        result="success" if result.ok else "failure",
+        request=request,
     )
     await db.commit()
     return APIResponse(data=result.model_dump()).model_dump()

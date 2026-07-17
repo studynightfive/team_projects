@@ -1,4 +1,5 @@
 """chunks ORM 模型（提示词 02 §4.6）"""
+
 from __future__ import annotations
 
 from datetime import datetime

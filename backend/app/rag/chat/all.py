@@ -3,38 +3,37 @@
 SSE 事件序列：start → delta* → citation* → done | error
 服务端真正取消模型调用；引用经 post_filter 权限保护；answer_versions 保留。
 """
+
 from __future__ import annotations
 
 import asyncio
-import json
 import time
 import uuid
+from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-from typing import Any, AsyncIterator, Literal
+from typing import Any
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
+from app.common.config import settings
 from app.common.database import get_db
 from app.common.models import User
-from app.common.config import settings
 from app.models import service as model_service
 from app.models.providers.openai import build_provider
 from app.models.security import decrypt_api_key
 from app.rag._shared.permissions import (
     get_user_accessible_kb_ids,
-    post_filter_hits,
     new_request_id,
+    post_filter_hits,
 )
-from app.rag._shared.sse import format_sse, format_keepalive, new_message_id
+from app.rag._shared.sse import format_keepalive, format_sse, new_message_id
 from app.rag.conversations.all import (
     Conversation,
     Message,
-    append_message,
     regenerate_answer,
 )
 from app.rag.search.service import search as search_rag
@@ -70,12 +69,21 @@ async def _retrieve_context(
     search_resp = await search_rag(
         db,
         user=user,
-        req=type("R", (), {
-            "query": req.question, "mode": "hybrid", "kb_id": req.kb_id,
-            "top_k": req.top_k, "threshold": 0.0, "metadata_filter": req.metadata_filter,
-            "rerank": bool(req.rerank_model_id), "rerank_model_id": req.rerank_model_id,
-            "embedding_model_id": req.embedding_model_id,
-        })(),
+        req=type(
+            "R",
+            (),
+            {
+                "query": req.question,
+                "mode": "hybrid",
+                "kb_id": req.kb_id,
+                "top_k": req.top_k,
+                "threshold": 0.0,
+                "metadata_filter": req.metadata_filter,
+                "rerank": bool(req.rerank_model_id),
+                "rerank_model_id": req.rerank_model_id,
+                "embedding_model_id": req.embedding_model_id,
+            },
+        )(),
     )
     # 二次权限过滤（即使 search 内已过滤）
     hits_dicts = [h.model_dump() for h in search_resp.hits]
@@ -90,7 +98,7 @@ def _build_prompt(question: str, contexts: list[dict]) -> list[dict]:
         context_text = "（暂无检索结果）"
     else:
         context_text = "\n\n---\n\n".join(
-            f"[{i+1}] doc={c.get('doc_id')} chunk={c.get('chunk_id')} page={c.get('page')}\n{c.get('text','')}"
+            f"[{i + 1}] doc={c.get('doc_id')} chunk={c.get('chunk_id')} page={c.get('page')}\n{c.get('text', '')}"  # noqa: E501
             for i, c in enumerate(contexts)
         )
     system = (
@@ -115,10 +123,15 @@ async def _chat_stream(
     message_id = new_message_id()
 
     # start 事件
-    yield format_sse(event="start", data={
-        "event": "start", "request_id": request_id,
-        "conversation_id": conversation_id, "message_id": message_id,
-    })
+    yield format_sse(
+        event="start",
+        data={
+            "event": "start",
+            "request_id": request_id,
+            "conversation_id": conversation_id,
+            "message_id": message_id,
+        },
+    )
 
     # 1. 创建/获取会话与消息
     if req.conversation_id is None:
@@ -144,10 +157,16 @@ async def _chat_stream(
     try:
         contexts = await _retrieve_context(db, user=user, req=req)
     except Exception as exc:
-        yield format_sse(event="error", data={
-            "event": "error", "code": "retrieval_failed", "message": str(exc)[:200],
-            "request_id": request_id, "retryable": True,
-        })
+        yield format_sse(
+            event="error",
+            data={
+                "event": "error",
+                "code": "retrieval_failed",
+                "message": str(exc)[:200],
+                "request_id": request_id,
+                "retryable": True,
+            },
+        )
         assistant_msg.finish_reason = "error"
         await db.commit()
         return
@@ -173,10 +192,16 @@ async def _chat_stream(
     # 5. 调模型流式
     chat_model = await model_service.get_model(db, req.chat_model_id)
     if chat_model is None or chat_model.kind != "chat":
-        yield format_sse(event="error", data={
-            "event": "error", "code": "internal_error", "message": "chat model not found",
-            "request_id": request_id, "retryable": False,
-        })
+        yield format_sse(
+            event="error",
+            data={
+                "event": "error",
+                "code": "internal_error",
+                "message": "chat model not found",
+                "request_id": request_id,
+                "retryable": False,
+            },
+        )
         return
     provider = await model_service.get_provider(db, chat_model.provider_code)
     api_key = decrypt_api_key(chat_model.api_key_encrypted) if chat_model.api_key_encrypted else ""
@@ -189,8 +214,11 @@ async def _chat_stream(
 
     try:
         stream = await p.chat(
-            model_name=chat_model.model_name, messages=messages,
-            temperature=req.temperature, stream=True, timeout=settings.model_provider_timeout_seconds,
+            model_name=chat_model.model_name,
+            messages=messages,
+            temperature=req.temperature,
+            stream=True,
+            timeout=settings.model_provider_timeout_seconds,
         )
         # provider 返回 AsyncIterator
         async for delta in stream:
@@ -210,16 +238,28 @@ async def _chat_stream(
                 last_keepalive = time.time()
     except asyncio.CancelledError:
         finish_reason = "cancelled"
-        yield format_sse(event="error", data={
-            "event": "error", "code": "cancelled", "message": "client disconnected",
-            "request_id": request_id, "retryable": True,
-        })
+        yield format_sse(
+            event="error",
+            data={
+                "event": "error",
+                "code": "cancelled",
+                "message": "client disconnected",
+                "request_id": request_id,
+                "retryable": True,
+            },
+        )
     except Exception as exc:
         finish_reason = "error"
-        yield format_sse(event="error", data={
-            "event": "error", "code": "model_timeout", "message": str(exc)[:200],
-            "request_id": request_id, "retryable": True,
-        })
+        yield format_sse(
+            event="error",
+            data={
+                "event": "error",
+                "code": "model_timeout",
+                "message": str(exc)[:200],
+                "request_id": request_id,
+                "retryable": True,
+            },
+        )
 
     # 6. 落库最终消息
     assistant_msg.content = accumulated
@@ -234,8 +274,12 @@ async def _chat_stream(
             try:
                 title_stream = await p.chat(
                     model_name=chat_model.model_name,
-                    messages=[{"role": "user", "content": f"用不超过 20 个字总结：{accumulated[:200]}"}],
-                    temperature=0.2, stream=False, max_tokens=64,
+                    messages=[
+                        {"role": "user", "content": f"用不超过 20 个字总结：{accumulated[:200]}"}
+                    ],
+                    temperature=0.2,
+                    stream=False,
+                    max_tokens=64,
                     timeout=settings.model_provider_timeout_seconds,
                 )
                 title_text = title_stream if isinstance(title_stream, str) else ""
@@ -243,11 +287,14 @@ async def _chat_stream(
             except Exception:
                 conv.title = "新会话"
 
-    yield format_sse(event="done", data={
-        "event": "done",
-        "finish_reason": finish_reason,
-        "answer_version": assistant_msg.answer_version,
-    })
+    yield format_sse(
+        event="done",
+        data={
+            "event": "done",
+            "finish_reason": finish_reason,
+            "answer_version": assistant_msg.answer_version,
+        },
+    )
     await db.commit()
 
 
@@ -270,10 +317,16 @@ async def chat_stream_endpoint(
             # 客户端断开
             return
         except Exception as exc:
-            yield format_sse(event="error", data={
-                "event": "error", "code": "internal_error",
-                "message": str(exc)[:200], "request_id": new_request_id(), "retryable": False,
-            })
+            yield format_sse(
+                event="error",
+                data={
+                    "event": "error",
+                    "code": "internal_error",
+                    "message": str(exc)[:200],
+                    "request_id": new_request_id(),
+                    "retryable": False,
+                },
+            )
 
     return StreamingResponse(
         event_gen(),

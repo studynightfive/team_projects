@@ -2,13 +2,15 @@
 
 为减少文件 IO 次数，会话、消息、回答版本管理与路由集中在此文件。
 """
+
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Literal, Sequence
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, func, select
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -21,7 +23,7 @@ from app.common.exceptions import ForbiddenException, NotFoundException, Validat
 from app.common.models import User
 from app.common.schemas import APIResponse, PaginatedData
 from app.rag._shared.audit_helper import audit
-from app.rag._shared.text import estimate_tokens, fit_messages_to_budget
+
 
 # ============================================================
 # ORM 模型
@@ -35,12 +37,16 @@ class Conversation(Base):
     )
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"), primary_key=True,
+        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        primary_key=True,
         default=lambda: str(uuid.uuid4()),
     )
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     kb_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"), nullable=False,
+        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        nullable=False,
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False, default="")
     is_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -49,7 +55,9 @@ class Conversation(Base):
     last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class Message(Base):
@@ -61,12 +69,14 @@ class Message(Base):
     )
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"), primary_key=True,
+        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        primary_key=True,
         default=lambda: str(uuid.uuid4()),
     )
     conversation_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False).with_variant(String(36), "sqlite"),
-        ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False,
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=False,
     )
     role: Mapped[str] = mapped_column(String(16), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
@@ -74,7 +84,8 @@ class Message(Base):
     answer_version: Mapped[int] = mapped_column(Integer, default=1)
     is_latest: Mapped[bool] = mapped_column(Boolean, default=True)
     parent_message_id: Mapped[str | None] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"), nullable=True,
+        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        nullable=True,
     )
     finish_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
     usage: Mapped[dict] = mapped_column(JSONB, default=dict)
@@ -141,23 +152,34 @@ class MessageResponse(BaseModel):
 # 业务逻辑
 # ============================================================
 async def list_conversations(
-    db: AsyncSession, *, user_id: str, page: int, page_size: int,
-    query_text: str | None = None, include_archived: bool = False,
+    db: AsyncSession,
+    *,
+    user_id: str,
+    page: int,
+    page_size: int,
+    query_text: str | None = None,
+    include_archived: bool = False,
 ) -> tuple[Sequence[Conversation], int]:
-    base = select(Conversation).where(Conversation.user_id == user_id, Conversation.deleted_at.is_(None))
+    base = select(Conversation).where(
+        Conversation.user_id == user_id, Conversation.deleted_at.is_(None)
+    )
     if not include_archived:
         base = base.where(Conversation.is_archived.is_(False))
     if query_text:
         like = f"%{query_text}%"
-        base = base.where((Conversation.title.ilike(like)) | Conversation.id.in_(
-            select(Message.conversation_id).where(Message.content.ilike(like)).distinct()
-        ))
+        base = base.where(
+            (Conversation.title.ilike(like))
+            | Conversation.id.in_(
+                select(Message.conversation_id).where(Message.content.ilike(like)).distinct()
+            )
+        )
     count_q = select(func.count()).select_from(base.subquery())
     total = (await db.execute(count_q)).scalar() or 0
     offset = (page - 1) * page_size
     res = await db.execute(
         base.order_by(Conversation.is_pinned.desc(), Conversation.updated_at.desc())
-        .offset(offset).limit(page_size)
+        .offset(offset)
+        .limit(page_size)
     )
     return res.scalars().all(), total
 
@@ -168,7 +190,9 @@ async def create_conversation(
     conv = Conversation(user_id=user_id, kb_id=payload.kb_id, title=payload.title or "")
     db.add(conv)
     await db.flush()  # 取 id
-    first_msg = Message(conversation_id=conv.id, role="user", content=payload.first_question, is_latest=True)
+    first_msg = Message(
+        conversation_id=conv.id, role="user", content=payload.first_question, is_latest=True
+    )
     db.add(first_msg)
     conv.message_count = 1
     conv.last_message_at = func.now()
@@ -184,7 +208,9 @@ async def get_conversation(db: AsyncSession, *, conv_id: str, user_id: str) -> C
     return conv
 
 
-async def update_conversation(db: AsyncSession, *, conv: Conversation, payload: ConversationUpdate) -> Conversation:
+async def update_conversation(
+    db: AsyncSession, *, conv: Conversation, payload: ConversationUpdate
+) -> Conversation:
     if payload.title is not None:
         conv.title = payload.title
     if payload.is_pinned is not None:
@@ -200,7 +226,12 @@ async def soft_delete_conversation(db: AsyncSession, *, conv: Conversation) -> N
 
 
 async def list_messages(
-    db: AsyncSession, *, conv_id: str, page: int, page_size: int, only_latest: bool = True,
+    db: AsyncSession,
+    *,
+    conv_id: str,
+    page: int,
+    page_size: int,
+    only_latest: bool = True,
 ) -> tuple[Sequence[Message], int, bool]:
     q = select(Message).where(Message.conversation_id == conv_id, Message.deleted_at.is_(None))
     if only_latest:
@@ -214,14 +245,25 @@ async def list_messages(
 
 
 async def append_message(
-    db: AsyncSession, *, conv_id: str, role: Role, content: str,
-    citations: list[dict] | None = None, parent_message_id: str | None = None,
-    finish_reason: str | None = None, usage: dict | None = None,
+    db: AsyncSession,
+    *,
+    conv_id: str,
+    role: Role,
+    content: str,
+    citations: list[dict] | None = None,
+    parent_message_id: str | None = None,
+    finish_reason: str | None = None,
+    usage: dict | None = None,
 ) -> Message:
     msg = Message(
-        conversation_id=conv_id, role=role, content=content,
-        citations=citations or [], parent_message_id=parent_message_id,
-        finish_reason=finish_reason, usage=usage or {}, is_latest=True,
+        conversation_id=conv_id,
+        role=role,
+        content=content,
+        citations=citations or [],
+        parent_message_id=parent_message_id,
+        finish_reason=finish_reason,
+        usage=usage or {},
+        is_latest=True,
     )
     db.add(msg)
     conv = await db.get(Conversation, conv_id)
@@ -232,7 +274,9 @@ async def append_message(
 
 
 async def regenerate_answer(
-    db: AsyncSession, *, parent_message_id: str,
+    db: AsyncSession,
+    *,
+    parent_message_id: str,
 ) -> Message:
     """把 parent_message 的 is_latest 标 false，插入新版本。"""
     parent = await db.get(Message, parent_message_id)
@@ -240,8 +284,11 @@ async def regenerate_answer(
         raise NotFoundException()
     parent.is_latest = False
     new_msg = Message(
-        conversation_id=parent.conversation_id, role=parent.role, content="",
-        parent_message_id=parent.id, answer_version=parent.answer_version + 1,
+        conversation_id=parent.conversation_id,
+        role=parent.role,
+        content="",
+        parent_message_id=parent.id,
+        answer_version=parent.answer_version + 1,
         is_latest=True,
     )
     db.add(new_msg)
@@ -266,11 +313,17 @@ async def list_conversations_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     convs, total = await list_conversations(
-        db, user_id=user.id, page=page, page_size=page_size,
-        query_text=query_text, include_archived=include_archived,
+        db,
+        user_id=user.id,
+        page=page,
+        page_size=page_size,
+        query_text=query_text,
+        include_archived=include_archived,
     )
     items = [ConversationResponse.model_validate(c).model_dump() for c in convs]
-    return APIResponse(data=PaginatedData(items=items, page=page, page_size=page_size, total=total).model_dump()).model_dump()
+    return APIResponse(
+        data=PaginatedData(items=items, page=page, page_size=page_size, total=total).model_dump()
+    ).model_dump()
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -283,8 +336,14 @@ async def create_conversation_endpoint(
 ):
     conv, _first = await create_conversation(db, user_id=user.id, payload=payload)
     await db.commit()
-    await audit(db, action="conversation_create", user_id=user.id,
-                resource_type="conversation", resource_id=conv.id, request=request)
+    await audit(
+        db,
+        action="conversation_create",
+        user_id=user.id,
+        resource_type="conversation",
+        resource_id=conv.id,
+        request=request,
+    )
     await db.commit()
     return APIResponse(data=ConversationResponse.model_validate(conv).model_dump()).model_dump()
 
@@ -301,8 +360,13 @@ async def patch_conversation_endpoint(
     conv = await get_conversation(db, conv_id=conversation_id, user_id=user.id)
     conv = await update_conversation(db, conv=conv, payload=payload)
     await db.commit()
-    await audit(db, action="conversation_patch", user_id=user.id,
-                resource_id=conversation_id, request=request)
+    await audit(
+        db,
+        action="conversation_patch",
+        user_id=user.id,
+        resource_id=conversation_id,
+        request=request,
+    )
     await db.commit()
     return APIResponse(data=ConversationResponse.model_validate(conv).model_dump()).model_dump()
 
@@ -326,8 +390,13 @@ async def delete_conversation_endpoint(
         raise ForbiddenException()
     await soft_delete_conversation(db, conv=conv)
     await db.commit()
-    await audit(db, action="conversation_delete", user_id=user.id,
-                resource_id=conversation_id, request=request)
+    await audit(
+        db,
+        action="conversation_delete",
+        user_id=user.id,
+        resource_id=conversation_id,
+        request=request,
+    )
     await db.commit()
     return APIResponse().model_dump()
 
@@ -344,12 +413,22 @@ async def list_messages_endpoint(
 ):
     conv = await get_conversation(db, conv_id=conversation_id, user_id=user.id)
     msgs, total, has_more = await list_messages(
-        db, conv_id=conv.id, page=page, page_size=page_size, only_latest=only_latest,
+        db,
+        conv_id=conv.id,
+        page=page,
+        page_size=page_size,
+        only_latest=only_latest,
     )
     items = [MessageResponse.model_validate(m).model_dump() for m in msgs]
-    return APIResponse(data={
-        "items": items, "page": page, "page_size": page_size, "total": total, "has_more": has_more,
-    }).model_dump()
+    return APIResponse(
+        data={
+            "items": items,
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+            "has_more": has_more,
+        }
+    ).model_dump()
 
 
 @router.post("/{conversation_id}/messages")

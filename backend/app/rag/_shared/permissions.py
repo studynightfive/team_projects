@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Iterable
+from collections.abc import Iterable
 
 import structlog
 from sqlalchemy import select
@@ -35,10 +35,14 @@ async def get_user_accessible_kb_ids(db: AsyncSession, user: User) -> set[str]:
         KnowledgeBasePermission.subject_type == "user",
         KnowledgeBasePermission.subject_id == user.id,
     )
-    role_kb_q = select(KnowledgeBasePermission.kb_id).where(
-        KnowledgeBasePermission.subject_type == "role",
-        KnowledgeBasePermission.subject_id.in_(role_ids),
-    ) if role_ids else None
+    role_kb_q = (
+        select(KnowledgeBasePermission.kb_id).where(
+            KnowledgeBasePermission.subject_type == "role",
+            KnowledgeBasePermission.subject_id.in_(role_ids),
+        )
+        if role_ids
+        else None
+    )
 
     kb_ids: set[str] = set()
     rows = await db.execute(user_kb_q)

@@ -3,8 +3,6 @@
 所有 Secret 通过环境变量在运行时注入，不硬编码
 """
 
-from typing import List, Optional
-
 from cryptography.fernet import Fernet
 from pydantic_settings import BaseSettings
 
@@ -26,7 +24,7 @@ class Settings(BaseSettings):
     # ============================================================
     # CORS 配置
     # ============================================================
-    cors_origins: List[str] = ["http://localhost:5173", "http://localhost:80"]
+    cors_origins: list[str] = ["http://localhost:5173", "http://localhost:80"]
 
     # ============================================================
     # 数据库配置
@@ -134,7 +132,7 @@ settings = Settings()
 # ============================================================
 # 派生工具
 # ============================================================
-_fernet_instance: Optional[Fernet] = None
+_fernet_instance: Fernet | None = None
 _fernet_warning_emitted: bool = False
 
 
@@ -146,12 +144,15 @@ def get_model_key_fernet() -> Fernet:
 
     raw = settings.model_key_fernet_key.strip()
     if raw:
-        _fernet_instance = Fernet(raw.encode("utf-8") if not raw.endswith("=") else raw.encode("utf-8"))
+        _fernet_instance = Fernet(
+            raw.encode("utf-8") if not raw.endswith("=") else raw.encode("utf-8")
+        )
         return _fernet_instance
 
     # 派生兜底
     import base64
     import hashlib
+
     import structlog
 
     if not _fernet_warning_emitted:

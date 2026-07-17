@@ -3,6 +3,7 @@
 指标：hit_rate / MRR / NDCG@K / Recall@K / Precision@K / MAP@K
 可复现：固化 config_hash；缓存命中。
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -24,7 +25,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.auth.dependencies import get_current_user, require_permission
 from app.common.config import settings
 from app.common.database import Base, get_db
-from app.common.exceptions import ForbiddenException, NotFoundException, ValidationException
+from app.common.exceptions import NotFoundException, ValidationException
 from app.common.models import User
 from app.common.schemas import APIResponse, PaginatedData
 from app.rag._shared.audit_helper import audit
@@ -44,20 +45,26 @@ class RetrievalTestDataset(Base):
     __table_args__ = (Index("ix_test_dataset_kb", "kb_id"),)
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"), primary_key=True,
+        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        primary_key=True,
         default=lambda: str(uuid4()),
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(default="")
     kb_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"), nullable=False,
+        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        nullable=False,
     )
     queries: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     created_by: Mapped[str] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"), ForeignKey("users.id"), nullable=False,
+        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        ForeignKey("users.id"),
+        nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class RetrievalTestRun(Base):
@@ -69,12 +76,14 @@ class RetrievalTestRun(Base):
     )
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"), primary_key=True,
+        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        primary_key=True,
         default=lambda: str(uuid4()),
     )
     dataset_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False).with_variant(String(36), "sqlite"),
-        ForeignKey("retrieval_test_datasets.id", ondelete="CASCADE"), nullable=False,
+        ForeignKey("retrieval_test_datasets.id", ondelete="CASCADE"),
+        nullable=False,
     )
     config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     config_hash: Mapped[str] = mapped_column(String(16), nullable=False)
@@ -246,20 +255,29 @@ def _hash_config(cfg: RetrievalTestConfig) -> str:
 # ============================================================
 # 数据集 CRUD
 # ============================================================
-async def list_datasets(db: AsyncSession, *, user_id: str, page: int, page_size: int) -> tuple[list[RetrievalTestDataset], int]:
+async def list_datasets(
+    db: AsyncSession, *, user_id: str, page: int, page_size: int
+) -> tuple[list[RetrievalTestDataset], int]:
     q = select(RetrievalTestDataset)
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar() or 0
     offset = (page - 1) * page_size
-    res = await db.execute(q.order_by(RetrievalTestDataset.created_at.desc()).offset(offset).limit(page_size))
+    res = await db.execute(
+        q.order_by(RetrievalTestDataset.created_at.desc()).offset(offset).limit(page_size)
+    )
     return list(res.scalars().all()), total
 
 
-async def create_dataset(db: AsyncSession, *, user_id: str, payload: RetrievalTestDatasetCreate) -> RetrievalTestDataset:
+async def create_dataset(
+    db: AsyncSession, *, user_id: str, payload: RetrievalTestDatasetCreate
+) -> RetrievalTestDataset:
     if len(payload.queries) > settings.retrieval_test_max_queries:
         raise ValidationException(message=f"queries 上限 {settings.retrieval_test_max_queries}")
     ds = RetrievalTestDataset(
-        name=payload.name, description=payload.description, kb_id=payload.kb_id,
-        queries=[q.model_dump() for q in payload.queries], created_by=user_id,
+        name=payload.name,
+        description=payload.description,
+        kb_id=payload.kb_id,
+        queries=[q.model_dump() for q in payload.queries],
+        created_by=user_id,
     )
     db.add(ds)
     return ds
@@ -269,7 +287,9 @@ async def get_dataset(db: AsyncSession, dataset_id: str) -> RetrievalTestDataset
     return await db.get(RetrievalTestDataset, dataset_id)
 
 
-async def update_dataset(db: AsyncSession, ds: RetrievalTestDataset, payload: RetrievalTestDatasetUpdate) -> RetrievalTestDataset:
+async def update_dataset(
+    db: AsyncSession, ds: RetrievalTestDataset, payload: RetrievalTestDatasetUpdate
+) -> RetrievalTestDataset:
     if payload.name is not None:
         ds.name = payload.name
     if payload.description is not None:
@@ -299,19 +319,24 @@ async def _run_evaluation(
         dataset_id=dataset.id,
         config=config.model_dump(),
         config_hash=_hash_config(config),
-        status="running", progress=0, total=len(dataset.queries),
+        status="running",
+        progress=0,
+        total=len(dataset.queries),
     )
     db.add(run)
     await db.commit()
 
     # 检查缓存：同 dataset_id + config_hash 已有 done 则直接复用
     cached = await db.execute(
-        select(RetrievalTestRun).where(
+        select(RetrievalTestRun)
+        .where(
             RetrievalTestRun.dataset_id == dataset.id,
             RetrievalTestRun.config_hash == run.config_hash,
             RetrievalTestRun.status == "done",
             RetrievalTestRun.id != run.id,
-        ).order_by(RetrievalTestRun.finished_at.desc()).limit(1)
+        )
+        .order_by(RetrievalTestRun.finished_at.desc())
+        .limit(1)
     )
     prev = cached.scalar_one_or_none()
     if prev is not None and prev.metrics and prev.per_query:
@@ -334,13 +359,21 @@ async def _run_evaluation(
             resp = await search_service.search(
                 db,
                 user=user,
-                req=type("R", (), {
-                    "query": qtext, "mode": config.mode, "kb_id": dataset.kb_id,
-                    "top_k": config.top_k, "threshold": config.threshold,
-                    "metadata_filter": config.metadata_filter, "rerank": config.rerank,
-                    "rerank_model_id": config.rerank_model_id,
-                    "embedding_model_id": config.embedding_model_id,
-                })(),
+                req=type(
+                    "R",
+                    (),
+                    {
+                        "query": qtext,
+                        "mode": config.mode,
+                        "kb_id": dataset.kb_id,
+                        "top_k": config.top_k,
+                        "threshold": config.threshold,
+                        "metadata_filter": config.metadata_filter,
+                        "rerank": config.rerank,
+                        "rerank_model_id": config.rerank_model_id,
+                        "embedding_model_id": config.embedding_model_id,
+                    },
+                )(),
             )
             retrieved = [h.chunk_id for h in resp.hits]
         except Exception as exc:
@@ -348,15 +381,19 @@ async def _run_evaluation(
             retrieved = []
         latency = int((datetime.now(timezone.utc) - start).total_seconds() * 1000)
         k = config.top_k
-        per_query_results.append(PerQueryResult(
-            query=qtext, relevant_chunk_ids=list(relevant), retrieved_chunk_ids=retrieved,
-            hit=_hit(retrieved, relevant),
-            reciprocal_rank=_reciprocal_rank(retrieved, relevant),
-            ndcg=_ndg_at_k(retrieved, relevant, k),
-            recall=_recall_at_k(retrieved, relevant, k),
-            precision=_precision_at_k(retrieved, relevant, k),
-            latency_ms=latency,
-        ))
+        per_query_results.append(
+            PerQueryResult(
+                query=qtext,
+                relevant_chunk_ids=list(relevant),
+                retrieved_chunk_ids=retrieved,
+                hit=_hit(retrieved, relevant),
+                reciprocal_rank=_reciprocal_rank(retrieved, relevant),
+                ndcg=_ndg_at_k(retrieved, relevant, k),
+                recall=_recall_at_k(retrieved, relevant, k),
+                precision=_precision_at_k(retrieved, relevant, k),
+                latency_ms=latency,
+            )
+        )
         run.progress = int(i / n * 100)
         await db.commit()
 
@@ -381,10 +418,14 @@ async def list_datasets_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     items, total = await list_datasets(db, user_id=user.id, page=page, page_size=page_size)
-    return APIResponse(data=PaginatedData(
-        items=[RetrievalTestDatasetResponse.model_validate(d).model_dump() for d in items],
-        page=page, page_size=page_size, total=total,
-    ).model_dump()).model_dump()
+    return APIResponse(
+        data=PaginatedData(
+            items=[RetrievalTestDatasetResponse.model_validate(d).model_dump() for d in items],
+            page=page,
+            page_size=page_size,
+            total=total,
+        ).model_dump()
+    ).model_dump()
 
 
 @router.post("/datasets", status_code=status.HTTP_201_CREATED)
@@ -397,10 +438,18 @@ async def create_dataset_endpoint(
 ):
     ds = await create_dataset(db, user_id=user.id, payload=payload)
     await db.commit()
-    await audit(db, action="retrieval_test_dataset_create", user_id=user.id,
-                resource_type="retrieval_test_dataset", resource_id=ds.id, request=request)
+    await audit(
+        db,
+        action="retrieval_test_dataset_create",
+        user_id=user.id,
+        resource_type="retrieval_test_dataset",
+        resource_id=ds.id,
+        request=request,
+    )
     await db.commit()
-    return APIResponse(data=RetrievalTestDatasetResponse.model_validate(ds).model_dump()).model_dump()
+    return APIResponse(
+        data=RetrievalTestDatasetResponse.model_validate(ds).model_dump()
+    ).model_dump()
 
 
 @router.get("/datasets/{dataset_id}")
@@ -414,7 +463,9 @@ async def get_dataset_endpoint(
     ds = await get_dataset(db, dataset_id)
     if ds is None:
         raise NotFoundException()
-    return APIResponse(data=RetrievalTestDatasetResponse.model_validate(ds).model_dump()).model_dump()
+    return APIResponse(
+        data=RetrievalTestDatasetResponse.model_validate(ds).model_dump()
+    ).model_dump()
 
 
 @router.patch("/datasets/{dataset_id}")
@@ -431,7 +482,9 @@ async def patch_dataset_endpoint(
         raise NotFoundException()
     ds = await update_dataset(db, ds, payload)
     await db.commit()
-    return APIResponse(data=RetrievalTestDatasetResponse.model_validate(ds).model_dump()).model_dump()
+    return APIResponse(
+        data=RetrievalTestDatasetResponse.model_validate(ds).model_dump()
+    ).model_dump()
 
 
 @router.delete("/datasets/{dataset_id}")
@@ -447,8 +500,13 @@ async def delete_dataset_endpoint(
         raise NotFoundException()
     await delete_dataset(db, ds)
     await db.commit()
-    await audit(db, action="retrieval_test_dataset_delete", user_id=user.id,
-                resource_id=dataset_id, request=request)
+    await audit(
+        db,
+        action="retrieval_test_dataset_delete",
+        user_id=user.id,
+        resource_id=dataset_id,
+        request=request,
+    )
     await db.commit()
     return APIResponse().model_dump()
 
@@ -468,27 +526,38 @@ async def run_test_endpoint(
     if payload.async_run:
         # 简化为后台任务占位（生产用 arq）
         run = RetrievalTestRun(
-            dataset_id=dataset.id, config=payload.config.model_dump(),
+            dataset_id=dataset.id,
+            config=payload.config.model_dump(),
             config_hash=_hash_config(payload.config),
-            status="pending", total=len(dataset.queries),
+            status="pending",
+            total=len(dataset.queries),
         )
         db.add(run)
         await db.commit()
         asyncio.create_task(_run_evaluation(db, user=user, dataset=dataset, config=payload.config))
-        return APIResponse(data=RetrievalTestRunSummary(
-            id=run.id, status=run.status, progress=run.progress, error_message=None,
-        ).model_dump()).model_dump()
+        return APIResponse(
+            data=RetrievalTestRunSummary(
+                id=run.id,
+                status=run.status,
+                progress=run.progress,
+                error_message=None,
+            ).model_dump()
+        ).model_dump()
 
     run = await _run_evaluation(db, user=user, dataset=dataset, config=payload.config)
-    return APIResponse(data=RetrievalTestResult(
-        id=run.id, dataset_id=run.dataset_id,
-        config=RetrievalTestConfig.model_validate(run.config),
-        config_hash=run.config_hash,
-        total=run.total,
-        metrics=RetrievalTestMetrics.model_validate(run.metrics),
-        per_query=[PerQueryResult.model_validate(p) for p in (run.per_query or [])],
-        started_at=run.started_at, finished_at=run.finished_at,
-    ).model_dump()).model_dump()
+    return APIResponse(
+        data=RetrievalTestResult(
+            id=run.id,
+            dataset_id=run.dataset_id,
+            config=RetrievalTestConfig.model_validate(run.config),
+            config_hash=run.config_hash,
+            total=run.total,
+            metrics=RetrievalTestMetrics.model_validate(run.metrics),
+            per_query=[PerQueryResult.model_validate(p) for p in (run.per_query or [])],
+            started_at=run.started_at,
+            finished_at=run.finished_at,
+        ).model_dump()
+    ).model_dump()
 
 
 @router.get("/runs")
@@ -503,15 +572,26 @@ async def list_runs_endpoint(
     q = select(RetrievalTestRun)
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar() or 0
     offset = (page - 1) * page_size
-    res = await db.execute(q.order_by(RetrievalTestRun.started_at.desc()).offset(offset).limit(page_size))
+    res = await db.execute(
+        q.order_by(RetrievalTestRun.started_at.desc()).offset(offset).limit(page_size)
+    )
     items = []
     for r in res.scalars().all():
-        items.append({
-            "id": r.id, "dataset_id": r.dataset_id, "config_hash": r.config_hash,
-            "status": r.status, "progress": r.progress, "total": r.total,
-            "started_at": r.started_at, "finished_at": r.finished_at,
-        })
-    return APIResponse(data=PaginatedData(items=items, page=page, page_size=page_size, total=total).model_dump()).model_dump()
+        items.append(
+            {
+                "id": r.id,
+                "dataset_id": r.dataset_id,
+                "config_hash": r.config_hash,
+                "status": r.status,
+                "progress": r.progress,
+                "total": r.total,
+                "started_at": r.started_at,
+                "finished_at": r.finished_at,
+            }
+        )
+    return APIResponse(
+        data=PaginatedData(items=items, page=page, page_size=page_size, total=total).model_dump()
+    ).model_dump()
 
 
 @router.get("/runs/{run_id}")
@@ -526,14 +606,24 @@ async def get_run_endpoint(
     if run is None:
         raise NotFoundException()
     if not run.metrics or not run.per_query:
-        return APIResponse(data=RetrievalTestRunSummary(
-            id=run.id, status=run.status, progress=run.progress, error_message=run.error_message,
-        ).model_dump()).model_dump()
-    return APIResponse(data=RetrievalTestResult(
-        id=run.id, dataset_id=run.dataset_id,
-        config=RetrievalTestConfig.model_validate(run.config),
-        config_hash=run.config_hash, total=run.total,
-        metrics=RetrievalTestMetrics.model_validate(run.metrics),
-        per_query=[PerQueryResult.model_validate(p) for p in run.per_query],
-        started_at=run.started_at, finished_at=run.finished_at,
-    ).model_dump()).model_dump()
+        return APIResponse(
+            data=RetrievalTestRunSummary(
+                id=run.id,
+                status=run.status,
+                progress=run.progress,
+                error_message=run.error_message,
+            ).model_dump()
+        ).model_dump()
+    return APIResponse(
+        data=RetrievalTestResult(
+            id=run.id,
+            dataset_id=run.dataset_id,
+            config=RetrievalTestConfig.model_validate(run.config),
+            config_hash=run.config_hash,
+            total=run.total,
+            metrics=RetrievalTestMetrics.model_validate(run.metrics),
+            per_query=[PerQueryResult.model_validate(p) for p in run.per_query],
+            started_at=run.started_at,
+            finished_at=run.finished_at,
+        ).model_dump()
+    ).model_dump()

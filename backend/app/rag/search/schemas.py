@@ -1,10 +1,10 @@
 """检索 Pydantic schemas（提示词 02 §三）"""
+
 from __future__ import annotations
 
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
-
 
 SearchMode = Literal["keyword", "vector", "hybrid"]
 

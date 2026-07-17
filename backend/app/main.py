@@ -18,6 +18,14 @@ from app.common.exceptions import AppException
 from app.common.metrics import metrics_endpoint, metrics_middleware
 from app.common.schemas import APIResponse, ErrorCode, get_error_message
 from app.documents.router import router as documents_router
+
+# 员工5 路由（提示词 01~06）
+from app.exports.all import router as exports_router
+from app.models.api import router as models_router
+from app.rag.chat.all import router as chat_router
+from app.rag.conversations.all import router as conversations_router
+from app.rag.search.api import router as retrieval_router
+from app.rag.tests.all import router as retrieval_tests_router
 from app.users.dashboard_router import router as dashboard_router
 from app.users.role_router import router as role_router
 from app.users.router import router as users_router
@@ -176,15 +184,6 @@ async def root():
         "docs": "/api/v1/docs",
     }
 
-# ============================================================
-# 员工5 路由（提示词 01~06）
-# ============================================================
-from app.models.api import router as models_router
-from app.rag.search.api import router as retrieval_router
-from app.rag.conversations.all import router as conversations_router
-from app.rag.chat.all import router as chat_router
-from app.exports.all import router as exports_router
-from app.rag.tests.all import router as retrieval_tests_router
 
 app.include_router(models_router)
 app.include_router(retrieval_router)

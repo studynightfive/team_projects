@@ -6,10 +6,11 @@
 - 密钥加解密：写入时 Fernet 加密，读取时仅返回 api_key_set 标志
 - 连通性测试：test_model 真实调用 provider
 """
+
 from __future__ import annotations
 
 import uuid
-from typing import Sequence
+from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,8 +44,10 @@ async def upsert_provider(db: AsyncSession, payload: ModelProviderCreate) -> Mod
     existing = await get_provider(db, payload.code)
     if existing is None:
         provider = ModelProvider(
-            code=payload.code, display_name=payload.display_name,
-            base_url=payload.base_url, enabled=payload.enabled,
+            code=payload.code,
+            display_name=payload.display_name,
+            base_url=payload.base_url,
+            enabled=payload.enabled,
         )
         db.add(provider)
         return provider
@@ -54,7 +57,9 @@ async def upsert_provider(db: AsyncSession, payload: ModelProviderCreate) -> Mod
     return existing
 
 
-async def patch_provider(db: AsyncSession, code: str, payload: ModelProviderUpdate) -> ModelProvider:
+async def patch_provider(
+    db: AsyncSession, code: str, payload: ModelProviderUpdate
+) -> ModelProvider:
     existing = await get_provider(db, code)
     if existing is None:
         raise NotFoundException()
@@ -78,7 +83,9 @@ async def delete_provider(db: AsyncSession, code: str) -> None:
 # ============================================================
 # Model CRUD
 # ============================================================
-async def list_models(db: AsyncSession, *, provider_code: str | None = None, kind: str | None = None) -> Sequence[Model]:
+async def list_models(
+    db: AsyncSession, *, provider_code: str | None = None, kind: str | None = None
+) -> Sequence[Model]:
     q = select(Model)
     if provider_code:
         q = q.where(Model.provider_code == provider_code)

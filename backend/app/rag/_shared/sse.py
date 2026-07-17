@@ -1,4 +1,5 @@
 """SSE 事件格式化（提示词 03 §4）"""
+
 from __future__ import annotations
 
 import json

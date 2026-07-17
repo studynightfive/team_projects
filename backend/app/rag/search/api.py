@@ -1,4 +1,5 @@
 """检索路由（提示词 02）"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
@@ -25,9 +26,13 @@ async def search_endpoint(
 ):
     response = await service.search(db, user=user, req=payload)
     await audit(
-        db, action="retrieval_search", user_id=user.id,
-        resource_type="kb", resource_id=payload.kb_id,
-        detail=f"mode={payload.mode} top_k={payload.top_k}", request=request,
+        db,
+        action="retrieval_search",
+        user_id=user.id,
+        resource_type="kb",
+        resource_id=payload.kb_id,
+        detail=f"mode={payload.mode} top_k={payload.top_k}",
+        request=request,
     )
     await db.commit()
     return APIResponse(data=response.model_dump()).model_dump()

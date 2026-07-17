@@ -3,11 +3,10 @@
 实现关键词 / 向量 / 混合三种检索；RRF 融合；可选 Cross-Encoder 重排；
 权限 SQL JOIN 与结果后置过滤双重保证。
 """
+
 from __future__ import annotations
 
-import json
 import time
-from typing import Any
 
 import structlog
 from sqlalchemy import text
@@ -15,17 +14,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.config import settings
 from app.common.models import User
+from app.models import service as model_service
 from app.models.providers.openai import build_provider
 from app.models.security import decrypt_api_key
-from app.models.repository import Model, ModelProvider
-from app.models import service as model_service
 from app.rag._shared.permissions import (
     get_user_accessible_kb_ids,
     post_filter_hits,
 )
 from app.rag.search.schemas import (
     SearchHit,
-    SearchHitPosition,
     SearchRequest,
     SearchResponse,
 )
@@ -67,7 +64,10 @@ async def _keyword_search(
     sql = text(
         """
         SELECT chunk_id, doc_id, page, content,
-               ts_rank_cd(to_tsvector(''simple'', content), plainto_tsquery(''simple'', :q)) AS score
+               ts_rank_cd(
+                   to_tsvector(''simple'', content),
+                   plainto_tsquery(''simple'', :q)
+               ) AS score
         FROM chunks
         WHERE kb_id = ANY(:kb_ids)
           AND to_tsvector(''simple'', content) @@ plainto_tsquery(''simple'', :q)
@@ -85,9 +85,7 @@ async def _keyword_search(
 # ============================================================
 # 向量检索（pgvector cosine）
 # ============================================================
-async def _embed_query(
-    db: AsyncSession, *, query: str, embedding_model_id: str
-) -> list[float]:
+async def _embed_query(db: AsyncSession, *, query: str, embedding_model_id: str) -> list[float]:
     model = await model_service.get_model(db, embedding_model_id)
     if model is None or model.kind != "embedding":
         raise ValueError("embedding model not found")
@@ -181,7 +179,9 @@ async def _rerank(
     p = build_provider(provider.code, provider.base_url, api_key)
     docs = [c.get("text") or c.get("content") or "" for c in candidates]
     try:
-        results = await p.rerank(model_name=model.model_name, query=query, documents=docs, top_n=top_k)
+        results = await p.rerank(
+            model_name=model.model_name, query=query, documents=docs, top_n=top_k
+        )
     except Exception as exc:
         logger.warning("rerank_failed_fallback_to_rrf", error=str(exc))
         return candidates[:top_k]
@@ -217,7 +217,9 @@ async def search(
 
     if req.mode == "keyword":
         ts = time.time()
-        kw_hits, total = await _keyword_search(db, query=req.query, accessible_kb_ids=accessible_kbs, top_k=req.top_k)
+        kw_hits, total = await _keyword_search(
+            db, query=req.query, accessible_kb_ids=accessible_kbs, top_k=req.top_k
+        )
         debug_kt = int((time.time() - ts) * 1000)
         fused = kw_hits
     elif req.mode == "vector":
@@ -226,18 +228,24 @@ async def search(
         ts = time.time()
         emb = await _embed_query(db, query=req.query, embedding_model_id=req.embedding_model_id)
         debug_vt = int((time.time() - ts) * 1000)
-        vec_hits, total = await _vector_search(db, embedding=emb, accessible_kb_ids=accessible_kbs, top_k=req.top_k)
+        vec_hits, total = await _vector_search(
+            db, embedding=emb, accessible_kb_ids=accessible_kbs, top_k=req.top_k
+        )
         fused = vec_hits
     else:  # hybrid
         if not req.embedding_model_id:
             raise ValueError("embedding_model_id required for hybrid search")
         ts = time.time()
-        kw_hits, _ = await _keyword_search(db, query=req.query, accessible_kb_ids=accessible_kbs, top_k=req.top_k)
+        kw_hits, _ = await _keyword_search(
+            db, query=req.query, accessible_kb_ids=accessible_kbs, top_k=req.top_k
+        )
         debug_kt = int((time.time() - ts) * 1000)
         ts = time.time()
         emb = await _embed_query(db, query=req.query, embedding_model_id=req.embedding_model_id)
         debug_vt = int((time.time() - ts) * 1000)
-        vec_hits, _ = await _vector_search(db, embedding=emb, accessible_kb_ids=accessible_kbs, top_k=req.top_k)
+        vec_hits, _ = await _vector_search(
+            db, embedding=emb, accessible_kb_ids=accessible_kbs, top_k=req.top_k
+        )
         fused = rrf_fuse(keyword_hits=kw_hits, vector_hits=vec_hits)
 
     # 阈值过滤
@@ -251,8 +259,11 @@ async def search(
     if do_rerank:
         ts = time.time()
         fused = await _rerank(
-            db, query=req.query, candidates=fused,
-            rerank_model_id=req.rerank_model_id, top_k=req.top_k,
+            db,
+            query=req.query,
+            candidates=fused,
+            rerank_model_id=req.rerank_model_id,
+            top_k=req.top_k,
         )
         debug_rt = int((time.time() - ts) * 1000)
         reranked = True
@@ -270,7 +281,9 @@ async def search(
         reranked=reranked,
         took_ms=took_ms,
         total_candidates=total,
-        debug={"embedding_latency_ms": debug_vt or None,
-               "keyword_latency_ms": debug_kt or None,
-               "rerank_latency_ms": debug_rt or None},
+        debug={
+            "embedding_latency_ms": debug_vt or None,
+            "keyword_latency_ms": debug_kt or None,
+            "rerank_latency_ms": debug_rt or None,
+        },
     )

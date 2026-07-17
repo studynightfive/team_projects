@@ -1,4 +1,5 @@
 """token 估算与会话上下文裁剪（提示词 04 §4.5）"""
+
 from __future__ import annotations
 
 # 经验值：1 token ≈ 1 字符（CJK 与英文混合样本，保守估计）

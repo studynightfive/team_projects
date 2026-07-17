@@ -1,4 +1,5 @@
 """审计写入包装（员工5 跨模块统一封装）"""
+
 from __future__ import annotations
 
 import structlog
