@@ -1,1 +1,1 @@
-# knowledge 模块
+"""Knowledge base package."""

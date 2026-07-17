@@ -17,6 +17,7 @@ from app.common.config import settings
 from app.common.exceptions import AppException
 from app.common.metrics import metrics_endpoint, metrics_middleware
 from app.common.schemas import APIResponse, ErrorCode, get_error_message
+from app.documents.router import router as documents_router
 from app.users.dashboard_router import router as dashboard_router
 from app.users.role_router import router as role_router
 from app.users.router import router as users_router
@@ -154,6 +155,9 @@ app.include_router(audit_router)
 
 # 系统概览
 app.include_router(dashboard_router)
+
+# 文档处理（员工 4）
+app.include_router(documents_router)
 
 # Prometheus 指标
 app.add_api_route("/api/v1/metrics", metrics_endpoint, methods=["GET"], tags=["metrics"])

@@ -1,0 +1,266 @@
+openapi: 3.1.0
+info:
+  title: Knowledge Base Platform - Documents API
+  version: 0.1.0
+  description: |
+    员工 4 文档处理模块 OpenAPI 草案。完整平台契约由各模块合并后提交至 docs/api/openapi.yaml。
+servers:
+  - url: /api/v1
+paths:
+  /knowledge-bases/{kb_id}/documents:
+    get:
+      tags: [documents]
+      summary: 列出知识库文档
+      parameters:
+        - $ref: "#/components/parameters/KbId"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentListResponse"
+    post:
+      tags: [documents]
+      summary: 上传文档并创建转换任务
+      parameters:
+        - $ref: "#/components/parameters/KbId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [files]
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                folder_path:
+                  type: string
+                  default: ""
+                ocr_enabled:
+                  type: boolean
+                  default: true
+                language:
+                  type: string
+                  default: chi_sim+eng
+                duplicate_policy:
+                  type: string
+                  enum: [skip, new_version, replace]
+                  default: new_version
+      responses:
+        "200":
+          description: Upload accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponseEnvelope"
+  /documents/{document_id}:
+    get:
+      tags: [documents]
+      summary: 文档详情
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDetailResponse"
+    delete:
+      tags: [documents]
+      summary: 删除文档
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: Deleted
+  /documents/{document_id}/markdown:
+    get:
+      tags: [documents]
+      summary: 获取标准化 Markdown 与 manifest
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: OK
+  /documents/{document_id}/chunks:
+    get:
+      tags: [documents]
+      summary: 获取有效分段
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: OK
+  /documents/{document_id}/assets/{asset_id}:
+    get:
+      tags: [documents]
+      summary: 下载文档资源（鉴权）
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+        - name: asset_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Binary asset
+  /documents/{document_id}/reprocess:
+    post:
+      tags: [documents]
+      summary: 重试转换与索引
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ocr_enabled: { type: boolean }
+                language: { type: string }
+                from_stage: { type: string }
+      responses:
+        "200":
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskResponseEnvelope"
+  /tasks/{task_id}:
+    get:
+      tags: [tasks]
+      summary: 查询转换任务状态
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskResponseEnvelope"
+components:
+  parameters:
+    KbId:
+      name: kb_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DocumentId:
+      name: document_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    ApiEnvelope:
+      type: object
+      required: [code, message, request_id]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        request_id: { type: string, format: uuid }
+        data: {}
+    DocumentSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        knowledge_base_id: { type: string, format: uuid }
+        title: { type: string }
+        original_filename: { type: string }
+        folder_path: { type: string }
+        extension: { type: string }
+        mime_type: { type: string }
+        size_bytes: { type: integer }
+        content_hash: { type: string }
+        version: { type: integer }
+        status:
+          type: string
+          enum:
+            [
+              uploaded,
+              detecting,
+              converting,
+              ocr,
+              normalizing,
+              chunking,
+              indexing,
+              ready,
+              failed,
+              manual_review,
+              cancelled,
+            ]
+        parser_name: { type: string, nullable: true }
+        page_count: { type: integer, nullable: true }
+        error_code: { type: integer, nullable: true }
+        error_message: { type: string, nullable: true }
+    TaskResponse:
+      type: object
+      properties:
+        task_id: { type: string, format: uuid }
+        task_type: { type: string, example: document_convert }
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed, cancelled, manual_review]
+        stage: { type: string }
+        progress: { type: number }
+        retry_count: { type: integer }
+        error_code: { type: integer, nullable: true }
+        error_message: { type: string, nullable: true }
+        request_id: { type: string }
+        created_at: { type: string, format: date-time, nullable: true }
+        finished_at: { type: string, format: date-time, nullable: true }
+    DocumentListResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items: { $ref: "#/components/schemas/DocumentSummary" }
+                page: { type: integer }
+                page_size: { type: integer }
+                total: { type: integer }
+    UploadResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      document: { $ref: "#/components/schemas/DocumentSummary" }
+                      task_id: { type: string, format: uuid }
+                      skipped: { type: boolean }
+                      message: { type: string, nullable: true }
+    DocumentDetailResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiEnvelope"
+    TaskResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiEnvelope"
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/TaskResponse" }

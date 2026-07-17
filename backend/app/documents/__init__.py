@@ -1,1 +1,1 @@
-# documents 模块
+"""Document processing module (employee 4)."""
