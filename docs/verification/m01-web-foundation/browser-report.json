@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-16T12:59:01.497Z",
-  "sourceCommit": "3b45fc5824e64d6b37bd5c2ee0b534d5f586c085",
+  "generatedAt": "2026-07-17T03:35:20.885Z",
+  "sourceCommit": "b8181aa6caf9b706368588ce2e6d3e486f738a50",
   "sourceWorktreeDirty": true,
   "baseUrl": "http://127.0.0.1:5173",
   "browser": "Chrome/150.0.7871.115",
@@ -16,13 +16,13 @@
         "innerHeight": 1080,
         "clientWidth": 1920,
         "scrollWidth": 1920,
-        "scrollHeight": 1691,
+        "scrollHeight": 1616,
         "h1Count": 1,
         "businessPageCount": 1,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 64,
+        "svgIconCount": 67,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -45,6 +45,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 1720,
         "minimumInteractiveHeight": 1,
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1920,
         "screenshotHeight": 1080
       },
@@ -79,7 +83,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 64
+          "actual": 67
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -135,13 +139,13 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1691,
+        "scrollHeight": 1616,
         "h1Count": 1,
         "businessPageCount": 1,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 64,
+        "svgIconCount": 67,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -164,6 +168,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 1,
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
       },
@@ -198,7 +206,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 64
+          "actual": 67
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -254,13 +262,13 @@
         "innerHeight": 900,
         "clientWidth": 1280,
         "scrollWidth": 1280,
-        "scrollHeight": 1691,
+        "scrollHeight": 1624,
         "h1Count": 1,
         "businessPageCount": 1,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 60,
+        "svgIconCount": 63,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -283,6 +291,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 1,
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
       },
@@ -317,7 +329,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 60
+          "actual": 63
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -373,13 +385,13 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 3128,
+        "scrollHeight": 3231,
         "h1Count": 1,
         "businessPageCount": 1,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 60,
+        "svgIconCount": 63,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -402,6 +414,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
@@ -442,7 +458,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 60
+          "actual": 63
         },
         {
           "label": "关键内容未越过视口",
@@ -528,13 +544,13 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1691,
+        "scrollHeight": 1616,
         "h1Count": 1,
         "businessPageCount": 1,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 64,
+        "svgIconCount": 67,
         "sidebarDisplay": "flex",
         "sidebarWidth": 64,
         "topbarHeight": 56,
@@ -557,6 +573,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 1392,
         "minimumInteractiveHeight": 1,
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
       },
@@ -591,7 +611,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 64
+          "actual": 67
         },
         {
           "label": "折叠侧栏宽度 64px",
@@ -677,6 +697,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 1720,
         "minimumInteractiveHeight": 32,
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1920,
         "screenshotHeight": 1080
       },
@@ -807,6 +831,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 32,
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
       },
@@ -937,6 +965,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 32,
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
       },
@@ -1067,6 +1099,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
@@ -1233,6 +1269,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 1392,
         "minimumInteractiveHeight": 32,
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
       },
@@ -1358,6 +1398,10 @@
         "loginColumnCount": 2,
         "maximumContentRight": 1668,
         "minimumInteractiveHeight": 18,
+        "notificationPreviewDisplay": "missing",
+        "notificationPreviewItemCount": 0,
+        "notificationPreviewWithinViewport": false,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1920,
         "screenshotHeight": 1080
       },
@@ -1475,6 +1519,10 @@
         "loginColumnCount": 2,
         "maximumContentRight": 1296,
         "minimumInteractiveHeight": 18,
+        "notificationPreviewDisplay": "missing",
+        "notificationPreviewItemCount": 0,
+        "notificationPreviewWithinViewport": false,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
       },
@@ -1592,6 +1640,10 @@
         "loginColumnCount": 2,
         "maximumContentRight": 1172,
         "minimumInteractiveHeight": 18,
+        "notificationPreviewDisplay": "missing",
+        "notificationPreviewItemCount": 0,
+        "notificationPreviewWithinViewport": false,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
       },
@@ -1709,6 +1761,10 @@
         "loginColumnCount": 1,
         "maximumContentRight": 359,
         "minimumInteractiveHeight": 44,
+        "notificationPreviewDisplay": "missing",
+        "notificationPreviewItemCount": 0,
+        "notificationPreviewWithinViewport": false,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
@@ -1826,6 +1882,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 960,
         "minimumInteractiveHeight": 44,
+        "notificationPreviewDisplay": "missing",
+        "notificationPreviewItemCount": 0,
+        "notificationPreviewWithinViewport": false,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
       },
@@ -1901,6 +1961,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 880,
         "minimumInteractiveHeight": 44,
+        "notificationPreviewDisplay": "missing",
+        "notificationPreviewItemCount": 0,
+        "notificationPreviewWithinViewport": false,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
       },
@@ -1976,6 +2040,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 359,
         "minimumInteractiveHeight": 44,
+        "notificationPreviewDisplay": "missing",
+        "notificationPreviewItemCount": 0,
+        "notificationPreviewWithinViewport": false,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
@@ -2061,6 +2129,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 960,
         "minimumInteractiveHeight": 44,
+        "notificationPreviewDisplay": "missing",
+        "notificationPreviewItemCount": 0,
+        "notificationPreviewWithinViewport": false,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
       },
@@ -2136,6 +2208,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 880,
         "minimumInteractiveHeight": 44,
+        "notificationPreviewDisplay": "missing",
+        "notificationPreviewItemCount": 0,
+        "notificationPreviewWithinViewport": false,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
       },
@@ -2211,6 +2287,10 @@
         "loginColumnCount": 0,
         "maximumContentRight": 359,
         "minimumInteractiveHeight": 44,
+        "notificationPreviewDisplay": "missing",
+        "notificationPreviewItemCount": 0,
+        "notificationPreviewWithinViewport": false,
+        "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },

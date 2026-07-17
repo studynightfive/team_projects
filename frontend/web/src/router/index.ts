@@ -34,6 +34,25 @@ export const createAppRouter = (history: RouterHistory): Router =>
             meta: { title: "深度研究", parentTitle: "AI 搜索" },
           },
           {
+            path: "notifications",
+            name: "user-notifications",
+            component: () => import("../views/user/NotificationsView.vue"),
+            props: { audience: "user" },
+            meta: { title: "通知中心", parentTitle: "用户工作区" },
+          },
+          {
+            path: "help",
+            name: "help-center",
+            component: () => import("../views/user/HelpCenterView.vue"),
+            meta: { title: "帮助中心", parentTitle: "用户工作区" },
+          },
+          {
+            path: "preferences",
+            name: "account-preferences",
+            component: () => import("../views/user/PreferencesView.vue"),
+            meta: { title: "偏好设置", parentTitle: "用户工作区" },
+          },
+          {
             path: "knowledge",
             name: "knowledge-list",
             component: () => import("../views/user/KnowledgeListView.vue"),
@@ -128,6 +147,13 @@ export const createAppRouter = (history: RouterHistory): Router =>
             name: "admin-users",
             component: () => import("../views/admin/UsersView.vue"),
             meta: { title: "用户管理", parentTitle: "管理中心" },
+          },
+          {
+            path: "notifications",
+            name: "admin-notifications",
+            component: () => import("../views/user/NotificationsView.vue"),
+            props: { audience: "admin" },
+            meta: { title: "通知中心", parentTitle: "管理中心" },
           },
           {
             path: "roles",

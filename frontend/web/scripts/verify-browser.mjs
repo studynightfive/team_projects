@@ -17,6 +17,10 @@ const localPagesOutputDirectory = resolve(
   repositoryRoot,
   "docs/verification/m02-m14-local-pages",
 );
+const accountSupportOutputDirectory = resolve(
+  repositoryRoot,
+  "docs/verification/account-support-pages",
+);
 const baseUrl =
   process.env.WEB_BASE_URL ??
   process.env.M01_BASE_URL ??
@@ -273,10 +277,62 @@ localPageCases.push(
   },
 );
 
-const cases = [
+const accountSupportRoutes = [
+  {
+    name: "notifications",
+    path: "/notifications",
+    shell: "user",
+    title: "通知中心",
+    notificationPreview: true,
+  },
+  {
+    name: "help",
+    path: "/help",
+    shell: "user",
+    title: "帮助中心",
+  },
+  {
+    name: "preferences",
+    path: "/preferences",
+    shell: "user",
+    title: "偏好设置",
+  },
+  {
+    name: "admin-notifications",
+    path: "/admin/notifications",
+    shell: "admin",
+    title: "通知中心",
+    notificationPreview: true,
+  },
+];
+
+const accountSupportCases = accountSupportRoutes.flatMap((route) =>
+  [
+    { suffix: "1440", width: 1440, height: 1000 },
+    { suffix: "1280", width: 1280, height: 900 },
+    { suffix: "375", width: 375, height: 812 },
+  ].map((viewport) => ({
+    ...route,
+    ...viewport,
+    name: `${route.name}-${viewport.suffix}`,
+    group: "account-support",
+  })),
+);
+
+const allCases = [
   ...m01Cases.map((testCase) => ({ ...testCase, group: "m01" })),
   ...localPageCases,
+  ...accountSupportCases,
 ];
+const requestedGroup = process.env.WEB_VERIFY_GROUP;
+const cases =
+  requestedGroup === undefined
+    ? allCases
+    : allCases.filter((testCase) => testCase.group === requestedGroup);
+
+if (cases.length === 0) {
+  throw new Error(`没有可运行的浏览器验收分组：${requestedGroup}`);
+}
 
 const delay = (milliseconds) =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
@@ -502,7 +558,10 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     metrics.svgIconCount,
   );
 
-  if (testCase.group === "local-pages") {
+  if (
+    testCase.group === "local-pages" ||
+    testCase.group === "account-support"
+  ) {
     recordCheck(
       checks,
       "业务页使用统一 business-page 根节点",
@@ -515,6 +574,42 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
       metrics.topbarTitle === testCase.title && metrics.topbarTitleVisible,
       `${metrics.topbarTitle}/${metrics.topbarTitleVisible ? "可见" : "隐藏"}`,
     );
+  }
+
+  if (testCase.notificationPreview === true) {
+    recordCheck(
+      checks,
+      "通知预览固定展示最近四条",
+      metrics.notificationPreviewItemCount === 4,
+      metrics.notificationPreviewItemCount,
+    );
+    if (testCase.width >= 768) {
+      recordCheck(
+        checks,
+        "桌面悬停可打开通知预览",
+        metrics.notificationPreviewHoverVisible === true,
+        metrics.notificationPreviewHoverVisible,
+      );
+      recordCheck(
+        checks,
+        "键盘聚焦可打开通知预览",
+        metrics.notificationPreviewFocusVisible === true,
+        metrics.notificationPreviewFocusVisible,
+      );
+      recordCheck(
+        checks,
+        "通知预览未越过视口",
+        metrics.notificationPreviewWithinViewport === true,
+        metrics.notificationPreviewWithinViewport,
+      );
+    } else {
+      recordCheck(
+        checks,
+        "移动端隐藏悬停通知预览",
+        metrics.notificationPreviewDisplay === "none",
+        metrics.notificationPreviewDisplay,
+      );
+    }
   }
 
   if (testCase.width < 768) {
@@ -745,6 +840,7 @@ const run = async () => {
   await Promise.all([
     mkdir(m01OutputDirectory, { recursive: true }),
     mkdir(localPagesOutputDirectory, { recursive: true }),
+    mkdir(accountSupportOutputDirectory, { recursive: true }),
   ]);
   const sourceState = await getSourceState();
   const chromePath = await findChrome();
@@ -843,7 +939,7 @@ const run = async () => {
       await client.send("Page.navigate", { url: `${baseUrl}${testCase.path}` });
       await loaded;
       const readySelector =
-        testCase.group === "local-pages" ? ".business-page h1" : "h1";
+        testCase.group === "m01" ? "h1" : ".business-page h1";
       await evaluate(
         client,
         `(async () => {
@@ -868,6 +964,38 @@ const run = async () => {
             document.querySelector(".sidebar-collapse-button")?.click();
             await new Promise((resolve) => setTimeout(resolve, 260));
             return true;
+          })()`,
+        );
+      }
+
+      let notificationPreviewHoverVisible = false;
+      if (testCase.notificationPreview === true && testCase.width >= 768) {
+        const triggerPoint = await evaluate(
+          client,
+          `(() => {
+            const box = document.querySelector(".notification-button")?.getBoundingClientRect();
+            return box === undefined
+              ? undefined
+              : { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+          })()`,
+        );
+        if (triggerPoint === undefined) {
+          throw new Error("未找到通知预览触发按钮。");
+        }
+        await client.send("Input.dispatchMouseEvent", {
+          type: "mouseMoved",
+          x: triggerPoint.x,
+          y: triggerPoint.y,
+        });
+        await delay(100);
+        notificationPreviewHoverVisible = await evaluate(
+          client,
+          `(() => {
+            const popover = document.querySelector(".notification-popover");
+            const box = popover?.getBoundingClientRect();
+            return popover !== null &&
+              getComputedStyle(popover).display !== "none" &&
+              box.width > 0 && box.height > 0;
           })()`,
         );
       }
@@ -903,6 +1031,7 @@ const run = async () => {
             document.querySelector(".topbar-breadcrumb strong") ??
             document.querySelector(".admin-current-title");
           const topbarTitleRect = topbarTitleElement?.getBoundingClientRect();
+          const notificationPreviewRect = rect(".notification-popover-surface");
           return {
             innerWidth: window.innerWidth,
             innerHeight: window.innerHeight,
@@ -944,9 +1073,17 @@ const run = async () => {
             loginColumnCount: loginGrid.split(/\\s+/u).filter(Boolean).length,
             maximumContentRight: Math.ceil(Math.max(0, ...contentRects.map((box) => box.right))),
             minimumInteractiveHeight: Math.floor(Math.min(Infinity, ...interactive.map((box) => box.height))),
+            notificationPreviewDisplay: style(".notification-popover")?.display ?? "missing",
+            notificationPreviewItemCount: document.querySelectorAll(".notification-preview-item").length,
+            notificationPreviewWithinViewport:
+              notificationPreviewRect !== undefined &&
+              notificationPreviewRect.left >= 0 &&
+              notificationPreviewRect.right <= window.innerWidth &&
+              notificationPreviewRect.bottom <= window.innerHeight,
           };
         })()`,
       );
+      metrics.notificationPreviewHoverVisible = notificationPreviewHoverVisible;
 
       const screenshot = await client.send("Page.captureScreenshot", {
         format: "png",
@@ -956,15 +1093,37 @@ const run = async () => {
       const screenshotBuffer = Buffer.from(screenshot.data, "base64");
       metrics.screenshotWidth = screenshotBuffer.readUInt32BE(16);
       metrics.screenshotHeight = screenshotBuffer.readUInt32BE(20);
+      const outputDirectory =
+        testCase.group === "m01"
+          ? m01OutputDirectory
+          : testCase.group === "local-pages"
+            ? localPagesOutputDirectory
+            : accountSupportOutputDirectory;
       await writeFile(
-        join(
-          testCase.group === "m01"
-            ? m01OutputDirectory
-            : localPagesOutputDirectory,
-          `${testCase.name}.png`,
-        ),
+        join(outputDirectory, `${testCase.name}.png`),
         screenshotBuffer,
       );
+
+      if (testCase.notificationPreview === true && testCase.width >= 768) {
+        await client.send("Input.dispatchMouseEvent", {
+          type: "mouseMoved",
+          x: 1,
+          y: 1,
+        });
+        metrics.notificationPreviewFocusVisible = await evaluate(
+          client,
+          `(async () => {
+            const trigger = document.querySelector(".notification-button");
+            trigger?.focus();
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            const popover = document.querySelector(".notification-popover");
+            const box = popover?.getBoundingClientRect();
+            return trigger !== null && document.activeElement === trigger &&
+              popover !== null && getComputedStyle(popover).display !== "none" &&
+              box.width > 0 && box.height > 0;
+          })()`,
+        );
+      }
 
       let drawer = {};
       if (testCase.shell !== undefined && testCase.width < 768) {
@@ -1063,18 +1222,36 @@ const run = async () => {
 
     const m01Report = createReport("m01");
     const localPagesReport = createReport("local-pages");
-    await Promise.all([
-      writeFile(
-        join(m01OutputDirectory, "browser-report.json"),
-        `${JSON.stringify(m01Report, null, 2)}\n`,
-        "utf8",
+    const accountSupportReport = createReport("account-support");
+    const reportTargets = [
+      {
+        group: "m01",
+        directory: m01OutputDirectory,
+        report: m01Report,
+      },
+      {
+        group: "local-pages",
+        directory: localPagesOutputDirectory,
+        report: localPagesReport,
+      },
+      {
+        group: "account-support",
+        directory: accountSupportOutputDirectory,
+        report: accountSupportReport,
+      },
+    ].filter(
+      (target) =>
+        requestedGroup === undefined || target.group === requestedGroup,
+    );
+    await Promise.all(
+      reportTargets.map((target) =>
+        writeFile(
+          join(target.directory, "browser-report.json"),
+          `${JSON.stringify(target.report, null, 2)}\n`,
+          "utf8",
+        ),
       ),
-      writeFile(
-        join(localPagesOutputDirectory, "browser-report.json"),
-        `${JSON.stringify(localPagesReport, null, 2)}\n`,
-        "utf8",
-      ),
-    ]);
+    );
 
     for (const result of results) {
       console.log(`${result.passed ? "PASS" : "FAIL"} ${result.name}`);
@@ -1085,7 +1262,7 @@ const run = async () => {
     console.log(`Console errors: ${consoleErrors.length}`);
     console.log(`Business API requests: ${apiRequests.length}`);
 
-    if (!m01Report.passed || !localPagesReport.passed) {
+    if (reportTargets.some((target) => !target.report.passed)) {
       process.exitCode = 1;
     }
   } finally {

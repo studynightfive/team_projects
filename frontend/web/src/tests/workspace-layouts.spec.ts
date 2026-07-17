@@ -103,4 +103,15 @@ describe("M01 V2 工作区布局", () => {
     expect(wrapper.find(".sidebar-profile-menu").exists()).toBe(false);
     expect(document.activeElement).toBe(trigger.element);
   });
+
+  it("账号菜单点击内部保持打开，点击外部区域关闭", async () => {
+    const { wrapper } = await renderAppAt("/");
+
+    await wrapper.get(".sidebar-profile-trigger").trigger("click");
+    await wrapper.get(".sidebar-profile-menu").trigger("click");
+    expect(wrapper.find(".sidebar-profile-menu").exists()).toBe(true);
+
+    await wrapper.get("main.workspace-content").trigger("click");
+    expect(wrapper.find(".sidebar-profile-menu").exists()).toBe(false);
+  });
 });

@@ -285,7 +285,13 @@ onBeforeUnmount(() => {
                 <span>继续工作</span>
                 <h2 id="recent-search-title">最近搜索</h2>
               </div>
-              <RouterLink to="/history">查看全部</RouterLink>
+              <RouterLink
+                class="secondary-button compact home-view-all-button"
+                to="/history"
+              >
+                查看全部
+                <ChevronRight :size="14" aria-hidden="true" />
+              </RouterLink>
             </header>
             <div class="recent-search-list">
               <button
@@ -313,7 +319,13 @@ onBeforeUnmount(() => {
                 <span>常用知识</span>
                 <h2 id="knowledge-space-title">知识空间</h2>
               </div>
-              <RouterLink to="/spaces">查看全部</RouterLink>
+              <RouterLink
+                class="secondary-button compact home-view-all-button"
+                to="/spaces"
+              >
+                查看全部
+                <ChevronRight :size="14" aria-hidden="true" />
+              </RouterLink>
             </header>
             <div class="knowledge-space-list">
               <RouterLink
@@ -342,8 +354,12 @@ onBeforeUnmount(() => {
               <span>信息可用性</span>
               <h2 id="data-source-overview-title">数据源状态</h2>
             </div>
-            <RouterLink to="/data-sources">
+            <RouterLink
+              class="secondary-button compact home-view-all-button"
+              to="/data-sources"
+            >
               {{ connectedSourceCount }} 个已连接，查看全部
+              <ChevronRight :size="14" aria-hidden="true" />
             </RouterLink>
           </header>
           <div class="data-source-summary-list">
@@ -517,33 +533,52 @@ onBeforeUnmount(() => {
 }
 
 .home-section-heading {
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--space-4);
   margin-bottom: var(--space-4);
 }
 
-.home-section-heading > div {
-  align-items: flex-start;
-  flex-direction: column;
+.home-section-heading > button,
+.home-section-heading > a {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
-.home-section-heading span {
-  color: var(--color-primary);
-  font-size: var(--font-size-14);
+.home-section-heading > div {
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.home-section-heading > div > span,
+.home-section-heading h2 {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-20);
   font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+  line-height: var(--line-height-title);
 }
 
 .home-section-heading h2 {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text);
-  font-size: var(--font-size-18);
+  gap: var(--space-2);
 }
 
-.home-section-heading a {
+.home-section-heading h2::before {
+  color: var(--color-text-muted);
+  content: "—";
+  font-size: var(--font-size-14);
+  font-weight: normal;
+}
+
+.home-section-heading .home-view-all-button {
+  border-color: var(--blue-300);
   color: var(--color-primary);
-  font-size: var(--font-size-13);
-  font-weight: var(--font-weight-medium);
-  text-decoration: none;
+  background: var(--color-primary-soft);
 }
 
 .quick-action-list {
@@ -764,6 +799,19 @@ onBeforeUnmount(() => {
 
   .home-section {
     padding: var(--space-4);
+  }
+
+  .home-section-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-3);
+  }
+
+  .home-section-heading > button,
+  .home-section-heading > a {
+    margin-left: 0;
+    justify-self: end;
   }
 
   .quick-action-list,

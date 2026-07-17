@@ -1,26 +1,21 @@
 <script setup lang="ts">
-import { App as AntApp } from "ant-design-vue";
 import { computed, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
+import NotificationPreview from "../components/NotificationPreview.vue";
 import WorkspaceShell from "../components/WorkspaceShell.vue";
-import { Bell, ChevronDown } from "../components/icons";
+import { ChevronDown } from "../components/icons";
 import {
   adminMobileNavigation,
   adminNavigation,
   foundationData,
 } from "../data/foundation";
 
-const { message } = AntApp.useApp();
 const route = useRoute();
 const environment = ref("演示");
 const currentTitle = computed(() =>
   typeof route.meta.title === "string" ? route.meta.title : "平台总览",
 );
-
-const showNotificationNotice = (): void => {
-  void message.info("当前有 6 项治理通知，详细通知中心将在后续里程碑开放");
-};
 </script>
 
 <template>
@@ -55,15 +50,7 @@ const showNotificationNotice = (): void => {
             </select>
             <ChevronDown :size="14" aria-hidden="true" />
           </label>
-          <button
-            class="icon-button notification-button"
-            type="button"
-            aria-label="查看通知，当前有 6 项待处理"
-            @click="showNotificationNotice"
-          >
-            <Bell :size="20" aria-hidden="true" />
-            <span class="notification-dot" aria-hidden="true" />
-          </button>
+          <NotificationPreview audience="admin" />
           <button
             class="avatar topbar-avatar admin-avatar"
             type="button"
