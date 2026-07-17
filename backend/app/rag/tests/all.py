@@ -11,7 +11,7 @@ import hashlib
 import json
 import math
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from uuid import uuid4
 
 import structlog
@@ -538,7 +538,7 @@ async def run_test_endpoint(
         return APIResponse(
             data=RetrievalTestRunSummary(
                 id=run.id,
-                status=run.status,
+                status=cast(Literal["pending", "running", "done", "failed"], run.status),
                 progress=run.progress,
                 error_message=None,
             ).model_dump()
@@ -609,7 +609,7 @@ async def get_run_endpoint(
         return APIResponse(
             data=RetrievalTestRunSummary(
                 id=run.id,
-                status=run.status,
+                status=cast(Literal["pending", "running", "done", "failed"], run.status),
                 progress=run.progress,
                 error_message=run.error_message,
             ).model_dump()

@@ -8,18 +8,16 @@
 
 from __future__ import annotations
 
-import pytest
-
 from app.rag.tests.all import (
     RetrievalTestConfig,
     _aggregate_metrics,
     _average_precision_at_k,
+    _hash_config,
     _hit,
     _ndg_at_k,
     _precision_at_k,
     _recall_at_k,
     _reciprocal_rank,
-    _hash_config,
 )
 
 
@@ -145,14 +143,26 @@ class TestAggregateMetrics:
 
         per_query = [
             PerQueryResult(
-                query="q1", relevant_chunk_ids=["a"], retrieved_chunk_ids=["a"],
-                hit=True, reciprocal_rank=1.0, ndcg=1.0,
-                recall=1.0, precision=1.0, latency_ms=10,
+                query="q1",
+                relevant_chunk_ids=["a"],
+                retrieved_chunk_ids=["a"],
+                hit=True,
+                reciprocal_rank=1.0,
+                ndcg=1.0,
+                recall=1.0,
+                precision=1.0,
+                latency_ms=10,
             ),
             PerQueryResult(
-                query="q2", relevant_chunk_ids=["a"], retrieved_chunk_ids=["b"],
-                hit=False, reciprocal_rank=0.0, ndcg=0.0,
-                recall=0.0, precision=0.0, latency_ms=10,
+                query="q2",
+                relevant_chunk_ids=["a"],
+                retrieved_chunk_ids=["b"],
+                hit=False,
+                reciprocal_rank=0.0,
+                ndcg=0.0,
+                recall=0.0,
+                precision=0.0,
+                latency_ms=10,
             ),
         ]
         m = _aggregate_metrics(per_query)
@@ -164,7 +174,6 @@ class TestAggregateMetrics:
         assert m.precision_at_k == 0.5
 
     def test_aggregates_empty_returns_zero(self):
-        from app.rag.tests.all import RetrievalTestMetrics
 
         m = _aggregate_metrics([])
         assert m.hit_rate == 0.0

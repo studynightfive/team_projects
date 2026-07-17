@@ -9,11 +9,9 @@
 
 from __future__ import annotations
 
-import io
 import time
 import zipfile
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -39,22 +37,30 @@ class TestDownloadSigning:
         tok = sign_download_token(export_id="e1", user_id="u1", expires_at_unix=exp)
         # 翻转一个字符
         bad = ("a" if tok[0] != "a" else "b") + tok[1:]
-        assert not verify_download_token(export_id="e1", user_id="u1", expires_at_unix=exp, token=bad)
+        assert not verify_download_token(
+            export_id="e1", user_id="u1", expires_at_unix=exp, token=bad
+        )
 
     def test_different_user_rejected(self):
         exp = int(time.time()) + 3600
         tok = sign_download_token(export_id="e1", user_id="u1", expires_at_unix=exp)
-        assert not verify_download_token(export_id="e1", user_id="u2", expires_at_unix=exp, token=tok)
+        assert not verify_download_token(
+            export_id="e1", user_id="u2", expires_at_unix=exp, token=tok
+        )
 
     def test_different_export_rejected(self):
         exp = int(time.time()) + 3600
         tok = sign_download_token(export_id="e1", user_id="u1", expires_at_unix=exp)
-        assert not verify_download_token(export_id="e2", user_id="u1", expires_at_unix=exp, token=tok)
+        assert not verify_download_token(
+            export_id="e2", user_id="u1", expires_at_unix=exp, token=tok
+        )
 
     def test_different_expires_rejected(self):
         exp = int(time.time()) + 3600
         tok = sign_download_token(export_id="e1", user_id="u1", expires_at_unix=exp)
-        assert not verify_download_token(export_id="e1", user_id="u1", expires_at_unix=exp + 1, token=tok)
+        assert not verify_download_token(
+            export_id="e1", user_id="u1", expires_at_unix=exp + 1, token=tok
+        )
 
     def test_token_does_not_contain_secrets(self):
         """签名 token 本身不应包含任何敏感字段，仅为签名结果"""
@@ -140,7 +146,9 @@ class TestMarkdownExporter:
 
         monkeypatch.setattr(settings, "export_storage_root", str(tmp_path / "exports"))
         content = ExportContent(
-            document_id="d1", title="T", markdown="# H\n\nbody",
+            document_id="d1",
+            title="T",
+            markdown="# H\n\nbody",
             citations=[{"doc_id": "d2", "chunk_id": "c1", "score": 0.9}],
         )
         out = task_file_path("t1", "out.md")

@@ -11,7 +11,7 @@ import time
 import uuid
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
@@ -24,6 +24,7 @@ from app.common.database import get_db
 from app.common.models import User
 from app.models import service as model_service
 from app.models.providers.openai import build_provider
+from app.models.repository import ModelProvider
 from app.models.security import decrypt_api_key
 from app.rag._shared.permissions import (
     get_user_accessible_kb_ids,
@@ -204,6 +205,13 @@ async def _chat_stream(
         )
         return
     provider = await model_service.get_provider(db, chat_model.provider_code)
+    if provider is None:
+        yield format_sse(event="error", data={
+            "event": "error", "code": "internal_error", "message": "provider not found",
+            "request_id": request_id, "retryable": False,
+        })
+        return
+    provider = cast(ModelProvider, provider)
     api_key = decrypt_api_key(chat_model.api_key_encrypted) if chat_model.api_key_encrypted else ""
     p = build_provider(provider.code, provider.base_url, api_key)
 
@@ -265,12 +273,18 @@ async def _chat_stream(
     assistant_msg.content = accumulated
     assistant_msg.citations = citations_payload
     assistant_msg.finish_reason = finish_reason
-    conv = await db.get(Conversation, conversation_id)
-    if conv is not None:
-        conv.last_message_at = datetime.now(timezone.utc)
-        conv.message_count = (conv.message_count or 0) + 1
-        # 自动标题生成：流式结束后若 title 仍空，用聊天模型生成 ≤20 字
-        if not conv.title and accumulated:
+    conv = await db.get(Conversation, conversation_id)  # type: ignore[assignment]
+    if conv is None:
+        yield format_sse(event="error", data={
+            "event": "error", "code": "internal_error", "message": "conversation not found",
+            "request_id": request_id, "retryable": False,
+        })
+        return
+    conv = cast(Conversation, conv)
+    conv.last_message_at = datetime.now(timezone.utc)
+    conv.message_count = (conv.message_count or 0) + 1
+    # 自动标题生成：流式结束后若 title 仍空，用聊天模型生成 ≤20 字
+    if not conv.title and accumulated:
             try:
                 title_stream = await p.chat(
                     model_name=chat_model.model_name,

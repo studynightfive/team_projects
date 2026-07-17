@@ -22,6 +22,7 @@ from app.rag._shared.permissions import (
     post_filter_hits,
 )
 from app.rag.search.schemas import (
+    SearchDebug,
     SearchHit,
     SearchRequest,
     SearchResponse,
@@ -281,9 +282,9 @@ async def search(
         reranked=reranked,
         took_ms=took_ms,
         total_candidates=total,
-        debug={
-            "embedding_latency_ms": debug_vt or None,
-            "keyword_latency_ms": debug_kt or None,
-            "rerank_latency_ms": debug_rt or None,
-        },
+        debug=SearchDebug(
+            embedding_latency_ms=debug_vt or None,
+            keyword_latency_ms=debug_kt or None,
+            rerank_latency_ms=debug_rt or None,
+        ),
     )

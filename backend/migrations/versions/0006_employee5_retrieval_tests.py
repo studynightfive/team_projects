@@ -5,7 +5,8 @@ Revises: 0005_employee5_export_tasks
 Create Date: 2026-07-17
 
 retrieval_test_datasets + retrieval_test_runs 表（员工5 提示词 06 §4.6）
-'''
+"""
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -25,7 +26,12 @@ def upgrade() -> None:
         sa.Column("description", sa.Text, server_default=""),
         sa.Column("kb_id", sa.dialects.postgresql.UUID(as_uuid=False), nullable=False),
         sa.Column("queries", sa.dialects.postgresql.JSONB, nullable=False),
-        sa.Column("created_by", sa.dialects.postgresql.UUID(as_uuid=False), sa.ForeignKey("users.id"), nullable=False),
+        sa.Column(
+            "created_by",
+            sa.dialects.postgresql.UUID(as_uuid=False),
+            sa.ForeignKey("users.id"),
+            nullable=False,
+        ),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
@@ -34,7 +40,12 @@ def upgrade() -> None:
     op.create_table(
         "retrieval_test_runs",
         sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=False), primary_key=True),
-        sa.Column("dataset_id", sa.dialects.postgresql.UUID(as_uuid=False), sa.ForeignKey("retrieval_test_datasets.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "dataset_id",
+            sa.dialects.postgresql.UUID(as_uuid=False),
+            sa.ForeignKey("retrieval_test_datasets.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("config", sa.dialects.postgresql.JSONB, nullable=False),
         sa.Column("config_hash", sa.String(16), nullable=False),
         sa.Column("status", sa.String(16), nullable=False, server_default=sa.text("'pending'")),

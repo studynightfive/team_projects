@@ -50,9 +50,7 @@ class TestFernetCrypto:
 # Provider 工厂
 # ============================================================
 class TestProviderFactory:
-    @pytest.mark.parametrize(
-        "code", ["openai", "deepseek", "ollama", "custom", "anthropic"]
-    )
+    @pytest.mark.parametrize("code", ["openai", "deepseek", "ollama", "custom", "anthropic"])
     def test_known_providers(self, code):
         p = build_provider(code, "https://api.example.com/v1", "key", timeout=5.0)
         assert isinstance(p, OpenAICompatibleProvider)
@@ -70,14 +68,15 @@ class TestProviderFactory:
 class TestProviderTest:
     @pytest.mark.asyncio
     async def test_returns_ok_on_200(self):
-        from app.models.schemas import TestModelResponse
 
         p = OpenAICompatibleProvider("openai", "https://api.openai.com/v1", "sk-x")
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
             mock_resp = AsyncMock()
             mock_resp.status_code = 200
             mock_get.return_value = mock_resp
-            result = await p.test(model_name="gpt-4o-mini", api_key="sk-x", base_url="https://api.openai.com/v1")
+            result = await p.test(
+                model_name="gpt-4o-mini", api_key="sk-x", base_url="https://api.openai.com/v1"
+            )
         assert result["ok"] is True
         assert result["latency_ms"] >= 0
         assert result["model_info"]["status_code"] == 200
@@ -90,7 +89,9 @@ class TestProviderTest:
             mock_resp = AsyncMock()
             mock_resp.status_code = 401
             mock_get.return_value = mock_resp
-            result = await p.test(model_name="x", api_key="sk-x", base_url="https://api.openai.com/v1")
+            result = await p.test(
+                model_name="x", api_key="sk-x", base_url="https://api.openai.com/v1"
+            )
         assert result["ok"] is True
         assert result["model_info"]["status_code"] == 401
 
@@ -101,7 +102,9 @@ class TestProviderTest:
             mock_resp = AsyncMock()
             mock_resp.status_code = 500
             mock_get.return_value = mock_resp
-            result = await p.test(model_name="x", api_key="sk-x", base_url="https://api.openai.com/v1")
+            result = await p.test(
+                model_name="x", api_key="sk-x", base_url="https://api.openai.com/v1"
+            )
         assert result["ok"] is False
         assert result["error_code"] == "provider_unreachable"
 
@@ -110,7 +113,9 @@ class TestProviderTest:
         p = OpenAICompatibleProvider("openai", "https://api.openai.com/v1", "sk-x")
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = ConnectionError("refused")
-            result = await p.test(model_name="x", api_key="sk-x", base_url="https://api.openai.com/v1")
+            result = await p.test(
+                model_name="x", api_key="sk-x", base_url="https://api.openai.com/v1"
+            )
         assert result["ok"] is False
         assert result["error_code"] == "network_error"
         assert "refused" in result["error_message"]
@@ -133,7 +138,9 @@ class TestModelService:
         from app.models.schemas import ModelCreate
 
         payload = ModelCreate(
-            provider_code="openai", model_name="gpt-4o-mini", kind="chat",
+            provider_code="openai",
+            model_name="gpt-4o-mini",
+            kind="chat",
             api_key="sk-plaintext-12345",
         )
         model = await model_service.create_model(db, payload)

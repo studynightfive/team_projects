@@ -9,8 +9,6 @@
 
 from __future__ import annotations
 
-import logging
-
 import pytest
 
 from app.exports._shared.signing import sign_download_token
@@ -37,7 +35,10 @@ class TestApiKeyNeverReturned:
         from app.models.schemas import ModelResponse
 
         resp = ModelResponse(
-            id="m1", provider_code="openai", model_name="gpt-4o", kind="chat",
+            id="m1",
+            provider_code="openai",
+            model_name="gpt-4o",
+            kind="chat",
             api_key_set=True,
         )
         serialized = resp.model_dump()
@@ -53,7 +54,9 @@ class TestApiKeyNeverReturned:
         from app.models.schemas import TestModelResponse
 
         err = TestModelResponse(
-            ok=False, latency_ms=10, error_code="provider_unreachable",
+            ok=False,
+            latency_ms=10,
+            error_code="provider_unreachable",
             error_message="HTTP 500",
         )
         for k, v in err.model_dump().items():
@@ -110,7 +113,9 @@ class TestDownloadTokenNoSecretLeak:
 
     def test_token_is_pure_signature(self):
         tok = sign_download_token(
-            export_id="e1", user_id="u1", expires_at_unix=9999999999,
+            export_id="e1",
+            user_id="u1",
+            expires_at_unix=9999999999,
         )
         # token 只应是 base64 编码的 HMAC，不含 export_id / user_id 原文
         assert "e1" not in tok

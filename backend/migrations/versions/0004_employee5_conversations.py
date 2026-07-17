@@ -5,7 +5,8 @@ Revises: 0003_employee5_chunks
 Create Date: 2026-07-17
 
 conversations + messages 表（员工5 提示词 04）
-'''
+"""
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -21,7 +22,9 @@ def upgrade() -> None:
     op.create_table(
         "conversations",
         sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=False), primary_key=True),
-        sa.Column("user_id", sa.String(36), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id", sa.String(36), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        ),
         sa.Column("kb_id", sa.dialects.postgresql.UUID(as_uuid=False), nullable=False),
         sa.Column("title", sa.String(200), nullable=False, server_default=""),
         sa.Column("is_pinned", sa.Boolean, nullable=False, server_default=sa.text("false")),
@@ -39,7 +42,12 @@ def upgrade() -> None:
     op.create_table(
         "messages",
         sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=False), primary_key=True),
-        sa.Column("conversation_id", sa.dialects.postgresql.UUID(as_uuid=False), sa.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "conversation_id",
+            sa.dialects.postgresql.UUID(as_uuid=False),
+            sa.ForeignKey("conversations.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("role", sa.String(16), nullable=False),
         sa.Column("content", sa.Text, nullable=False, server_default=""),
         sa.Column("citations", sa.dialects.postgresql.JSONB, server_default=sa.text("'[]'::jsonb")),

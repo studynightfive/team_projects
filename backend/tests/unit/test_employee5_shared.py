@@ -79,8 +79,7 @@ class TestFitMessagesToBudget:
         """content 缺失视为 0 cost，在 budget 内会被保留；不会触发预算耗尽 break"""
         msgs = [{"content": "x" * 1000}, {"no_content": True}, {"content": "y" * 5}]
         result = fit_messages_to_budget(msgs, max_tokens=100)
-        # 从最新到最旧贪心: y5(cost=5, used=5) → no_content(cost=0, used=5) → x1000(cost=1000, 5+1000>100 and kept → break)
-        # 因此保留 2 条（y5 + no_content）
+        # 从最新到最旧贪心填充，保留 budget 内可容纳的最新消息
         assert len(result) == 2
         assert result[1] == {"content": "y" * 5}
         assert result[0] == {"no_content": True}
@@ -100,7 +99,7 @@ class TestFormatSSE:
     def test_data_is_json_string(self):
         out = format_sse(event="delta", data={"event": "delta", "text": "hi"})
         # 解析 data: 行（可能有 id 前缀和多个 data 行）
-        data_line = [l for l in out.split("\n") if l.startswith("data: ")][0]
+        data_line = [line for line in out.split("\n") if line.startswith("data: ")][0]
         payload = data_line[6:]
         obj = json.loads(payload)
         assert obj == {"event": "delta", "text": "hi"}
@@ -117,7 +116,7 @@ class TestFormatSSE:
         """raw string 含换行必须拆为多个 data: 行（SSE 协议要求）"""
         out = format_sse(event="x", data="line1\nline2")
         # 应有两行 data: line1 / data: line2
-        data_lines = [l for l in out.split("\n") if l.startswith("data: ")]
+        data_lines = [line for line in out.split("\n") if line.startswith("data: ")]
         assert len(data_lines) == 2
         assert data_lines[0].endswith("line1")
         assert data_lines[1].endswith("line2")

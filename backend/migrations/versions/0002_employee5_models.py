@@ -5,7 +5,8 @@ Revises: 0001_init_core_tables
 Create Date: 2026-07-17
 
 模型管理表（员工5 提示词 01 §4.5）
-'''
+"""
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -30,10 +31,17 @@ def upgrade() -> None:
     op.create_table(
         "models",
         sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=False), primary_key=True),
-        sa.Column("provider_code", sa.String(32), sa.ForeignKey("model_providers.code", ondelete="RESTRICT"), nullable=False),
+        sa.Column(
+            "provider_code",
+            sa.String(32),
+            sa.ForeignKey("model_providers.code", ondelete="RESTRICT"),
+            nullable=False,
+        ),
         sa.Column("model_name", sa.String(128), nullable=False),
         sa.Column("kind", sa.String(16), nullable=False),
-        sa.Column("parameters", sa.dialects.postgresql.JSONB, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "parameters", sa.dialects.postgresql.JSONB, server_default=sa.text("'{}'::jsonb")
+        ),
         sa.Column("api_key_encrypted", sa.Text, nullable=True),
         sa.Column("dimensions", sa.Integer, nullable=True),
         sa.Column("distance", sa.String(16), nullable=True),

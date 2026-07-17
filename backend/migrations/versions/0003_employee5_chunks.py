@@ -6,7 +6,8 @@ Create Date: 2026-07-17
 
 chunks 表（员工5 提示词 02 §4.6）
 注意：doc_id / kb_id 的 FK 等员工3 / 员工4 完成 knowledge_bases 与 documents 表后加。
-'''
+"""
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -36,7 +37,9 @@ def upgrade() -> None:
     op.create_index("ix_chunks_doc_id", "chunks", ["doc_id"])
     op.execute("CREATE INDEX ix_chunks_tsv ON chunks USING gin (to_tsvector('simple', content))")
     op.execute("CREATE INDEX ix_chunks_metadata ON chunks USING gin (metadata)")
-    op.execute("CREATE INDEX ix_chunks_embedding ON chunks USING hnsw (embedding vector_cosine_ops)")
+    op.execute(
+        "CREATE INDEX ix_chunks_embedding ON chunks USING hnsw (embedding vector_cosine_ops)"
+    )
 
 
 def downgrade() -> None:

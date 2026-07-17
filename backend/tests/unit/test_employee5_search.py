@@ -9,14 +9,14 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app.rag._shared.permissions import post_filter_hits
 from app.rag.search.schemas import (
     SearchHit,
     SearchRequest,
     SearchResponse,
 )
-import pytest
-
 from app.rag.search.service import rrf_fuse
 
 
