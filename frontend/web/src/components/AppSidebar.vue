@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
 import {
@@ -34,6 +34,7 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const isProfileMenuOpen = ref(false);
+const profileRootRef = ref<HTMLElement>();
 const profileTriggerRef = ref<HTMLButtonElement>();
 
 const isActive = (item: NavigationItem): boolean =>
@@ -59,6 +60,26 @@ const runProfileAction = async (label: string): Promise<void> => {
   }
   emit("notice", `${label}将在认证与个人中心里程碑开放`);
 };
+
+const closeProfileMenuOnOutsideClick = (event: MouseEvent): void => {
+  if (
+    !isProfileMenuOpen.value ||
+    !(event.target instanceof Node) ||
+    profileRootRef.value?.contains(event.target)
+  ) {
+    return;
+  }
+
+  isProfileMenuOpen.value = false;
+};
+
+onMounted(() => {
+  document.addEventListener("click", closeProfileMenuOnOutsideClick);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", closeProfileMenuOnOutsideClick);
+});
 </script>
 
 <template>
@@ -147,7 +168,7 @@ const runProfileAction = async (label: string): Promise<void> => {
       </ul>
     </nav>
 
-    <div class="sidebar-profile">
+    <div ref="profileRootRef" class="sidebar-profile">
       <button
         ref="profileTriggerRef"
         class="sidebar-profile-trigger"
@@ -175,14 +196,14 @@ const runProfileAction = async (label: string): Promise<void> => {
           <UserRound :size="16" aria-hidden="true" />
           个人中心
         </button>
-        <button
+        <RouterLink
           v-if="variant === 'user'"
-          type="button"
-          @click="runProfileAction('偏好设置')"
+          to="/preferences"
+          @click="closeProfileMenu"
         >
           <Settings :size="16" aria-hidden="true" />
           偏好设置
-        </button>
+        </RouterLink>
         <RouterLink
           v-if="variant === 'user'"
           to="/settings"

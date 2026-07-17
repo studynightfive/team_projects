@@ -2941,7 +2941,7 @@ p {
   .topbar-divider,
   .topbar-workspace-link,
   .topbar-source-status,
-  .topbar-actions > .icon-button:not(.notification-button),
+  .topbar-actions > .icon-button:not(.notification-button):not(.help-button),
   .environment-select,
   .admin-topbar-actions .secondary-button {
     display: none;

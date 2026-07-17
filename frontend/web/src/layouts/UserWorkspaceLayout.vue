@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { App as AntApp } from "ant-design-vue";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
+import NotificationPreview from "../components/NotificationPreview.vue";
 import WorkspaceShell from "../components/WorkspaceShell.vue";
-import { Bell, CircleHelp, Database, Search } from "../components/icons";
+import { CircleHelp, Database, Search } from "../components/icons";
 import {
   foundationData,
   userMobileNavigation,
@@ -12,11 +12,11 @@ import {
 } from "../data/foundation";
 import { aiSearchMockData } from "../mocks/ai-search";
 
-const { message } = AntApp.useApp();
 const route = useRoute();
 const router = useRouter();
 const searchInputRef = ref<HTMLInputElement>();
 const globalSearch = ref("");
+const dataSourceCount = aiSearchMockData.dataSources.length;
 const connectedSourceCount = aiSearchMockData.dataSources.filter(
   (source) => source.connectionStatus === "connected",
 ).length;
@@ -27,11 +27,6 @@ const currentTitle = computed(() =>
 const currentParentTitle = computed(() =>
   typeof route.meta.parentTitle === "string" ? route.meta.parentTitle : "首页",
 );
-
-const showNotice = (notice: string): void => {
-  void message.info(notice);
-};
-
 const handleSearchShortcut = (event: KeyboardEvent): void => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
@@ -98,28 +93,18 @@ onBeforeUnmount(() =>
             :aria-label="`${connectedSourceCount} 个数据源连接正常，共 ${aiSearchMockData.dataSources.length} 个`"
           >
             <Database :size="16" aria-hidden="true" />
-            <span>{{ connectedSourceCount }}/{{
-              aiSearchMockData.dataSources.length
-            }}
-              数据源可用</span>
+            <span>
+              {{ connectedSourceCount }}/{{ dataSourceCount }} 数据源可用
+            </span>
           </RouterLink>
-          <button
-            class="icon-button notification-button"
-            type="button"
-            aria-label="查看通知，当前有 3 条未读消息"
-            @click="showNotice('通知中心将在后续功能里程碑开放')"
-          >
-            <Bell :size="20" aria-hidden="true" />
-            <span class="notification-dot" aria-hidden="true" />
-          </button>
-          <button
-            class="icon-button"
-            type="button"
+          <NotificationPreview audience="user" />
+          <RouterLink
+            class="icon-button help-button"
+            to="/help"
             aria-label="查看帮助"
-            @click="showNotice('帮助中心将在后续功能里程碑开放')"
           >
             <CircleHelp :size="20" aria-hidden="true" />
-          </button>
+          </RouterLink>
           <span class="topbar-divider" aria-hidden="true" />
           <RouterLink class="topbar-workspace-link" to="/admin">
             管理中心

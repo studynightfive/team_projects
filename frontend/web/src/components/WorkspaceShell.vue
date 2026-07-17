@@ -192,6 +192,14 @@ onBeforeUnmount(() => {
         <p class="profile-preview-note">
           当前个人资料仅用于界面演示；真实姓名、部门和权限将在个人资料接口确认后接入。
         </p>
+        <RouterLink
+          v-if="variant === 'user'"
+          class="secondary-button"
+          to="/preferences"
+          @click="isProfileOpen = false"
+        >
+          打开偏好设置
+        </RouterLink>
       </div>
     </AntModal>
   </div>
