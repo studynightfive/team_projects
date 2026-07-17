@@ -1,13 +1,17 @@
 <script setup lang="ts">
+import { storeToRefs } from "pinia";
 import { computed, reactive, ref } from "vue";
 
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
 import {
   CheckCircle2,
+  Monitor,
+  Moon,
   RotateCcw,
   Settings2,
   ShieldCheck,
+  Sun,
 } from "../../components/icons";
 import {
   defaultAccountPreferences,
@@ -17,6 +21,10 @@ import {
   type LinkOpenMode,
   type NotificationDigest,
 } from "../../data/account-support";
+import { type ThemeMode, useThemeStore } from "../../stores/theme";
+
+const themeStore = useThemeStore();
+const { mode: themeMode, resolvedTheme } = storeToRefs(themeStore);
 
 const form = reactive<AccountPreferences>({ ...defaultAccountPreferences });
 const savedPreferences = ref<AccountPreferences>({
@@ -43,9 +51,39 @@ const digestLabels = {
   daily: "每日摘要",
   weekly: "每周摘要",
 } satisfies Record<NotificationDigest, string>;
+const themeLabels = {
+  system: "跟随系统",
+  light: "浅色",
+  dark: "深色",
+} satisfies Record<ThemeMode, string>;
+const themeOptions = [
+  {
+    value: "system",
+    label: "跟随系统",
+    description: "自动匹配设备当前的浅色或深色外观。",
+    icon: Monitor,
+  },
+  {
+    value: "light",
+    label: "浅色模式",
+    description: "使用明亮背景，适合日间与高亮环境。",
+    icon: Sun,
+  },
+  {
+    value: "dark",
+    label: "深色模式",
+    description: "降低大面积背景亮度，适合夜间使用。",
+    icon: Moon,
+  },
+] as const;
 
 const hasUnsavedChanges = computed(
   () => JSON.stringify(form) !== JSON.stringify(savedPreferences.value),
+);
+const themeSummary = computed(() =>
+  themeMode.value === "system"
+    ? `${themeLabels.system}（当前${themeLabels[resolvedTheme.value]}）`
+    : themeLabels[themeMode.value],
 );
 
 const savePreferences = (): void => {
@@ -55,6 +93,7 @@ const savePreferences = (): void => {
 };
 
 const resetPreferences = (): void => {
+  themeStore.resetThemeMode();
   Object.assign(form, defaultAccountPreferences);
   savedPreferences.value = { ...defaultAccountPreferences };
   pendingReset.value = false;
@@ -67,10 +106,10 @@ const resetPreferences = (): void => {
     <PageHeader
       eyebrow="账号与支持"
       title="偏好设置"
-      description="调整工作台、内容呈现和通知偏好；当前仅用于本地交互验证。"
+      description="调整全局界面主题，以及工作台、内容呈现和通知偏好。"
     >
       <template #actions>
-        <span class="local-preview-badge">不会写入服务器</span>
+        <span class="local-preview-badge">主题仅保存在当前浏览器</span>
         <button
           class="secondary-button"
           type="button"
@@ -85,7 +124,7 @@ const resetPreferences = (): void => {
     <div v-if="pendingReset" class="preferences-reset" role="alert">
       <div>
         <strong>确认恢复默认偏好？</strong>
-        <p>工作台、内容呈现和通知偏好都会恢复为固定样例。</p>
+        <p>界面主题将跟随系统，其他偏好恢复为固定样例。</p>
       </div>
       <div>
         <button
@@ -107,6 +146,39 @@ const resetPreferences = (): void => {
 
     <form class="preferences-layout" @submit.prevent="savePreferences">
       <div class="preferences-main-column">
+        <ResourcePanel
+          title="外观与背景"
+          description="主题选择会立即应用到用户工作区、管理中心、登录页和错误页。"
+        >
+          <fieldset class="theme-options">
+            <legend class="visually-hidden">界面主题</legend>
+            <label
+              v-for="option in themeOptions"
+              :key="option.value"
+              class="theme-option"
+              :class="{ selected: themeMode === option.value }"
+            >
+              <input
+                :checked="themeMode === option.value"
+                :value="option.value"
+                name="theme-mode"
+                type="radio"
+                @change="themeStore.setThemeMode(option.value)"
+              />
+              <span class="theme-option-icon">
+                <component :is="option.icon" :size="20" aria-hidden="true" />
+              </span>
+              <span class="theme-option-copy">
+                <strong>{{ option.label }}</strong>
+                <small>{{ option.description }}</small>
+              </span>
+            </label>
+          </fieldset>
+          <p class="theme-storage-note">
+            这里只保存主题模式，不保存账号、通知内容或其他业务偏好。
+          </p>
+        </ResourcePanel>
+
         <ResourcePanel
           title="工作台体验"
           description="这些选项只展示未来账号偏好的界面与数据结构，不改变当前路由行为。"
@@ -192,6 +264,10 @@ const resetPreferences = (): void => {
         >
           <dl>
             <div>
+              <dt>界面主题</dt>
+              <dd>{{ themeSummary }}</dd>
+            </div>
+            <div>
               <dt>默认入口</dt>
               <dd>{{ workspaceLabels[form.defaultWorkspace] }}</dd>
             </div>
@@ -220,7 +296,7 @@ const resetPreferences = (): void => {
           <div class="preferences-local-note">
             <Settings2 :size="18" aria-hidden="true" />
             <p>
-              当前设置不读取账号数据，也不会请求通知权限；刷新页面后恢复固定默认值。
+              主题会保存在当前浏览器；其他业务偏好不读取账号数据，刷新后恢复固定默认值。
             </p>
           </div>
 
@@ -287,6 +363,87 @@ const resetPreferences = (): void => {
 
 .preferences-main-column {
   display: grid;
+}
+
+.theme-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.theme-option {
+  display: grid;
+  min-width: 0;
+  min-height: 112px;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.theme-option:hover {
+  border-color: var(--color-border-strong);
+}
+
+.theme-option.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.theme-option input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--color-primary);
+}
+
+.theme-option-icon {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: var(--radius-8);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.theme-option.selected .theme-option-icon {
+  color: var(--white);
+  background: var(--color-primary);
+}
+
+.theme-option-copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.theme-option-copy strong {
+  color: var(--color-text);
+  font-size: var(--font-size-14);
+}
+
+.theme-option-copy small,
+.theme-storage-note {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-12);
+  line-height: 1.55;
+}
+
+.theme-storage-note {
+  margin: var(--space-3) 0 0;
 }
 
 .preference-fields {
@@ -450,6 +607,14 @@ const resetPreferences = (): void => {
 
   .preference-fields {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .theme-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .theme-option {
+    min-height: 96px;
   }
 
   .preference-fields select {

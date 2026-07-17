@@ -5,6 +5,7 @@ import { apiClient } from "../api/client";
 import {
   adminNavigation,
   serviceStatusTone,
+  userMobileNavigation,
   userNavigation,
 } from "../data/foundation";
 import { renderAppAt } from "./renderApp";
@@ -21,6 +22,18 @@ describe("M01 V2 工作区布局", () => {
       .map((item) => item.text().trim());
 
     expect(navigationLabels).toEqual(userNavigation.map((item) => item.label));
+    expect(navigationLabels.slice(0, 2)).toEqual(["AI 搜索", "AI 助手"]);
+    expect(userMobileNavigation.map((item) => item.shortLabel)).toEqual([
+      "搜索",
+      "知识库",
+      "历史",
+      "助手",
+    ]);
+    expect(navigationLabels).not.toContain("搜索设置");
+    await wrapper.get(".sidebar-profile-trigger").trigger("click");
+    expect(
+      wrapper.get('.sidebar-profile-menu a[href="/settings"]').text(),
+    ).toBe("搜索设置");
     expect(wrapper.get('.topbar-workspace-link[href="/admin"]').text()).toBe(
       "管理中心",
     );

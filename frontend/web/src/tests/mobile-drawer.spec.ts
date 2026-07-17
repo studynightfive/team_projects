@@ -5,7 +5,7 @@ import { renderAppAt } from "./renderApp";
 
 describe("M01 移动端完整导航", () => {
   it.each([
-    ["/", 11, "进入管理中心"],
+    ["/", 10, "进入管理中心"],
     ["/admin", 11, "返回用户工作区"],
   ] as const)(
     "%s 展开完整模块并通过关闭按钮返回焦点",
@@ -20,9 +20,13 @@ describe("M01 移动端完整导航", () => {
       await nextTick();
 
       expect(trigger.attributes("aria-expanded")).toBe("true");
-      expect(
-        wrapper.findAll(".mobile-drawer-list .mobile-drawer-link"),
-      ).toHaveLength(moduleCount);
+      const navigationLabels = wrapper
+        .findAll(".mobile-drawer-list .mobile-drawer-link")
+        .map((item) => item.text().trim());
+      expect(navigationLabels).toHaveLength(moduleCount);
+      if (path === "/") {
+        expect(navigationLabels.slice(0, 2)).toEqual(["AI 搜索", "AI 助手"]);
+      }
       expect(wrapper.get(".workspace-switch").text()).toBe(workspaceSwitch);
       expect(document.body.classList.contains("drawer-open")).toBe(true);
 

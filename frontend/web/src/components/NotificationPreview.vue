@@ -64,13 +64,19 @@ const getNotificationTarget = (notification: NotificationItem): string =>
       >
         <header class="notification-preview-header">
           <strong>{{ previewHeading }}</strong>
-          <span>
-            {{
+          <button
+            class="notification-preview-mark-all"
+            type="button"
+            :disabled="unreadNotificationCount === 0"
+            :aria-label="
               unreadNotificationCount > 0
-                ? `${unreadNotificationCount} 条未读`
-                : "全部已读"
-            }}
-          </span>
+                ? `将 ${unreadNotificationCount} 条通知全部标为已读`
+                : '所有通知均已读'
+            "
+            @click="notificationStore.markAllAsRead(audience)"
+          >
+            全部已读
+          </button>
         </header>
 
         <div class="notification-preview-list">
@@ -122,10 +128,11 @@ const getNotificationTarget = (notification: NotificationItem): string =>
   position: absolute;
   z-index: 30;
   top: 100%;
-  right: 0;
+  left: 50%;
   display: none;
   width: min(352px, calc(100vw - 32px));
   padding-top: var(--space-2);
+  transform: translateX(-50%);
 }
 
 .notification-preview:hover .notification-popover,
@@ -156,13 +163,20 @@ const getNotificationTarget = (notification: NotificationItem): string =>
   font-size: var(--font-size-16);
 }
 
-.notification-preview-header > span {
-  padding: 2px var(--space-2);
+.notification-preview-mark-all {
+  min-height: 28px;
+  padding: 0 var(--space-3);
   border-radius: var(--radius-pill);
   color: var(--notification-accent);
   background: var(--notification-accent-soft);
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-medium);
+}
+
+.notification-preview-mark-all:disabled {
+  color: var(--color-text-muted);
+  background: var(--color-surface-subtle);
+  cursor: default;
 }
 
 .notification-preview-list {
@@ -228,7 +242,8 @@ const getNotificationTarget = (notification: NotificationItem): string =>
 
 @media (hover: hover) {
   .notification-preview-item:hover,
-  .notification-preview-footer:hover {
+  .notification-preview-footer:hover,
+  .notification-preview-mark-all:hover:not(:disabled) {
     background: var(--color-surface-subtle);
   }
 }
