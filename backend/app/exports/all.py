@@ -187,7 +187,7 @@ class DocxExporter:
 
     async def export(self, content: ExportContent, output_path: str, options: ExportOptions) -> str:
         try:
-            from docx import Document  # python-docx
+            from docx import Document  # type: ignore[import-not-found]  # python-docx
         except ImportError as exc:
             raise RuntimeError("python-docx 未安装") from exc
         doc = Document()
@@ -215,7 +215,7 @@ class PdfExporter:
 
     async def export(self, content: ExportContent, output_path: str, options: ExportOptions) -> str:
         try:
-            from weasyprint import HTML
+            from weasyprint import HTML  # type: ignore[import-untyped]
         except ImportError as exc:
             raise RuntimeError("weasyprint 未安装") from exc
         body_html = _markdown_to_html(content.markdown)

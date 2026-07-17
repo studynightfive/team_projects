@@ -16,7 +16,7 @@ def _json_default(obj: Any) -> Any:
 
 def format_sse(*, event: str, data: Any, event_id: str | None = None) -> str:
     """将事件序列化为 SSE 字符串（utf-8，单事件多 data 行）。"""
-    if isinstance(data, (dict, list)):
+    if isinstance(data, dict | list):
         payload = json.dumps(data, ensure_ascii=False, default=_json_default)
     else:
         payload = str(data)
