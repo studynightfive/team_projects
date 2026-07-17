@@ -18,7 +18,7 @@ interface BusinessRouteCase {
   readonly path: string;
   readonly title: string;
   readonly shell: "user" | "admin";
-  readonly activeNavigation: string;
+  readonly activeNavigation?: string;
 }
 
 const businessRoutes: readonly BusinessRouteCase[] = [
@@ -90,7 +90,6 @@ const businessRoutes: readonly BusinessRouteCase[] = [
     path: "/settings",
     title: "搜索设置",
     shell: "user",
-    activeNavigation: "搜索设置",
   },
   {
     name: "chat-new",
@@ -224,9 +223,15 @@ describe("M02-M14 本地业务路由", () => {
           )
           .text(),
       ).toBe(title);
-      expect(wrapper.get(".sidebar-navigation-item.active").text()).toBe(
-        activeNavigation,
-      );
+      if (activeNavigation === undefined) {
+        expect(wrapper.find(".sidebar-navigation-item.active").exists()).toBe(
+          false,
+        );
+      } else {
+        expect(wrapper.get(".sidebar-navigation-item.active").text()).toBe(
+          activeNavigation,
+        );
+      }
       expect(
         wrapper
           .findAll(".app-sidebar a.sidebar-navigation-item")
@@ -333,7 +338,7 @@ describe("M02-M14 本地业务路由", () => {
     expect(adminApp.router.currentRoute.value.path).toBe("/admin/roles");
   });
 
-  it("M02 个人资料保留在账号菜单且不创建未批准路由", async () => {
+  it("M02 个人资料弹窗提供清晰概览与偏好入口且不创建未批准路由", async () => {
     const requestSpy = vi.spyOn(apiClient, "request");
     const { wrapper, router } = await renderAppAt("/");
 
@@ -341,8 +346,21 @@ describe("M02-M14 本地业务路由", () => {
     await getButton(wrapper, "个人中心").trigger("click");
     await flushPromises();
 
+    const profilePreview = document.body.querySelector(".profile-preview");
     expect(document.body.textContent).toContain("个人资料");
-    expect(document.body.textContent).toContain("等待认证服务接入");
+    expect(profilePreview).not.toBeNull();
+    expect(profilePreview?.textContent).toContain("等待认证服务接入");
+    expect(
+      profilePreview?.querySelectorAll(".profile-preview-detail-card"),
+    ).toHaveLength(3);
+    expect(
+      profilePreview?.querySelector(".profile-preview-note strong")
+        ?.textContent,
+    ).toBe("资料接入说明");
+    const preferencesLink = profilePreview?.querySelector<HTMLAnchorElement>(
+      '.profile-preview-action[href="/preferences"]',
+    );
+    expect(preferencesLink).not.toBeNull();
     expect(router.resolve("/profile").name).toBe("not-found");
     expect(requestSpy).not.toHaveBeenCalled();
   });

@@ -2,6 +2,7 @@ import { flushPromises, type VueWrapper } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "../api/client";
+import { THEME_STORAGE_KEY } from "../stores/theme";
 import { renderAppAt } from "./renderApp";
 
 const getButton = (wrapper: VueWrapper, label: string) => {
@@ -46,8 +47,11 @@ describe("账号与支持页面", () => {
     ).toBe("查看帮助");
     expect(wrapper.findAll(".notification-preview-item")).toHaveLength(4);
     expect(wrapper.get(".notification-preview-header").text()).toContain(
-      "3 条未读",
+      "全部已读",
     );
+    expect(
+      wrapper.get(".notification-preview-mark-all").attributes("disabled"),
+    ).toBeUndefined();
     expect(
       wrapper.get('.notification-preview-item[href="/downloads"]').text(),
     ).toContain("《发布流程手册》导出已完成");
@@ -62,6 +66,16 @@ describe("账号与支持页面", () => {
     expect(wrapper.get(".notification-button").attributes("aria-label")).toBe(
       "查看通知，当前有 2 条未读消息",
     );
+
+    await wrapper.get(".notification-preview-mark-all").trigger("click");
+    expect(wrapper.get(".notification-button").attributes("aria-label")).toBe(
+      "查看通知，当前没有未读消息",
+    );
+    expect(wrapper.find(".notification-dot").exists()).toBe(false);
+    expect(wrapper.findAll(".notification-preview-unread")).toHaveLength(0);
+    expect(
+      wrapper.get(".notification-preview-mark-all").attributes("disabled"),
+    ).toBeDefined();
 
     await wrapper.get(".sidebar-profile-trigger").trigger("click");
     expect(
@@ -101,7 +115,7 @@ describe("账号与支持页面", () => {
     );
     expect(wrapper.findAll(".notification-preview-item")).toHaveLength(4);
     expect(wrapper.get(".notification-preview-header").text()).toContain(
-      "6 条未读",
+      "全部已读",
     );
     expect(
       wrapper.get('.notification-preview-item[href="/admin/tasks"]').text(),
@@ -132,14 +146,39 @@ describe("账号与支持页面", () => {
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
-  it("偏好可在当前页面保存并恢复默认且不写浏览器存储", async () => {
+  it("主题可全局持久化，业务偏好仍只在当前页面保存并可恢复默认", async () => {
     const requestSpy = vi.spyOn(apiClient, "request");
-    const { wrapper } = await renderAppAt("/preferences");
+    const { wrapper, router } = await renderAppAt("/preferences");
+
+    await wrapper
+      .get<HTMLInputElement>('.theme-option input[value="dark"]')
+      .setValue();
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
+    expect(localStorage).toHaveLength(1);
+    expect(wrapper.get(".preferences-summary").text()).toContain("深色");
+
+    await router.push("/admin");
+    await flushPromises();
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(wrapper.find(".variant-admin").exists()).toBe(true);
+
+    await router.push("/login");
+    await flushPromises();
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(wrapper.find(".login-page-v2").exists()).toBe(true);
+
+    await router.push("/missing-page");
+    await flushPromises();
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(wrapper.find(".standalone-state-page").exists()).toBe(true);
+
+    await router.push("/preferences");
+    await flushPromises();
     const workspaceSelect = wrapper.findAll<HTMLSelectElement>(
       ".preference-fields select",
     )[0];
     if (workspaceSelect === undefined) throw new Error("未找到默认工作入口");
-
     await workspaceSelect.setValue("knowledge");
     expect(wrapper.get(".preferences-summary").text()).toContain("企业知识库");
     expect(
@@ -157,6 +196,8 @@ describe("账号与支持页面", () => {
     await flushPromises();
     expect(wrapper.get(".preferences-summary").text()).toContain("AI 搜索");
     expect(wrapper.get(".preference-status").text()).toContain("恢复默认偏好");
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull();
     expect(requestSpy).not.toHaveBeenCalled();
     expect(localStorage).toHaveLength(0);
     expect(sessionStorage).toHaveLength(0);

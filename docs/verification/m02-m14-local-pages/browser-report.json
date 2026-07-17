@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-17T03:35:20.886Z",
-  "sourceCommit": "b8181aa6caf9b706368588ce2e6d3e486f738a50",
+  "generatedAt": "2026-07-17T05:01:20.652Z",
+  "sourceCommit": "38a8444e23644c601d3cd49bc5258d5d35e072e9",
   "sourceWorktreeDirty": true,
   "baseUrl": "http://127.0.0.1:5173",
   "browser": "Chrome/150.0.7871.115",
@@ -22,7 +22,7 @@
         "topbarTitle": "企业知识库",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 31,
+        "svgIconCount": 30,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -48,6 +48,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -83,7 +84,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 31
+          "actual": 30
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -135,7 +136,7 @@
         "topbarTitle": "企业知识库",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 31,
+        "svgIconCount": 30,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -161,6 +162,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -196,7 +198,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 31
+          "actual": 30
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -248,7 +250,7 @@
         "topbarTitle": "企业知识库",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 31,
+        "svgIconCount": 30,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -274,12 +276,13 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 233,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 11,
+        "navigationCount": 10,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -315,7 +318,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 31
+          "actual": 30
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -355,7 +358,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 11
+          "actual": 10
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -397,7 +400,7 @@
         "topbarTitle": "文档目录",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 27,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -423,6 +426,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -458,7 +462,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 27
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -510,7 +514,7 @@
         "topbarTitle": "文档目录",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 27,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -536,6 +540,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -571,7 +576,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 27
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -623,7 +628,7 @@
         "topbarTitle": "文档目录",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 27,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -649,12 +654,13 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 233,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 11,
+        "navigationCount": 10,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -690,7 +696,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 27
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -730,7 +736,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 11
+          "actual": 10
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -772,7 +778,7 @@
         "topbarTitle": "文档预览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 25,
+        "svgIconCount": 24,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -798,6 +804,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -833,7 +840,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 25
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -885,7 +892,7 @@
         "topbarTitle": "文档预览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 25,
+        "svgIconCount": 24,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -911,6 +918,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -946,7 +954,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 25
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -998,7 +1006,7 @@
         "topbarTitle": "文档预览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 25,
+        "svgIconCount": 24,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -1024,12 +1032,13 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 233,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 11,
+        "navigationCount": 10,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -1065,7 +1074,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 25
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1105,7 +1114,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 11
+          "actual": 10
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -1147,7 +1156,7 @@
         "topbarTitle": "搜索结果",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 52,
+        "svgIconCount": 51,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1173,6 +1182,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -1208,7 +1218,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 52
+          "actual": 51
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1260,7 +1270,7 @@
         "topbarTitle": "搜索结果",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 42,
+        "svgIconCount": 41,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1286,6 +1296,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -1321,7 +1332,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 42
+          "actual": 41
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1373,7 +1384,7 @@
         "topbarTitle": "搜索结果",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 42,
+        "svgIconCount": 41,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -1399,12 +1410,13 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 233,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 11,
+        "navigationCount": 10,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -1440,7 +1452,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 42
+          "actual": 41
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1480,7 +1492,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 11
+          "actual": 10
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -1522,7 +1534,7 @@
         "topbarTitle": "AI 助手",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 33,
+        "svgIconCount": 32,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1548,6 +1560,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -1583,7 +1596,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 33
+          "actual": 32
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1635,7 +1648,7 @@
         "topbarTitle": "AI 助手",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 33,
+        "svgIconCount": 32,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1661,6 +1674,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -1696,7 +1710,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 33
+          "actual": 32
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1748,7 +1762,7 @@
         "topbarTitle": "AI 助手",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 33,
+        "svgIconCount": 32,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -1774,12 +1788,13 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 233,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 11,
+        "navigationCount": 10,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -1815,7 +1830,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 33
+          "actual": 32
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1855,7 +1870,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 11
+          "actual": 10
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -1897,7 +1912,7 @@
         "topbarTitle": "会话详情",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 29,
+        "svgIconCount": 28,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1923,6 +1938,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -1958,7 +1974,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 29
+          "actual": 28
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2010,7 +2026,7 @@
         "topbarTitle": "会话详情",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 29,
+        "svgIconCount": 28,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -2036,6 +2052,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -2071,7 +2088,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 29
+          "actual": 28
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2123,7 +2140,7 @@
         "topbarTitle": "会话详情",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 29,
+        "svgIconCount": 28,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -2149,12 +2166,13 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 233,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 11,
+        "navigationCount": 10,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -2190,7 +2208,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 29
+          "actual": 28
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2230,7 +2248,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 11
+          "actual": 10
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -2272,7 +2290,7 @@
         "topbarTitle": "历史会话",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 27,
+        "svgIconCount": 26,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -2298,6 +2316,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -2333,7 +2352,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 27
+          "actual": 26
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2385,7 +2404,7 @@
         "topbarTitle": "历史会话",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 27,
+        "svgIconCount": 26,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -2411,6 +2430,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -2446,7 +2466,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 27
+          "actual": 26
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2498,7 +2518,7 @@
         "topbarTitle": "历史会话",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 27,
+        "svgIconCount": 26,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -2524,12 +2544,13 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 233,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 11,
+        "navigationCount": 10,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -2565,7 +2586,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 27
+          "actual": 26
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2605,7 +2626,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 11
+          "actual": 10
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -2647,7 +2668,7 @@
         "topbarTitle": "我的下载",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 29,
+        "svgIconCount": 28,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -2673,6 +2694,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -2708,7 +2730,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 29
+          "actual": 28
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2760,7 +2782,7 @@
         "topbarTitle": "我的下载",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 29,
+        "svgIconCount": 28,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -2786,6 +2808,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -2821,7 +2844,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 29
+          "actual": 28
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2873,7 +2896,7 @@
         "topbarTitle": "我的下载",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 29,
+        "svgIconCount": 28,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -2899,12 +2922,13 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 233,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 11,
+        "navigationCount": 10,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -2940,7 +2964,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 29
+          "actual": 28
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2980,7 +3004,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 11
+          "actual": 10
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -3048,6 +3072,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -3161,6 +3186,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -3274,6 +3300,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 285,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
@@ -3423,6 +3450,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -3536,6 +3564,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -3649,6 +3678,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 285,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
@@ -3798,6 +3828,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -3911,6 +3942,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -4024,6 +4056,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 285,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
@@ -4173,6 +4206,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -4286,6 +4320,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -4399,6 +4434,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 285,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
@@ -4548,6 +4584,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -4661,6 +4698,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -4774,6 +4812,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 285,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
@@ -4923,6 +4962,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -5036,6 +5076,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -5149,6 +5190,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 285,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
@@ -5298,6 +5340,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -5411,6 +5454,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -5524,6 +5568,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 285,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
@@ -5673,6 +5718,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -5786,6 +5832,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1055,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
@@ -5899,6 +5946,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 285,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 375,
         "screenshotHeight": 812
@@ -6022,7 +6070,7 @@
         "topbarTitle": "文档预览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 25,
+        "svgIconCount": 24,
         "sidebarDisplay": "flex",
         "sidebarWidth": 64,
         "topbarHeight": 56,
@@ -6048,6 +6096,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -6083,7 +6132,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 25
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -6161,6 +6210,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 1215,
         "notificationPreviewHoverVisible": false,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000

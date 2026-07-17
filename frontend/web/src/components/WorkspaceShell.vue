@@ -8,7 +8,15 @@ import {
   type NavigationItem,
 } from "../data/foundation";
 import AppSidebar from "./AppSidebar.vue";
-import { Menu } from "./icons";
+import {
+  Building2,
+  ChevronRight,
+  CircleAlert,
+  CircleDashed,
+  Database,
+  Menu,
+  Settings,
+} from "./icons";
 import MobileDrawer from "./MobileDrawer.vue";
 
 defineProps<{
@@ -164,41 +172,74 @@ onBeforeUnmount(() => {
       v-model:open="isProfileOpen"
       title="个人资料"
       :footer="null"
-      :width="480"
+      :width="520"
+      :wrap-class-name="`profile-preview-modal profile-preview-modal-${variant}`"
+      centered
     >
       <div class="profile-preview">
-        <span class="local-preview-badge">本地模拟资料</span>
-        <div class="profile-preview-identity">
-          <span class="avatar" aria-hidden="true">{{ identityInitial }}</span>
-          <div>
-            <strong>{{ identityName }}</strong>
+        <section class="profile-preview-hero" aria-label="身份信息">
+          <span class="avatar profile-preview-avatar" aria-hidden="true">
+            {{ identityInitial }}
+          </span>
+          <div class="profile-preview-identity">
+            <div class="profile-preview-name-row">
+              <strong>{{ identityName }}</strong>
+              <span class="local-preview-badge">本地模拟资料</span>
+            </div>
             <span>{{ identityRole }}</span>
           </div>
-        </div>
+        </section>
         <dl class="profile-preview-details">
-          <div>
-            <dt>当前区域</dt>
-            <dd>{{ areaTitle }}</dd>
+          <div class="profile-preview-detail-card">
+            <span class="profile-preview-detail-icon" aria-hidden="true">
+              <Building2 :size="18" />
+            </span>
+            <div class="profile-preview-detail-copy">
+              <dt>当前工作区</dt>
+              <dd>{{ areaTitle }}</dd>
+            </div>
           </div>
-          <div>
-            <dt>会话状态</dt>
-            <dd>等待认证服务接入</dd>
+          <div class="profile-preview-detail-card">
+            <span class="profile-preview-detail-icon" aria-hidden="true">
+              <CircleDashed :size="18" />
+            </span>
+            <div class="profile-preview-detail-copy">
+              <dt>认证状态</dt>
+              <dd>等待认证服务接入</dd>
+            </div>
           </div>
-          <div>
-            <dt>资料来源</dt>
-            <dd>固定演示数据</dd>
+          <div class="profile-preview-detail-card">
+            <span class="profile-preview-detail-icon" aria-hidden="true">
+              <Database :size="18" />
+            </span>
+            <div class="profile-preview-detail-copy">
+              <dt>资料来源</dt>
+              <dd>固定演示数据</dd>
+            </div>
           </div>
         </dl>
-        <p class="profile-preview-note">
-          当前个人资料仅用于界面演示；真实姓名、部门和权限将在个人资料接口确认后接入。
-        </p>
+        <div class="profile-preview-note" role="note">
+          <CircleAlert :size="18" aria-hidden="true" />
+          <div>
+            <strong>资料接入说明</strong>
+            <p>
+              当前资料仅用于界面演示；真实姓名、部门和权限将在个人资料接口确认后接入。
+            </p>
+          </div>
+        </div>
         <RouterLink
           v-if="variant === 'user'"
-          class="secondary-button"
+          class="primary-button profile-preview-action"
           to="/preferences"
           @click="isProfileOpen = false"
         >
-          打开偏好设置
+          <Settings :size="18" aria-hidden="true" />
+          <span>打开偏好设置</span>
+          <ChevronRight
+            class="profile-preview-action-arrow"
+            :size="18"
+            aria-hidden="true"
+          />
         </RouterLink>
       </div>
     </AntModal>

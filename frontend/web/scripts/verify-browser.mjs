@@ -80,6 +80,30 @@ const m01Cases = [
     collapsed: true,
   },
   {
+    name: "user-profile-1440",
+    path: "/",
+    width: 1440,
+    height: 1000,
+    shell: "user",
+    profilePreview: true,
+  },
+  {
+    name: "user-profile-1280",
+    path: "/",
+    width: 1280,
+    height: 900,
+    shell: "user",
+    profilePreview: true,
+  },
+  {
+    name: "user-profile-375",
+    path: "/",
+    width: 375,
+    height: 812,
+    shell: "user",
+    profilePreview: true,
+  },
+  {
     name: "admin-shell-1920",
     path: "/admin",
     width: 1920,
@@ -306,18 +330,31 @@ const accountSupportRoutes = [
   },
 ];
 
-const accountSupportCases = accountSupportRoutes.flatMap((route) =>
-  [
-    { suffix: "1440", width: 1440, height: 1000 },
-    { suffix: "1280", width: 1280, height: 900 },
-    { suffix: "375", width: 375, height: 812 },
-  ].map((viewport) => ({
-    ...route,
+const accountSupportViewports = [
+  { suffix: "1440", width: 1440, height: 1000 },
+  { suffix: "1280", width: 1280, height: 900 },
+  { suffix: "375", width: 375, height: 812 },
+];
+
+const accountSupportCases = [
+  ...accountSupportRoutes.flatMap((route) =>
+    accountSupportViewports.map((viewport) => ({
+      ...route,
+      ...viewport,
+      name: `${route.name}-${viewport.suffix}`,
+      group: "account-support",
+    })),
+  ),
+  ...accountSupportViewports.map((viewport) => ({
+    name: `preferences-dark-${viewport.suffix}`,
+    path: "/preferences",
+    shell: "user",
+    title: "偏好设置",
+    darkTheme: true,
     ...viewport,
-    name: `${route.name}-${viewport.suffix}`,
     group: "account-support",
   })),
-);
+];
 
 const allCases = [
   ...m01Cases.map((testCase) => ({ ...testCase, group: "m01" })),
@@ -576,6 +613,42 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
   }
 
+  if (testCase.darkTheme === true) {
+    recordCheck(
+      checks,
+      "深色主题已应用到根节点",
+      metrics.rootTheme === "dark",
+      metrics.rootTheme,
+    );
+    recordCheck(
+      checks,
+      "深色主题仅写入合法主题键",
+      metrics.themeStorageValue === "dark" &&
+        metrics.localStorageLength === 1 &&
+        metrics.sessionStorageLength === 0,
+      `${metrics.themeStorageValue}/${metrics.localStorageLength}/${metrics.sessionStorageLength}`,
+    );
+    recordCheck(
+      checks,
+      "深色画布与内容表面使用语义背景",
+      metrics.bodyBackground === "rgb(11, 17, 32)" &&
+        metrics.surfaceBackground === "rgb(17, 24, 39)",
+      `${metrics.bodyBackground}/${metrics.surfaceBackground}`,
+    );
+    recordCheck(
+      checks,
+      "深色模式控件保持选中",
+      metrics.selectedTheme === "dark" && metrics.themeOptionCount === 3,
+      `${metrics.selectedTheme}/${metrics.themeOptionCount}`,
+    );
+    recordCheck(
+      checks,
+      "主题卡片响应式列数正确",
+      metrics.themeOptionColumnCount === (testCase.width < 768 ? 1 : 3),
+      metrics.themeOptionColumnCount,
+    );
+  }
+
   if (testCase.notificationPreview === true) {
     recordCheck(
       checks,
@@ -602,6 +675,18 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
         metrics.notificationPreviewWithinViewport === true,
         metrics.notificationPreviewWithinViewport,
       );
+      recordCheck(
+        checks,
+        "通知预览与铃铛水平居中",
+        metrics.notificationPreviewCenterOffset <= 1,
+        metrics.notificationPreviewCenterOffset,
+      );
+      recordCheck(
+        checks,
+        "通知预览全部已读联动生效",
+        metrics.notificationPreviewMarkAllWorks === true,
+        metrics.notificationPreviewMarkAllWorks,
+      );
     } else {
       recordCheck(
         checks,
@@ -610,6 +695,45 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
         metrics.notificationPreviewDisplay,
       );
     }
+  }
+
+  if (testCase.profilePreview === true) {
+    recordCheck(
+      checks,
+      "个人资料弹窗可见",
+      metrics.profilePreviewVisible === true,
+      metrics.profilePreviewVisible,
+    );
+    recordCheck(
+      checks,
+      "个人资料弹窗未越过视口",
+      metrics.profilePreviewWithinViewport === true,
+      metrics.profilePreviewWithinViewport,
+    );
+    recordCheck(
+      checks,
+      "个人资料固定展示三项概览",
+      metrics.profileDetailCount === 3,
+      metrics.profileDetailCount,
+    );
+    recordCheck(
+      checks,
+      testCase.width < 768 ? "移动端资料概览为单列" : "桌面资料概览为双列",
+      metrics.profileDetailColumnCount === (testCase.width < 768 ? 1 : 2),
+      metrics.profileDetailColumnCount,
+    );
+    recordCheck(
+      checks,
+      "偏好设置主操作可见",
+      metrics.profileActionVisible === true,
+      `${metrics.profileActionTag}/${metrics.profileActionHref}/${metrics.profileActionHeight}`,
+    );
+    recordCheck(
+      checks,
+      "偏好设置主操作跳转生效",
+      metrics.profileActionWorks === true,
+      metrics.profileActionWorks,
+    );
   }
 
   if (testCase.width < 768) {
@@ -693,7 +817,7 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     recordCheck(
       checks,
       "移动完整导航项正确",
-      drawer.navigationCount === 11,
+      drawer.navigationCount === (testCase.shell === "user" ? 10 : 11),
       drawer.navigationCount,
     );
     recordCheck(
@@ -957,12 +1081,51 @@ const run = async () => {
         })()`,
       );
 
+      if (testCase.darkTheme === true) {
+        await evaluate(
+          client,
+          `(async () => {
+            const darkTheme = document.querySelector('.theme-option input[value="dark"]');
+            if (!(darkTheme instanceof HTMLInputElement)) {
+              throw new Error("未找到深色模式控件。");
+            }
+            if (!darkTheme.checked) darkTheme.click();
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            return true;
+          })()`,
+        );
+      }
+
       if (testCase.collapsed) {
         await evaluate(
           client,
           `(async () => {
             document.querySelector(".sidebar-collapse-button")?.click();
             await new Promise((resolve) => setTimeout(resolve, 260));
+            return true;
+          })()`,
+        );
+      }
+
+      if (testCase.profilePreview === true) {
+        await evaluate(
+          client,
+          `(async () => {
+            const trigger = document.querySelector(".topbar-avatar");
+            if (!(trigger instanceof HTMLButtonElement)) {
+              throw new Error("未找到个人资料触发按钮。");
+            }
+            trigger.click();
+            const deadline = Date.now() + 3000;
+            while (document.querySelector(".profile-preview") === null) {
+              if (Date.now() >= deadline) {
+                throw new Error("个人资料弹窗打开超时。");
+              }
+              await new Promise((resolve) => setTimeout(resolve, 50));
+            }
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            await new Promise((resolve) => setTimeout(resolve, 350));
             return true;
           })()`,
         );
@@ -1021,7 +1184,8 @@ const run = async () => {
             rect(".business-page"),
             rect(".mobile-bottom-nav"),
             rect(".login-form-container"),
-            rect(".state-card")
+            rect(".state-card"),
+            rect(".profile-preview-modal .ant-modal")
           ].filter(Boolean);
           const contentStyle = style(".workspace-content");
           const contentRect = rect(".workspace-content");
@@ -1032,6 +1196,9 @@ const run = async () => {
             document.querySelector(".admin-current-title");
           const topbarTitleRect = topbarTitleElement?.getBoundingClientRect();
           const notificationPreviewRect = rect(".notification-popover-surface");
+          const notificationTriggerRect = rect(".notification-button");
+          const profilePreviewRect = rect(".profile-preview-modal .ant-modal");
+          const profileActionRect = rect(".profile-preview-action");
           return {
             innerWidth: window.innerWidth,
             innerHeight: window.innerHeight,
@@ -1040,6 +1207,19 @@ const run = async () => {
             scrollHeight: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
             h1Count: document.querySelectorAll("h1").length,
             businessPageCount: document.querySelectorAll(".business-page").length,
+            rootTheme: document.documentElement.dataset.theme ?? "",
+            themeStorageValue: localStorage.getItem("team-projects-theme-mode"),
+            localStorageLength: localStorage.length,
+            sessionStorageLength: sessionStorage.length,
+            bodyBackground: style("body")?.backgroundColor,
+            surfaceBackground: style(".resource-panel")?.backgroundColor,
+            selectedTheme: document.querySelector('.theme-option input:checked')?.value,
+            themeOptionCount: document.querySelectorAll(".theme-option").length,
+            themeOptionColumnCount: new Set(
+              [...document.querySelectorAll(".theme-option")].map((option) =>
+                Math.round(option.getBoundingClientRect().left)
+              )
+            ).size,
             topbarTitle: topbarTitleElement?.textContent?.trim() ?? "",
             topbarTitleVisible:
               topbarTitleRect !== undefined &&
@@ -1080,6 +1260,33 @@ const run = async () => {
               notificationPreviewRect.left >= 0 &&
               notificationPreviewRect.right <= window.innerWidth &&
               notificationPreviewRect.bottom <= window.innerHeight,
+            notificationPreviewCenterOffset:
+              notificationPreviewRect === undefined || notificationTriggerRect === undefined
+                ? undefined
+                : Math.abs(
+                    notificationPreviewRect.left + notificationPreviewRect.width / 2 -
+                    (notificationTriggerRect.left + notificationTriggerRect.width / 2)
+                  ),
+            profilePreviewVisible:
+              profilePreviewRect !== undefined &&
+              profilePreviewRect.width > 0 &&
+              profilePreviewRect.height > 0,
+            profilePreviewWithinViewport:
+              profilePreviewRect !== undefined &&
+              profilePreviewRect.left >= 0 &&
+              profilePreviewRect.top >= 0 &&
+              profilePreviewRect.right <= window.innerWidth &&
+              profilePreviewRect.bottom <= window.innerHeight,
+            profileDetailCount: document.querySelectorAll(".profile-preview-detail-card").length,
+            profileDetailColumnCount: (style(".profile-preview-details")?.gridTemplateColumns ?? "")
+              .split(/\\s+/u).filter(Boolean).length,
+            profileActionVisible:
+              profileActionRect !== undefined &&
+              profileActionRect.width > 0 &&
+              profileActionRect.height >= 44,
+            profileActionTag: element(".profile-preview-action")?.tagName,
+            profileActionHref: element(".profile-preview-action")?.getAttribute("href"),
+            profileActionHeight: profileActionRect?.height,
           };
         })()`,
       );
@@ -1104,6 +1311,59 @@ const run = async () => {
         screenshotBuffer,
       );
 
+      if (testCase.profilePreview === true) {
+        const profileActionPoint = await evaluate(
+          client,
+          `(() => {
+            const action = document.querySelector(".profile-preview-action");
+            const box = action?.getBoundingClientRect();
+            return box === undefined
+              ? undefined
+              : { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+          })()`,
+        );
+        if (profileActionPoint !== undefined) {
+          await client.send("Input.dispatchMouseEvent", {
+            type: "mouseMoved",
+            x: profileActionPoint.x,
+            y: profileActionPoint.y,
+          });
+          await client.send("Input.dispatchMouseEvent", {
+            type: "mousePressed",
+            x: profileActionPoint.x,
+            y: profileActionPoint.y,
+            button: "left",
+            buttons: 1,
+            clickCount: 1,
+          });
+          await client.send("Input.dispatchMouseEvent", {
+            type: "mouseReleased",
+            x: profileActionPoint.x,
+            y: profileActionPoint.y,
+            button: "left",
+            buttons: 0,
+            clickCount: 1,
+          });
+        }
+        metrics.profileActionWorks = await evaluate(
+          client,
+          `(async () => {
+            const deadline = Date.now() + 3000;
+            const isProfileVisible = () => {
+              const dialog = document.querySelector(".profile-preview-modal .ant-modal");
+              const box = dialog?.getBoundingClientRect();
+              return dialog !== null && getComputedStyle(dialog).display !== "none" &&
+                box.width > 0 && box.height > 0;
+            };
+            while (location.pathname !== "/preferences" || isProfileVisible()) {
+              if (Date.now() >= deadline) return false;
+              await new Promise((resolve) => setTimeout(resolve, 50));
+            }
+            return true;
+          })()`,
+        );
+      }
+
       if (testCase.notificationPreview === true && testCase.width >= 768) {
         await client.send("Input.dispatchMouseEvent", {
           type: "mouseMoved",
@@ -1121,6 +1381,17 @@ const run = async () => {
             return trigger !== null && document.activeElement === trigger &&
               popover !== null && getComputedStyle(popover).display !== "none" &&
               box.width > 0 && box.height > 0;
+          })()`,
+        );
+        metrics.notificationPreviewMarkAllWorks = await evaluate(
+          client,
+          `(async () => {
+            const control = document.querySelector(".notification-preview-mark-all");
+            control?.click();
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            return control instanceof HTMLButtonElement && control.disabled &&
+              document.querySelector(".notification-dot") === null &&
+              document.querySelectorAll(".notification-preview-unread").length === 0;
           })()`,
         );
       }

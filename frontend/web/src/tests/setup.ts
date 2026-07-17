@@ -12,6 +12,8 @@ afterEach(() => {
   document.body.classList.remove("preview-drawer-open");
   document.body.classList.remove("search-context-open");
   document.body.classList.remove("source-filter-drawer-open");
+  delete document.documentElement.dataset.theme;
+  document.documentElement.style.removeProperty("color-scheme");
   localStorage.clear();
   sessionStorage.clear();
 });
