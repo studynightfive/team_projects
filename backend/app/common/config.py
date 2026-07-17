@@ -1,8 +1,9 @@
-# 应用配置模块
-# 使用 pydantic-settings 从环境变量加载配置
-# 所有 Secret 通过环境变量在运行时注入，不硬编码
+"""应用配置模块
+使用 pydantic-settings 从环境变量加载配置
+所有 Secret 通过环境变量在运行时注入，不硬编码
+"""
 
-
+from cryptography.fernet import Fernet
 from pydantic_settings import BaseSettings
 
 
@@ -21,44 +22,38 @@ class Settings(BaseSettings):
     debug: bool = False  # 生产环境必须为 False
 
     # ============================================================
-    # CORS 配置：允许跨域访问的域名列表
+    # CORS 配置
     # ============================================================
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:80"]
 
     # ============================================================
-    # 数据库配置：PostgreSQL 连接信息
+    # 数据库配置
     # ============================================================
-    # 数据库连接 URL（异步驱动 asyncpg）
-    # 格式：postgresql+asyncpg://用户名:密码@主机:端口/数据库名
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/knowledge_base"
 
     # ============================================================
-    # Redis 配置：缓存和任务队列
+    # Redis 配置
     # ============================================================
     redis_url: str = "redis://localhost:6379/0"
 
     # ============================================================
-    # 安全配置：JWT 签名密钥和 Token 过期时间
+    # 安全配置
     # ============================================================
-    # JWT 签名密钥（生产环境必须通过环境变量设置，不能使用默认值）
     secret_key: str = "change-me-in-production-use-a-random-secret-key"
-    # Access Token 过期时间（分钟）
     access_token_expire_minutes: int = 30
-    # Refresh Token 过期时间（天）
     refresh_token_expire_days: int = 7
 
     # ============================================================
     # 文件存储配置
     # ============================================================
-    # 文件存储根目录
     storage_root: str = "./storage"
-    # 上传文件大小限制（字节，默认 100MB）
     max_upload_size: int = 104857600
+    # 员工4 documents 模块使用的别名（与 max_upload_size 同值）
+    max_upload_bytes: int = 104857600
 
     # ============================================================
-    # 模型配置：LLM API 密钥（不设置默认值，不记录到日志）
+    # 模型配置
     # ============================================================
-    # 模型 API 密钥（必须从环境变量注入）
     model_api_key: str = ""
 
     # ============================================================
@@ -66,6 +61,12 @@ class Settings(BaseSettings):
     # ============================================================
     max_upload_files: int = 20
     allowed_upload_extensions: str = (
+        ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.md,.markdown,.txt,.log,.rst,.org,"
+        ".csv,.tsv,.html,.htm,.xml,.json,.epub,.odt,.ods,.odp,.rtf,"
+        ".jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.eml"
+    )
+    # 员工4 documents 模块使用的别名（与 allowed_upload_extensions 同值）
+    allowed_extensions: str = (
         ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.md,.markdown,.txt,.log,.rst,.org,"
         ".csv,.tsv,.html,.htm,.xml,.json,.epub,.odt,.ods,.odp,.rtf,"
         ".jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.eml"
@@ -84,29 +85,100 @@ class Settings(BaseSettings):
     worker_inline: bool = True
 
     # ============================================================
+    # 员工5 扩展配置：模型密钥 Fernet 加密（提示词 01）
+    # ============================================================
+    model_key_fernet_key: str = ""
+    model_provider_timeout_seconds: int = 10
+    model_provider_max_retries: int = 1
+
+    # ============================================================
+    # 员工5 扩展配置：文档导出（提示词 05）
+    # ============================================================
+    export_storage_root: str = "./exports"
+    export_default_ttl_hours: int = 24
+    export_download_signing_key: str = ""
+    export_task_timeout_seconds: int = 300
+    export_task_max_retries: int = 2
+    export_memory_peak_mb: int = 512
+
+    # ============================================================
+    # 员工5 扩展配置：RAG 与检索（提示词 02、03、04）
+    # ============================================================
+    embedding_default_dimensions: int = 1536
+    embedding_default_distance: str = "cosine"
+    rerank_default_top_n: int = 10
+    retrieval_cache_ttl_seconds: int = 300
+    rag_max_top_k: int = 30
+    conversation_context_max_tokens: int = 8000
+
+    # ============================================================
+    # 员工5 扩展配置：SSE 流式问答（提示词 03）
+    # ============================================================
+    chat_sse_keepalive_seconds: int = 15
+    chat_stream_flush_every_tokens: int = 20
+    chat_auto_retry_max: int = 1
+
+    # ============================================================
+    # 员工5 扩展配置：命中率测试（提示词 06）
+    # ============================================================
+    retrieval_test_max_queries: int = 100
+    retrieval_test_max_runtime_seconds: int = 1800
+    retrieval_test_cache_ttl_seconds: int = 86400
+
+    # ============================================================
     # Pydantic Settings 配置
     # ============================================================
     model_config = {
-        # 从 .env 文件加载环境变量（如果存在）
         "env_file": ".env",
-        # .env 文件不存在时不报错
         "env_file_encoding": "utf-8",
-        # 环境变量名大小写敏感
         "case_sensitive": False,
     }
 
-    @property
-    def max_upload_bytes(self) -> int:
-        return self.max_upload_size
 
-    @property
-    def allowed_extensions(self) -> set[str]:
-        return {
-            ext.strip().lower()
-            for ext in self.allowed_upload_extensions.split(",")
-            if ext.strip()
-        }
-
-
-# 全局配置实例
 settings = Settings()
+
+# ============================================================
+# 派生工具
+# ============================================================
+_fernet_instance: Fernet | None = None
+_fernet_warning_emitted: bool = False
+
+
+def get_model_key_fernet() -> Fernet:
+    global _fernet_instance, _fernet_warning_emitted
+
+    if _fernet_instance is not None:
+        return _fernet_instance
+
+    raw = settings.model_key_fernet_key.strip()
+    if raw:
+        _fernet_instance = Fernet(
+            raw.encode("utf-8") if not raw.endswith("=") else raw.encode("utf-8")
+        )
+        return _fernet_instance
+
+    # 派生兜底
+    import base64
+    import hashlib
+
+    import structlog
+
+    if not _fernet_warning_emitted:
+        structlog.get_logger().warning(
+            "model_key_fernet_key_not_configured",
+            fallback="derived_from_secret_key",
+            impact="重启后已落库的 API Key 将无法解密，生产环境必须配置",
+        )
+        _fernet_warning_emitted = True
+
+    digest = hashlib.sha256(settings.secret_key.encode("utf-8")).digest()
+    derived = base64.urlsafe_b64encode(digest)
+    _fernet_instance = Fernet(derived)
+    return _fernet_instance
+
+
+def get_export_download_signing_key() -> str:
+    raw = settings.export_download_signing_key.strip()
+    if raw:
+        return raw
+    return f"export-signing-fallback:{settings.secret_key}"
