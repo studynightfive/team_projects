@@ -117,6 +117,15 @@ describe("AI 搜索工作台关键链路", () => {
     expect(spaces.wrapper.get(".knowledge-space-grid article.selected").text()).toContain(
       targetSpace.name,
     );
+    expect(
+      spaces.wrapper.get(".space-browser-layout > .space-detail-panel").text(),
+    ).toContain(targetSpace.name);
+    expect(spaces.wrapper.find(".lucide-arrow-up-right").exists()).toBe(false);
+    expect(
+      spaces.wrapper.findAll(
+        ".knowledge-space-grid .lucide-chevron-right",
+      ),
+    ).toHaveLength(aiSearchMockData.knowledgeSpaces.length);
     spaces.wrapper.unmount();
 
     const history = await renderAppAt("/history");
@@ -130,6 +139,8 @@ describe("AI 搜索工作台关键链路", () => {
 
     await getButton(history.wrapper, "再次搜索").trigger("click");
     await flushPromises();
-    expect(history.router.currentRoute.value.query.q).toBe(originalQuery);
+    await vi.waitFor(() => {
+      expect(history.router.currentRoute.value.query.q).toBe(originalQuery);
+    });
   });
 });

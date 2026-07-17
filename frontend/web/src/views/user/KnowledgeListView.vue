@@ -36,7 +36,7 @@ const filteredKnowledgeBases = computed(() => {
   <div class="business-page local-page">
     <PageHeader
       eyebrow="用户工作区"
-      title="知识库"
+      title="企业知识库"
       description="浏览当前本地预览中的知识空间，正式可见范围等待权限契约。"
     >
       <template #actions>

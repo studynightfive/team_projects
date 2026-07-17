@@ -65,7 +65,7 @@ const previewExport = (): void => {
 <template>
   <div class="business-page local-page">
     <PageHeader
-      eyebrow="知识库 / 文档预览"
+      eyebrow="企业知识库 / 文档预览"
       :title="document?.name ?? '文档不存在'"
       :description="
         document

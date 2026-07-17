@@ -83,7 +83,7 @@ const previewExport = (): void => {
 <template>
   <div class="business-page local-page">
     <PageHeader
-      eyebrow="知识库 / 文档目录"
+      eyebrow="企业知识库 / 文档目录"
       :title="knowledgeBase?.name ?? '知识库不存在'"
       :description="
         knowledgeBase?.description ?? '当前固定样例中没有此知识库。'

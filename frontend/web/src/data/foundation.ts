@@ -293,8 +293,8 @@ export const userNavigation = [
     to: "/favorites",
   },
   {
-    label: "最近浏览",
-    shortLabel: "最近",
+    label: "历史会话",
+    shortLabel: "会话",
     icon: History,
     to: "/conversations",
   },

@@ -11,7 +11,7 @@ import { localPageData } from "../../data/local-pages";
 
 type ConversationItem = (typeof localPageData.conversations)[number];
 
-const { message } = AntApp.useApp();
+const { message, modal } = AntApp.useApp();
 const query = ref("");
 const pinnedOnly = ref(false);
 const visibleIds = ref<string[]>(
@@ -20,7 +20,6 @@ const visibleIds = ref<string[]>(
 const titleOverrides = ref<Record<string, string>>({});
 const editingId = ref<string>();
 const editTitle = ref("");
-const pendingDeleteId = ref<string>();
 
 const getConversationTitle = (item: ConversationItem): string =>
   titleOverrides.value[item.id] ?? item.title;
@@ -42,7 +41,6 @@ const filteredConversations = computed(() => {
 });
 
 const startRename = (item: ConversationItem): void => {
-  pendingDeleteId.value = undefined;
   editingId.value = item.id;
   editTitle.value = getConversationTitle(item);
 };
@@ -66,17 +64,19 @@ const saveRename = (): void => {
 
 const requestDelete = (conversationId: string): void => {
   editingId.value = undefined;
-  pendingDeleteId.value = conversationId;
-};
-
-const confirmDelete = (): void => {
-  if (!pendingDeleteId.value) return;
-
-  visibleIds.value = visibleIds.value.filter(
-    (id) => id !== pendingDeleteId.value,
-  );
-  pendingDeleteId.value = undefined;
-  void message.success("会话已从本地预览中移除");
+  modal.confirm({
+    title: "确认从本地预览中删除这条会话？",
+    content: "不会发送删除请求，刷新页面后固定数据会恢复。",
+    okText: "确认删除",
+    okType: "danger",
+    cancelText: "取消",
+    centered: true,
+    autoFocusButton: "cancel",
+    onOk: () => {
+      visibleIds.value = visibleIds.value.filter((id) => id !== conversationId);
+      void message.success("会话已从本地预览中移除");
+    },
+  });
 };
 </script>
 
@@ -117,29 +117,6 @@ const confirmDelete = (): void => {
           <input v-model="pinnedOnly" type="checkbox" />
           只看置顶
         </label>
-      </div>
-
-      <div v-if="pendingDeleteId" class="delete-confirmation" role="alert">
-        <div>
-          <strong>确认从本地预览中删除这条会话？</strong>
-          <p>不会发送删除请求，刷新页面后固定数据会恢复。</p>
-        </div>
-        <div>
-          <button
-            class="secondary-button compact"
-            type="button"
-            @click="pendingDeleteId = undefined"
-          >
-            取消
-          </button>
-          <button
-            class="primary-button compact"
-            type="button"
-            @click="confirmDelete"
-          >
-            确认删除
-          </button>
-        </div>
       </div>
 
       <div v-if="filteredConversations.length > 0" class="conversation-list">
@@ -226,33 +203,31 @@ const confirmDelete = (): void => {
   gap: var(--space-6);
 }
 
+.filter-bar {
+  margin-bottom: var(--space-4);
+}
+
 .checkbox-filter {
   display: inline-flex;
+  min-width: auto;
   min-height: 40px;
+  flex: 0 0 auto;
   align-items: center;
   gap: var(--space-2);
   color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  white-space: nowrap;
 }
 
-.delete-confirmation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid var(--red-100);
-  border-radius: var(--radius-8);
-  background: var(--color-danger-soft);
+.checkbox-filter input {
+  width: 14px;
+  height: 14px;
+  min-height: 14px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--color-primary);
 }
 
-.delete-confirmation p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-danger-text);
-  font-size: var(--font-size-13);
-}
-
-.delete-confirmation > div:last-child,
 .inline-actions,
 .conversation-actions {
   display: flex;
@@ -316,8 +291,7 @@ const confirmDelete = (): void => {
 }
 
 @media (max-width: 820px) {
-  .conversation-list article,
-  .delete-confirmation {
+  .conversation-list article {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
   }

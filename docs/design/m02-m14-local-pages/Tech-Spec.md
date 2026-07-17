@@ -36,6 +36,7 @@ frontend/web/src/
 
 - 所有页面继续作为 `UserWorkspaceLayout` 或 `AdminWorkspaceLayout` 的子路由。
 - 路由 `meta.title` 驱动顶栏当前页标题；`meta.parentTitle` 驱动面包屑上级名称。
+- 侧栏直达模块的名称必须与顶栏当前页标题和页面 `h1` 一致；详情页或结果页可使用具体标题，但 `meta.parentTitle` 与页面 eyebrow 必须使用所属模块的规范名称。
 - `NavigationItem` 增加 `activePrefixes`，由共享 `isNavigationItemActive()` 判断动态详情和多路由分组激活态。
 - 固定样例：`kb_id=product-handbook`、`document_id=release-guide`、`conversation_id=conv-release-review`。
 - 不添加 `/profile`，不添加正式路由表之外的详情页。
@@ -48,7 +49,7 @@ frontend/web/src/
 - 只在跨多个页面且必须共享时才使用 Pinia；本轮不新增全局业务 Store。
 - 写操作只显示“本地预览已更新”或说明性反馈，不显示“已保存到服务器”。
 - 上传区不读取真实文件；下载按钮不构造 URL；模型密钥输入默认空且不写入 Store/Storage/日志。
-- 问答页用本地逐段展示模拟视觉状态，不实现 Fetch/SSE，也不启动后台定时器。
+- 问答页用本地逐段展示模拟视觉状态，不实现 Fetch/SSE，也不启动后台定时器；空白态快捷问题只回填输入框，`Enter` 提交、`Shift + Enter` 换行。
 
 ## 5. 样式与响应式
 

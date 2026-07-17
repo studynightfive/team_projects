@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-16T05:08:13.986Z",
-  "sourceCommit": "0e2996034e071765d4656d336ec467b96645c911",
-  "sourceWorktreeDirty": false,
-  "baseUrl": "http://127.0.0.1:5174",
+  "generatedAt": "2026-07-16T12:59:01.498Z",
+  "sourceCommit": "3b45fc5824e64d6b37bd5c2ee0b534d5f586c085",
+  "sourceWorktreeDirty": true,
+  "baseUrl": "http://127.0.0.1:5173",
   "browser": "Chrome/150.0.7871.115",
   "results": [
     {
@@ -19,10 +19,10 @@
         "scrollHeight": 1000,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "知识库",
+        "topbarTitle": "企业知识库",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 25,
+        "svgIconCount": 31,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -33,6 +33,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -75,7 +79,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 25
+          "actual": 31
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -85,7 +89,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "知识库/可见"
+          "actual": "企业知识库/可见"
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -124,10 +128,10 @@
         "scrollHeight": 900,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "知识库",
+        "topbarTitle": "企业知识库",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 25,
+        "svgIconCount": 31,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -138,6 +142,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -180,7 +188,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 25
+          "actual": 31
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -190,7 +198,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "知识库/可见"
+          "actual": "企业知识库/可见"
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -229,10 +237,10 @@
         "scrollHeight": 1769,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "知识库",
+        "topbarTitle": "企业知识库",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 25,
+        "svgIconCount": 31,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -243,6 +251,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -255,7 +267,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 6,
+        "navigationCount": 11,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -291,7 +303,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 25
+          "actual": 31
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -301,7 +313,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "知识库/可见"
+          "actual": "企业知识库/可见"
         },
         {
           "label": "关键内容未越过视口",
@@ -331,7 +343,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 6
+          "actual": 11
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -373,7 +385,7 @@
         "topbarTitle": "文档目录",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 22,
+        "svgIconCount": 28,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -384,6 +396,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 1,
@@ -426,7 +442,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 22
+          "actual": 28
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -478,7 +494,7 @@
         "topbarTitle": "文档目录",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 22,
+        "svgIconCount": 28,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -489,6 +505,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 1,
@@ -531,7 +551,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 22
+          "actual": 28
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -583,7 +603,7 @@
         "topbarTitle": "文档目录",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 22,
+        "svgIconCount": 28,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -594,6 +614,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 1,
@@ -606,7 +630,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 6,
+        "navigationCount": 11,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -642,7 +666,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 22
+          "actual": 28
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -682,7 +706,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 6
+          "actual": 11
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -724,7 +748,7 @@
         "topbarTitle": "文档预览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 19,
+        "svgIconCount": 25,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -735,6 +759,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -777,7 +805,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 19
+          "actual": 25
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -829,7 +857,7 @@
         "topbarTitle": "文档预览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 19,
+        "svgIconCount": 25,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -840,6 +868,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -882,7 +914,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 19
+          "actual": 25
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -934,7 +966,7 @@
         "topbarTitle": "文档预览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 19,
+        "svgIconCount": 25,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -945,6 +977,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -957,7 +993,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 6,
+        "navigationCount": 11,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -993,7 +1029,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 19
+          "actual": 25
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1033,7 +1069,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 6
+          "actual": 11
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -1069,13 +1105,13 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1029,
+        "scrollHeight": 2139,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "知识检索",
+        "topbarTitle": "搜索结果",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 20,
+        "svgIconCount": 52,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1086,6 +1122,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -1093,7 +1133,7 @@
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
-        "minimumInteractiveHeight": 20,
+        "minimumInteractiveHeight": 1,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
       },
@@ -1128,7 +1168,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 20
+          "actual": 52
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1138,7 +1178,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "知识检索/可见"
+          "actual": "搜索结果/可见"
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -1174,13 +1214,13 @@
         "innerHeight": 900,
         "clientWidth": 1280,
         "scrollWidth": 1280,
-        "scrollHeight": 1029,
+        "scrollHeight": 2139,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "知识检索",
+        "topbarTitle": "搜索结果",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 20,
+        "svgIconCount": 42,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1191,6 +1231,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -1198,7 +1242,7 @@
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
-        "minimumInteractiveHeight": 20,
+        "minimumInteractiveHeight": 1,
         "screenshotWidth": 1280,
         "screenshotHeight": 900
       },
@@ -1233,7 +1277,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 20
+          "actual": 42
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1243,7 +1287,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "知识检索/可见"
+          "actual": "搜索结果/可见"
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -1279,13 +1323,13 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 1591,
+        "scrollHeight": 3437,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "知识检索",
+        "topbarTitle": "搜索结果",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 20,
+        "svgIconCount": 42,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -1296,6 +1340,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -1308,7 +1356,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 6,
+        "navigationCount": 11,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -1344,7 +1392,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 20
+          "actual": 42
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1354,7 +1402,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "知识检索/可见"
+          "actual": "搜索结果/可见"
         },
         {
           "label": "关键内容未越过视口",
@@ -1384,7 +1432,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 6
+          "actual": 11
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -1423,10 +1471,10 @@
         "scrollHeight": 1000,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "新会话",
+        "topbarTitle": "AI 助手",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 18,
+        "svgIconCount": 33,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1437,13 +1485,17 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
-        "maximumContentRight": 1380,
+        "maximumContentRight": 1400,
         "minimumInteractiveHeight": 20,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -1479,7 +1531,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 18
+          "actual": 33
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1489,7 +1541,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "新会话/可见"
+          "actual": "AI 助手/可见"
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -1525,13 +1577,13 @@
         "innerHeight": 900,
         "clientWidth": 1280,
         "scrollWidth": 1280,
-        "scrollHeight": 900,
+        "scrollHeight": 973,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "新会话",
+        "topbarTitle": "AI 助手",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 18,
+        "svgIconCount": 33,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1542,9 +1594,13 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1584,7 +1640,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 18
+          "actual": 33
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1594,7 +1650,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "新会话/可见"
+          "actual": "AI 助手/可见"
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -1630,13 +1686,13 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 940,
+        "scrollHeight": 1340,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "新会话",
+        "topbarTitle": "AI 助手",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 18,
+        "svgIconCount": 33,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -1647,9 +1703,13 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1659,7 +1719,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 6,
+        "navigationCount": 11,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -1695,7 +1755,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 18
+          "actual": 33
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1705,7 +1765,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "新会话/可见"
+          "actual": "AI 助手/可见"
         },
         {
           "label": "关键内容未越过视口",
@@ -1735,7 +1795,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 6
+          "actual": 11
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -1777,7 +1837,7 @@
         "topbarTitle": "会话详情",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 19,
+        "svgIconCount": 29,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1788,13 +1848,17 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
-        "maximumContentRight": 1380,
+        "maximumContentRight": 1400,
         "minimumInteractiveHeight": 20,
         "screenshotWidth": 1440,
         "screenshotHeight": 1000
@@ -1830,7 +1894,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 19
+          "actual": 29
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1876,13 +1940,13 @@
         "innerHeight": 900,
         "clientWidth": 1280,
         "scrollWidth": 1280,
-        "scrollHeight": 902,
+        "scrollHeight": 988,
         "h1Count": 1,
         "businessPageCount": 1,
         "topbarTitle": "会话详情",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 19,
+        "svgIconCount": 29,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1893,9 +1957,13 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1935,7 +2003,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 19
+          "actual": 29
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1981,13 +2049,13 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 1152,
+        "scrollHeight": 1204,
         "h1Count": 1,
         "businessPageCount": 1,
         "topbarTitle": "会话详情",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 19,
+        "svgIconCount": 29,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -1998,9 +2066,13 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "disabledInteractiveCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -2010,7 +2082,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 6,
+        "navigationCount": 11,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -2046,7 +2118,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 19
+          "actual": 29
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2086,7 +2158,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 6
+          "actual": 11
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -2122,13 +2194,13 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1171,
+        "scrollHeight": 1187,
         "h1Count": 1,
         "businessPageCount": 1,
         "topbarTitle": "历史会话",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 21,
+        "svgIconCount": 27,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -2139,6 +2211,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -2181,7 +2257,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 21
+          "actual": 27
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2227,13 +2303,13 @@
         "innerHeight": 900,
         "clientWidth": 1280,
         "scrollWidth": 1280,
-        "scrollHeight": 1171,
+        "scrollHeight": 1187,
         "h1Count": 1,
         "businessPageCount": 1,
         "topbarTitle": "历史会话",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 21,
+        "svgIconCount": 27,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -2244,6 +2320,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -2286,7 +2366,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 21
+          "actual": 27
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2332,13 +2412,13 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 1627,
+        "scrollHeight": 1639,
         "h1Count": 1,
         "businessPageCount": 1,
         "topbarTitle": "历史会话",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 21,
+        "svgIconCount": 27,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -2349,6 +2429,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -2361,7 +2445,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 6,
+        "navigationCount": 11,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -2397,7 +2481,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 21
+          "actual": 27
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2437,7 +2521,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 6
+          "actual": 11
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -2479,7 +2563,7 @@
         "topbarTitle": "我的下载",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 23,
+        "svgIconCount": 29,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -2490,6 +2574,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -2532,7 +2620,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 23
+          "actual": 29
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2584,7 +2672,7 @@
         "topbarTitle": "我的下载",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 23,
+        "svgIconCount": 29,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -2595,6 +2683,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -2637,7 +2729,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 23
+          "actual": 29
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2689,7 +2781,7 @@
         "topbarTitle": "我的下载",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 23,
+        "svgIconCount": 29,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -2700,6 +2792,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -2712,7 +2808,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 6,
+        "navigationCount": 11,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -2748,7 +2844,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 23
+          "actual": 29
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2788,7 +2884,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 6
+          "actual": 11
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -2841,6 +2937,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -2946,6 +3046,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -3051,6 +3155,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -3192,6 +3300,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -3297,6 +3409,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -3402,6 +3518,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -3543,6 +3663,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -3648,6 +3772,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -3753,6 +3881,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -3894,6 +4026,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -3999,6 +4135,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -4104,6 +4244,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -4245,6 +4389,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -4350,6 +4498,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -4455,6 +4607,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -4582,7 +4738,7 @@
         "scrollHeight": 1000,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "转换任务",
+        "topbarTitle": "任务中心",
         "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 16,
@@ -4596,6 +4752,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -4648,7 +4808,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "转换任务/可见"
+          "actual": "任务中心/可见"
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -4687,7 +4847,7 @@
         "scrollHeight": 900,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "转换任务",
+        "topbarTitle": "任务中心",
         "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 16,
@@ -4701,6 +4861,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -4753,7 +4917,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "转换任务/可见"
+          "actual": "任务中心/可见"
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -4792,7 +4956,7 @@
         "scrollHeight": 1020,
         "h1Count": 1,
         "businessPageCount": 1,
-        "topbarTitle": "转换任务",
+        "topbarTitle": "任务中心",
         "topbarTitleVisible": true,
         "hasEmoji": false,
         "svgIconCount": 16,
@@ -4806,6 +4970,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -4864,7 +5032,7 @@
         {
           "label": "顶栏标题与路由一致",
           "pass": true,
-          "actual": "转换任务/可见"
+          "actual": "任务中心/可见"
         },
         {
           "label": "关键内容未越过视口",
@@ -4947,6 +5115,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -5052,6 +5224,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -5157,6 +5333,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -5298,6 +5478,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 2,
@@ -5403,6 +5587,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 2,
@@ -5508,6 +5696,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 2,
@@ -5638,7 +5830,7 @@
         "topbarTitle": "文档预览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 19,
+        "svgIconCount": 25,
         "sidebarDisplay": "flex",
         "sidebarWidth": 64,
         "topbarHeight": 56,
@@ -5649,6 +5841,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
@@ -5691,7 +5887,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 19
+          "actual": 25
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -5754,6 +5950,10 @@
         "statColumnCount": 0,
         "statCardCount": 0,
         "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
         "disabledInteractiveCount": 0,
