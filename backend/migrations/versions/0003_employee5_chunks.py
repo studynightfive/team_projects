@@ -12,6 +12,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from pgvector.sqlalchemy import Vector
 
 revision: str = "0003_employee5_chunks"
 down_revision: str | None = "0002_employee5_models"
@@ -29,7 +30,7 @@ def upgrade() -> None:
         sa.Column("kb_id", sa.dialects.postgresql.UUID(as_uuid=False), nullable=False),
         sa.Column("content", sa.Text, nullable=False, server_default=""),
         sa.Column("page", sa.Integer, nullable=True),
-        sa.Column("embedding", sa.dialects.postgresql.ARRAY(sa.Float), nullable=True),
+        sa.Column("embedding", Vector(1536), nullable=True),
         sa.Column("metadata", sa.dialects.postgresql.JSONB, server_default=sa.text("'{}'::jsonb")),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )

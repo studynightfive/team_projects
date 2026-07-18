@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column("queries", sa.dialects.postgresql.JSONB, nullable=False),
         sa.Column(
             "created_by",
-            sa.dialects.postgresql.UUID(as_uuid=False),
+            sa.String(36),
             sa.ForeignKey("users.id"),
             nullable=False,
         ),

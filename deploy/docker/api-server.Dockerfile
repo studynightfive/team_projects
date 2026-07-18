@@ -9,25 +9,27 @@
 # 阶段 1：构建阶段 - 安装 Python 依赖
 # 使用 slim 镜像减小体积，精确版本锁定
 # ----------------------------------------------------------
-FROM python:3.10.20-slim AS builder
+FROM python:3.10.20-slim-bookworm AS builder
 
 # 设置工作目录
 WORKDIR /app
 
 # 安装系统构建依赖（编译 Python 包时需要）
-# 使用精确版本号，确保环境一致性
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# 固定 Debian 发行版，系统仓库负责解析兼容版本
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
     # 编译工具：gcc 用于编译 Python C 扩展
-    gcc=4:12.2.0-3 \
+    gcc \
     # libpq-dev：PostgreSQL 客户端库，asyncpg 编译需要
-    libpq-dev=15.12-0+deb12u1 \
+    libpq-dev \
     # 清理 apt 缓存，减小镜像体积
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 uv 包管理器（精确版本 0.8.22）
+# 安装与当前 uv.lock 和 CI 一致的 uv 版本
 # 使用 pip 安装 uv，用于后续的依赖管理
-RUN pip install --no-cache-dir uv==0.8.22
+RUN pip install --no-cache-dir uv==0.11.26
 
 # 复制后端项目配置文件
 # 先复制依赖文件，利用 Docker 构建缓存：只有依赖变化时才重新安装
@@ -42,7 +44,7 @@ RUN cd /app && uv sync --project backend --frozen --no-dev
 # 阶段 2：运行阶段 - 最终镜像
 # 只包含运行时需要的文件，最小化攻击面
 # ----------------------------------------------------------
-FROM python:3.10.20-slim AS runtime
+FROM python:3.10.20-slim-bookworm AS runtime
 
 # 设置镜像元数据标签
 LABEL app="knowledge-base-platform-api-server" \
@@ -53,55 +55,56 @@ LABEL app="knowledge-base-platform-api-server" \
 WORKDIR /app
 
 # 安装运行时系统依赖（方案第13.2节 - 文档处理工具）
-# 所有版本精确锁定，确保各环境行为一致
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# 固定 Debian 发行版，安装该发行版中的兼容系统包
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
     # ----------------------------------------------------------
     # PostgreSQL 客户端库：运行时数据库连接需要
     # ----------------------------------------------------------
-    libpq-dev=15.12-0+deb12u1 \
+    libpq-dev \
     # ----------------------------------------------------------
-    # LibreOffice 24.2.7：旧 Office 格式和开放文档转换
+    # LibreOffice：旧 Office 格式和开放文档转换
     # 用于 .doc、.ppt、.xls 和 .odt/.ods/.odp 等格式
     # ----------------------------------------------------------
-    libreoffice=4:24.2.7-1 \
+    libreoffice \
     # ----------------------------------------------------------
-    # Tesseract OCR 5.3.4：图片和扫描 PDF 文字识别
+    # Tesseract OCR：图片和扫描 PDF 文字识别
     # 安装中英文语言包
     # ----------------------------------------------------------
-    tesseract-ocr=5.3.4-1 \
-    tesseract-ocr-eng=1:4.1.0-2 \
-    tesseract-ocr-chi-sim=1:4.1.0-2 \
-    tesseract-ocr-chi-tra=1:4.1.0-2 \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    tesseract-ocr-chi-sim \
+    tesseract-ocr-chi-tra \
     # ----------------------------------------------------------
-    # Poppler 24.02.0：PDF 页面和文本提取工具
+    # Poppler：PDF 页面和文本提取工具
     # 提供 pdftotext、pdfinfo 等命令行工具
     # ----------------------------------------------------------
-    poppler-utils=24.02.0-1 \
+    poppler-utils \
     # ----------------------------------------------------------
-    # Ghostscript 10.02.1：PostScript 和 PDF 兼容处理
+    # Ghostscript：PostScript 和 PDF 兼容处理
     # ----------------------------------------------------------
-    ghostscript=10.02.1~dfsg-1 \
+    ghostscript \
     # ----------------------------------------------------------
-    # libmagic 5.45：MIME 类型识别（python-magic 的底层依赖）
+    # libmagic：MIME 类型识别（python-magic 的底层依赖）
     # 用于判断上传文件的实际类型，防止扩展名伪装
     # ----------------------------------------------------------
-    libmagic1=1:5.45-1 \
+    libmagic1 \
     # ----------------------------------------------------------
     # Noto CJK 字体：中文、日文、韩文导出字体
     # 确保 PDF 和图片导出时中文正常显示
     # ----------------------------------------------------------
-    fonts-noto-cjk=1:20220127+repack1-1 \
+    fonts-noto-cjk \
     # ----------------------------------------------------------
     # 其他工具
     # ----------------------------------------------------------
-    curl=8.11.1-1~deb12u1 \
+    curl \
     # 清理 apt 缓存，减小镜像体积
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 从构建阶段复制 uv 和 Python 虚拟环境
-# 使用 --from=builder 从构建阶段复制文件，避免在运行时阶段重新安装
-COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+# 从构建阶段复制 uv 和已锁定的 Python 虚拟环境
+COPY --from=builder /app/backend/.venv /app/backend/.venv
 COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
 
 # 复制后端应用代码
@@ -118,6 +121,8 @@ RUN groupadd -r appuser && \
     chown -R appuser:appuser /app
 
 # 切换到非 root 用户
+ENV PYTHONPATH=/app/backend
+
 USER appuser
 
 # 暴露 API 端口 8000（仅内部网络，由 Nginx 代理访问）
@@ -134,5 +139,5 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
 # --port 8000：监听端口 8000
 # --workers 1：单 Worker（容器编排层面扩展实例数）
 # --log-level info：日志级别
-CMD ["uv", "run", "--project", "backend", "uvicorn", "backend.app.main:app", \
+CMD ["/app/backend/.venv/bin/uvicorn", "app.main:app", \
      "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--log-level", "info"]

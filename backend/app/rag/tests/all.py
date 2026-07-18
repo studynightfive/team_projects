@@ -57,7 +57,7 @@ class RetrievalTestDataset(Base):
     )
     queries: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     created_by: Mapped[str] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        String(36),
         ForeignKey("users.id"),
         nullable=False,
     )
