@@ -24,7 +24,7 @@ interface SearchSettingsForm {
 
 const defaultSettings: SearchSettingsForm = {
   defaultMode: "smart",
-  defaultScope: "all",
+  defaultScope: "knowledge",
   defaultModelId: "enterprise-general",
   language: "zh-CN",
   citationStyle: "both",

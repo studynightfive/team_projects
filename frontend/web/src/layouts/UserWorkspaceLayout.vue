@@ -4,22 +4,15 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import NotificationPreview from "../components/NotificationPreview.vue";
 import WorkspaceShell from "../components/WorkspaceShell.vue";
-import { CircleHelp, Database, Search } from "../components/icons";
-import {
-  foundationData,
-  userMobileNavigation,
-  userNavigation,
-} from "../data/foundation";
-import { aiSearchMockData } from "../mocks/ai-search";
+import { CircleHelp, Search } from "../components/icons";
+import { userMobileNavigation, userNavigation } from "../data/foundation";
+import { useSessionStore } from "../stores/session";
 
 const route = useRoute();
 const router = useRouter();
+const sessionStore = useSessionStore();
 const searchInputRef = ref<HTMLInputElement>();
 const globalSearch = ref("");
-const dataSourceCount = aiSearchMockData.dataSources.length;
-const connectedSourceCount = aiSearchMockData.dataSources.filter(
-  (source) => source.connectionStatus === "connected",
-).length;
 
 const currentTitle = computed(() =>
   typeof route.meta.title === "string" ? route.meta.title : "工作台",
@@ -55,14 +48,18 @@ onBeforeUnmount(() =>
     :navigation="userNavigation"
     navigation-label="工作区"
     :mobile-navigation="userMobileNavigation"
-    :identity-name="foundationData.userView.profile.name"
-    :identity-role="foundationData.userView.profile.department"
-    :identity-initial="foundationData.userView.profile.initial"
-    :workspace-switch="{
-      label: '管理中心',
-      mobileLabel: '进入管理中心',
-      to: '/admin',
-    }"
+    :identity-name="sessionStore.displayName"
+    :identity-role="sessionStore.roleLabel"
+    :identity-initial="sessionStore.initial"
+    :workspace-switch="
+      sessionStore.isAdmin
+        ? {
+          label: '管理中心',
+          mobileLabel: '进入管理中心',
+          to: '/admin',
+        }
+        : undefined
+    "
   >
     <template #topbar="{ openProfile }">
       <div class="topbar-layout user-topbar-layout">
@@ -87,16 +84,6 @@ onBeforeUnmount(() =>
         </label>
 
         <div class="topbar-actions">
-          <RouterLink
-            class="topbar-source-status"
-            to="/data-sources"
-            :aria-label="`${connectedSourceCount} 个数据源连接正常，共 ${aiSearchMockData.dataSources.length} 个`"
-          >
-            <Database :size="16" aria-hidden="true" />
-            <span>
-              {{ connectedSourceCount }}/{{ dataSourceCount }} 数据源可用
-            </span>
-          </RouterLink>
           <NotificationPreview audience="user" />
           <RouterLink
             class="icon-button help-button"
@@ -106,16 +93,20 @@ onBeforeUnmount(() =>
             <CircleHelp :size="20" aria-hidden="true" />
           </RouterLink>
           <span class="topbar-divider" aria-hidden="true" />
-          <RouterLink class="topbar-workspace-link" to="/admin">
+          <RouterLink
+            v-if="sessionStore.isAdmin"
+            class="topbar-workspace-link"
+            to="/admin"
+          >
             管理中心
           </RouterLink>
           <button
             class="avatar topbar-avatar"
             type="button"
-            :aria-label="`${foundationData.userView.profile.name}的账号菜单`"
+            :aria-label="`${sessionStore.displayName}的账号菜单`"
             @click="openProfile"
           >
-            {{ foundationData.userView.profile.initial }}
+            {{ sessionStore.initial }}
           </button>
         </div>
       </div>

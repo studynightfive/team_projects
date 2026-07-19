@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { RouterLink } from "vue-router";
 
 import type {
@@ -40,6 +40,17 @@ const triggerLabel = computed(() => {
 
 const getNotificationTarget = (notification: NotificationItem): string =>
   notification.action?.to ?? notificationRoute.value;
+
+onMounted(() => {
+  void notificationStore.loadNotifications(audience);
+});
+
+watch(
+  () => audience,
+  (nextAudience) => {
+    void notificationStore.loadNotifications(nextAudience);
+  },
+);
 </script>
 
 <template>

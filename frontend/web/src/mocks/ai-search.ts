@@ -5,24 +5,12 @@ import type {
   DataSource,
   Favorite,
   KnowledgeSpace,
-  Research,
   SearchHistory,
   SearchModeOption,
   SearchResultItem,
   SearchScopeOption,
-  SearchSourceType,
   UiStateExample,
 } from "../types/ai-search";
-
-const allSearchSources = [
-  "knowledge",
-  "project",
-  "policy",
-  "meeting",
-  "business",
-  "personal",
-  "internet",
-] as const satisfies readonly SearchSourceType[];
 
 const modeOptions = [
   {
@@ -36,11 +24,6 @@ const modeOptions = [
     description: "优先返回原始文档和高匹配度内容。",
   },
   {
-    value: "research",
-    label: "深度研究",
-    description: "执行多步骤检索、分析和交叉验证。",
-  },
-  {
     value: "document",
     label: "文档问答",
     description: "仅依据当前选择或上传的文档回答。",
@@ -48,12 +31,6 @@ const modeOptions = [
 ] as const satisfies readonly SearchModeOption[];
 
 const scopeOptions = [
-  {
-    value: "all",
-    label: "全部企业知识",
-    description: "检索当前账号有权访问的全部已接入信息。",
-    sources: allSearchSources,
-  },
   {
     value: "knowledge",
     label: "企业知识库",
@@ -111,7 +88,7 @@ const history = [
   {
     id: "history-02",
     query: "汇总本季度重点项目进展和主要风险",
-    mode: "research",
+    mode: "smart",
     sources: ["project", "meeting"],
     createdAt: "2026-07-15T16:18:00+08:00",
     resultCount: 18,
@@ -129,7 +106,7 @@ const history = [
   {
     id: "history-04",
     query: "整理最近一个月的客户反馈和高频问题",
-    mode: "research",
+    mode: "smart",
     sources: ["business", "meeting"],
     createdAt: "2026-07-14T14:25:00+08:00",
     resultCount: 24,
@@ -819,57 +796,6 @@ const favorites = [
   },
 ] as const satisfies readonly Favorite[];
 
-const research = {
-  id: "research-quarter-projects",
-  question: "本季度重点项目进展、主要风险和跨团队依赖是什么？",
-  scopes: ["project", "meeting", "knowledge"],
-  status: "running",
-  currentStep: 4,
-  steps: [
-    {
-      id: "research-step-01",
-      title: "理解研究问题",
-      description: "确认时间范围、重点项目和输出维度。",
-      status: "completed",
-    },
-    {
-      id: "research-step-02",
-      title: "制定检索计划",
-      description: "按项目进展、风险和依赖拆分检索任务。",
-      status: "completed",
-    },
-    {
-      id: "research-step-03",
-      title: "检索企业知识",
-      description: "汇总项目周报、里程碑和风险记录。",
-      status: "completed",
-    },
-    {
-      id: "research-step-04",
-      title: "检索外部公开资料",
-      description: "检查可能影响交付的公开行业信息。",
-      status: "running",
-    },
-    {
-      id: "research-step-05",
-      title: "分析和交叉验证",
-      description: "对比不同来源的时间、负责人和风险判断。",
-      status: "waiting",
-    },
-    {
-      id: "research-step-06",
-      title: "生成研究结论",
-      description: "形成管理摘要、风险清单和建议行动。",
-      status: "waiting",
-    },
-  ],
-  sourceIds: ["source-project", "source-collaboration", "source-knowledge"],
-  summary:
-    "当前已完成企业内部资料检索，外部公开信息连接尚未配置，因此最终结论会明确标注来源边界。",
-  createdAt: "2026-07-16T08:50:00+08:00",
-  updatedAt: "2026-07-16T09:31:00+08:00",
-} as const satisfies Research;
-
 const stateExamples = [
   {
     id: "state-initial",
@@ -996,13 +922,6 @@ export const aiSearchMockData = {
       icon: "upload",
     },
     {
-      id: "quick-research",
-      label: "创建深度研究",
-      description: "拆解复杂问题并交叉验证来源。",
-      to: "/research",
-      icon: "research",
-    },
-    {
       id: "quick-space",
       label: "进入知识空间",
       description: "按部门和主题浏览维护中的知识。",
@@ -1016,13 +935,6 @@ export const aiSearchMockData = {
       to: "/favorites",
       icon: "favorite",
     },
-    {
-      id: "quick-data-source",
-      label: "管理企业数据源",
-      description: "查看模拟连接、同步和权限状态。",
-      to: "/data-sources",
-      icon: "data-source",
-    },
   ],
   recentSearches: history.slice(0, 4),
   knowledgeSpaces,
@@ -1031,6 +943,5 @@ export const aiSearchMockData = {
   results,
   history,
   favorites,
-  research,
   stateExamples,
 } as const satisfies AiSearchMockData;

@@ -5,7 +5,7 @@ import { renderAppAt } from "./renderApp";
 
 describe("M01 移动端完整导航", () => {
   it.each([
-    ["/", 10, "进入管理中心"],
+    ["/", 7, undefined],
     ["/admin", 11, "返回用户工作区"],
   ] as const)(
     "%s 展开完整模块并通过关闭按钮返回焦点",
@@ -25,9 +25,16 @@ describe("M01 移动端完整导航", () => {
         .map((item) => item.text().trim());
       expect(navigationLabels).toHaveLength(moduleCount);
       if (path === "/") {
-        expect(navigationLabels.slice(0, 2)).toEqual(["AI 搜索", "AI 助手"]);
+        expect(navigationLabels.slice(0, 2)).toEqual([
+          "AI 搜索",
+          "企业知识库",
+        ]);
       }
-      expect(wrapper.get(".workspace-switch").text()).toBe(workspaceSwitch);
+      if (workspaceSwitch === undefined) {
+        expect(wrapper.find(".workspace-switch").exists()).toBe(false);
+      } else {
+        expect(wrapper.get(".workspace-switch").text()).toBe(workspaceSwitch);
+      }
       expect(document.body.classList.contains("drawer-open")).toBe(true);
 
       const closeButton = wrapper.get<HTMLButtonElement>(
@@ -70,7 +77,13 @@ describe("M01 移动端完整导航", () => {
 
     const drawer = wrapper.get(".mobile-drawer");
     const first = wrapper.get<HTMLButtonElement>(".mobile-drawer-close");
-    const last = wrapper.get<HTMLAnchorElement>(".workspace-switch");
+    const drawerLinks = wrapper.findAll<HTMLAnchorElement>(
+      ".mobile-drawer-link",
+    );
+    const last = drawerLinks[drawerLinks.length - 1];
+    if (last === undefined) {
+      throw new Error("移动抽屉缺少可聚焦导航链接");
+    }
 
     last.element.focus();
     await drawer.trigger("keydown", { key: "Tab" });

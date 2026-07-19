@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 
 import InlineState from "../../components/InlineState.vue";
@@ -18,6 +18,7 @@ import type {
   NotificationAudience,
   NotificationCategory,
 } from "../../data/account-support";
+import { isRealApiMode } from "../../config/runtime";
 import { useNotificationStore } from "../../stores/notifications";
 
 type ReadFilter = "all" | "unread" | "read";
@@ -56,6 +57,8 @@ const currentNotifications = computed(() =>
 const unreadCount = computed(() =>
   notificationStore.unreadCount(props.audience),
 );
+const loadState = computed(() => notificationStore.loadState[props.audience]);
+const loadError = computed(() => notificationStore.loadError[props.audience]);
 const filteredNotifications = computed(() => {
   const normalizedKeyword = keyword.value.trim().toLocaleLowerCase("zh-CN");
 
@@ -74,6 +77,19 @@ const filteredNotifications = computed(() => {
     return matchesReadState && matchesCategory && matchesKeyword;
   });
 });
+
+const reloadNotifications = (): void => {
+  void notificationStore.loadNotifications(props.audience);
+};
+
+onMounted(reloadNotifications);
+
+watch(
+  () => props.audience,
+  () => {
+    reloadNotifications();
+  },
+);
 </script>
 
 <template>
@@ -89,8 +105,16 @@ const filteredNotifications = computed(() => {
     >
       <template #actions>
         <span class="local-preview-badge" aria-live="polite">
-          {{ unreadCount }} 条未读 · 当前会话
+          {{ unreadCount }} 条未读 · {{ isRealApiMode ? "真实接口" : "当前会话" }}
         </span>
+        <button
+          v-if="isRealApiMode"
+          class="secondary-button"
+          type="button"
+          @click="reloadNotifications"
+        >
+          刷新
+        </button>
         <button
           class="secondary-button"
           type="button"
@@ -105,7 +129,11 @@ const filteredNotifications = computed(() => {
 
     <ResourcePanel
       title="全部通知"
-      description="筛选和已读状态只保留在本次打开应用期间，不会发送保存请求。"
+      :description="
+        isRealApiMode
+          ? '通知列表和已读状态来自真实后端接口。'
+          : '筛选和已读状态只保留在本次打开应用期间，不会发送保存请求。'
+      "
     >
       <template #actions>
         <div class="segmented-control" aria-label="按阅读状态筛选">
@@ -144,8 +172,20 @@ const filteredNotifications = computed(() => {
         </label>
       </div>
 
+      <InlineState
+        v-if="isRealApiMode && loadState === 'loading'"
+        kind="loading"
+        title="正在加载通知"
+        description="正在读取当前账号的真实通知。"
+      />
+      <InlineState
+        v-else-if="isRealApiMode && loadState === 'error'"
+        kind="error"
+        title="通知加载失败"
+        :description="loadError"
+      />
       <div
-        v-if="filteredNotifications.length > 0"
+        v-else-if="filteredNotifications.length > 0"
         class="notification-list"
         aria-live="polite"
       >
@@ -205,7 +245,9 @@ const filteredNotifications = computed(() => {
 
       <template #footer>
         <span>显示 {{ filteredNotifications.length }} 条通知</span>
-        <span>刷新应用后恢复固定样例</span>
+        <span>{{
+          isRealApiMode ? "已读状态会写入后端" : "刷新应用后恢复固定样例"
+        }}</span>
       </template>
     </ResourcePanel>
   </div>

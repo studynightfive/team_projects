@@ -36,7 +36,6 @@ const statusMessage = ref("当前显示固定默认偏好");
 const workspaceLabels = {
   "ai-search": "AI 搜索",
   knowledge: "企业知识库",
-  assistant: "AI 助手",
 } satisfies Record<DefaultWorkspace, string>;
 const densityLabels = {
   comfortable: "舒适",
@@ -189,7 +188,6 @@ const resetPreferences = (): void => {
               <select v-model="form.defaultWorkspace">
                 <option value="ai-search">AI 搜索</option>
                 <option value="knowledge">企业知识库</option>
-                <option value="assistant">AI 助手</option>
               </select>
               <small>正式接入后用于登录后的默认落点。</small>
             </label>

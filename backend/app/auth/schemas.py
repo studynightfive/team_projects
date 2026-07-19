@@ -19,6 +19,21 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=128)
 
 
+class RegisterRequest(BaseModel):
+    """公开注册请求。首期只创建普通用户账号。"""
+
+    username: str = Field(..., min_length=1, max_length=150)
+    display_name: str = Field(..., min_length=1, max_length=150)
+    password: str = Field(..., min_length=7, max_length=128)
+
+
+class UsernameAvailability(BaseModel):
+    """账号 ID 可用性检查结果。"""
+
+    username: str
+    available: bool
+
+
 # ============================================================
 # 响应数据模型
 # ============================================================

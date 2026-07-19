@@ -4,7 +4,6 @@ import { computed } from "vue";
 import type {
   DataSourceConnectionStatus,
   PermissionStatus,
-  ResearchStatus,
   SearchStatus,
   VerifiedStatus,
 } from "../../types/ai-search";
@@ -24,7 +23,6 @@ type BadgeStatus =
   | VerifiedStatus
   | PermissionStatus
   | DataSourceConnectionStatus
-  | ResearchStatus
   | SearchStatus;
 
 const props = defineProps<{
@@ -48,9 +46,6 @@ const statusPresentation = computed(() => {
       tone: "warning",
       icon: LockKeyhole,
     },
-    waiting: { label: "等待执行", tone: "neutral", icon: CircleDashed },
-    running: { label: "正在执行", tone: "info", icon: LoaderCircle },
-    completed: { label: "已完成", tone: "success", icon: CheckCircle2 },
     idle: { label: "等待搜索", tone: "neutral", icon: CircleDashed },
     searching: { label: "正在检索", tone: "info", icon: LoaderCircle },
     success: { label: "生成完成", tone: "success", icon: CheckCircle2 },
@@ -70,7 +65,6 @@ const statusPresentation = computed(() => {
       :class="{
         spinning:
           status === 'syncing' ||
-          status === 'running' ||
           status === 'searching',
       }"
       aria-hidden="true"

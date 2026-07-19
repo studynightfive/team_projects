@@ -6,7 +6,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import select
+import structlog
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.config import Settings
@@ -14,7 +15,7 @@ from app.common.config import settings as app_settings
 from app.common.exceptions import AppException, ForbiddenException, NotFoundException
 from app.common.models import User
 from app.common.schemas import ErrorCode
-from app.documents.chunking import Chunker
+from app.documents.chunking import Chunk, Chunker
 from app.documents.indexing import DocumentIndexingService
 from app.documents.markdown import MarkdownConverter
 from app.documents.models import (
@@ -28,6 +29,8 @@ from app.documents.models import (
 )
 from app.documents.permissions import require_any_permission, user_can_access_kb
 from app.documents.schemas import (
+    AdminDocumentItem,
+    AdminTaskItem,
     ChunkItem,
     DocumentDetail,
     DocumentSummary,
@@ -40,6 +43,9 @@ from app.documents.schemas import (
 )
 from app.documents.storage import DocumentStorage, compute_sha256
 from app.knowledge.models import KnowledgeBase
+from app.models import service as model_service
+from app.models.providers.openai import build_provider
+from app.models.security import decrypt_api_key
 from app.parsers.mime import detect_file
 from app.parsers.pdf import enrich_pdf_with_ocr
 from app.parsers.registry import get_parser_registry
@@ -51,6 +57,9 @@ def get_settings() -> Settings:
 
 def new_request_id() -> str:
     return str(uuid.uuid4())
+
+
+logger = structlog.get_logger()
 
 STAGE_PROGRESS = {
     DocumentStatus.UPLOADED.value: 5,
@@ -105,6 +114,83 @@ class DocumentService:
         start = (page - 1) * page_size
         items = all_docs[start : start + page_size]
         return [DocumentSummary.model_validate(d) for d in items], total
+
+    async def list_admin_documents(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        search: str | None = None,
+        status: str | None = None,
+    ) -> tuple[list[AdminDocumentItem], int]:
+        stmt = select(Document, KnowledgeBase.name).join(
+            KnowledgeBase, KnowledgeBase.id == Document.knowledge_base_id
+        )
+        if search:
+            keyword = f"%{search}%"
+            stmt = stmt.where(
+                Document.title.ilike(keyword)
+                | Document.original_filename.ilike(keyword)
+                | KnowledgeBase.name.ilike(keyword)
+            )
+        if status:
+            stmt = stmt.where(Document.status == status)
+
+        total = (
+            await self.session.execute(select(func.count()).select_from(stmt.subquery()))
+        ).scalar() or 0
+        offset = (page - 1) * page_size
+        rows = await self.session.execute(
+            stmt.order_by(Document.updated_at.desc()).offset(offset).limit(page_size)
+        )
+        items: list[AdminDocumentItem] = []
+        for document, kb_name in rows.all():
+            data = DocumentSummary.model_validate(document).model_dump()
+            items.append(AdminDocumentItem(**data, knowledge_base_name=kb_name))
+        return items, total
+
+    async def list_admin_tasks(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        search: str | None = None,
+        status: str | None = None,
+    ) -> tuple[list[AdminTaskItem], int]:
+        stmt = (
+            select(DocumentTask, Document, KnowledgeBase.name)
+            .join(Document, Document.id == DocumentTask.document_id)
+            .join(KnowledgeBase, KnowledgeBase.id == Document.knowledge_base_id)
+        )
+        if search:
+            keyword = f"%{search}%"
+            stmt = stmt.where(
+                Document.title.ilike(keyword)
+                | DocumentTask.stage.ilike(keyword)
+                | KnowledgeBase.name.ilike(keyword)
+            )
+        if status:
+            stmt = stmt.where(DocumentTask.status == status)
+
+        total = (
+            await self.session.execute(select(func.count()).select_from(stmt.subquery()))
+        ).scalar() or 0
+        offset = (page - 1) * page_size
+        rows = await self.session.execute(
+            stmt.order_by(DocumentTask.created_at.desc()).offset(offset).limit(page_size)
+        )
+        items: list[AdminTaskItem] = []
+        for task, document, kb_name in rows.all():
+            data = TaskResponse.from_orm_task(task).model_dump()
+            items.append(
+                AdminTaskItem(
+                    **data,
+                    document_id=document.id,
+                    document_title=document.title,
+                    knowledge_base_id=document.knowledge_base_id,
+                    knowledge_base_name=kb_name,
+                    started_at=task.started_at,
+                )
+            )
+        return items, total
 
     async def get_document(self, user: User, document_id: str) -> DocumentDetail:
         doc = await self.session.get(Document, document_id)
@@ -168,7 +254,11 @@ class DocumentService:
         files: list[tuple[str, bytes]],
         options: UploadOptions,
     ) -> UploadResponse:
-        require_any_permission(user, "admin.document.upload", "admin.document.view")
+        require_any_permission(
+            user,
+            "admin.document.upload",
+            "document.upload",
+        )
         if not await user_can_access_kb(self.session, user, str(kb_id)):
             raise ForbiddenException(message="无权访问该知识库")
         await self._get_kb(kb_id)
@@ -460,6 +550,7 @@ class DocumentService:
 
         await self._set_stage(doc, task, DocumentStatus.INDEXING)
         next_generation = await self._next_index_generation(doc.id)
+        embedding_vectors = await self._embed_chunks_with_configured_model(chunks)
         for chunk in chunks:
             embedding = self.indexer.embed_chunk(chunk)
             self.session.add(
@@ -476,6 +567,7 @@ class DocumentService:
                     char_end=chunk.char_end,
                     token_estimate=chunk.token_estimate,
                     embedding_json=self.indexer.serialize_embedding(embedding),
+                    embedding_vector=embedding_vectors.get(chunk.chunk_no),
                     index_generation=next_generation,
                     is_active=False,
                 )
@@ -499,6 +591,47 @@ class DocumentService:
         task.stage = stage.value
         task.progress = float(STAGE_PROGRESS.get(stage.value, task.progress))
         await self.session.flush()
+
+    async def _embed_chunks_with_configured_model(
+        self,
+        chunks: list[Chunk],
+    ) -> dict[int, list[float]]:
+        models = await model_service.list_models(self.session, kind="embedding")
+        model = next(
+            (
+                item
+                for item in models
+                if item.enabled and item.model_name == self.settings.qwen_embedding_model
+            ),
+            None,
+        )
+        if model is None or not model.api_key_encrypted:
+            return {}
+
+        provider = await model_service.get_provider(self.session, model.provider_code)
+        if provider is None or not provider.enabled:
+            return {}
+
+        api_key = decrypt_api_key(model.api_key_encrypted)
+        provider_client = build_provider(provider.code, provider.base_url, api_key)
+        vectors: dict[int, list[float]] = {}
+        try:
+            for start in range(0, len(chunks), 16):
+                batch = chunks[start : start + 16]
+                embeddings = await provider_client.embed(
+                    model_name=model.model_name,
+                    inputs=[chunk.content for chunk in batch],
+                )
+                for chunk, embedding in zip(batch, embeddings, strict=False):
+                    if len(embedding) == self.settings.qwen_embedding_dimensions:
+                        vectors[chunk.chunk_no] = embedding
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "qwen_embedding_failed_fallback_to_stub",
+                error_type=type(exc).__name__,
+            )
+            return {}
+        return vectors
 
     async def _fail(
         self,

@@ -146,6 +146,6 @@ class OpenAICompatibleProvider:
 
 def build_provider(provider_code: str, base_url: str, api_key: str, timeout: float = 10.0):
     """Provider 工厂：当前全部用 OpenAI 兼容实现（DeepSeek/Ollama 等同样适配）。"""
-    if provider_code in ("openai", "deepseek", "ollama", "custom", "anthropic"):
+    if provider_code in ("openai", "deepseek", "ollama", "custom", "anthropic", "dashscope"):
         return OpenAICompatibleProvider(provider_code, base_url, api_key, timeout)
     raise ValueError(f"unsupported provider_code: {provider_code}")

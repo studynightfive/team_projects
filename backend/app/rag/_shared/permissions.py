@@ -30,6 +30,24 @@ async def get_user_accessible_kb_ids(db: AsyncSession, user: User) -> set[str]:
     2. 用户角色继承的 KB 权限（subject_type = role, subject_id in user.role_ids）
     """
     role_ids = [r.id for r in user.roles if r.status == "active"]
+    permissions = {
+        perm.code
+        for role in user.roles
+        if role.status == "active"
+        for perm in role.permissions
+    }
+    if any(
+        code in permissions
+        for code in {
+            "admin.knowledge_base.view",
+            "admin.document.view",
+            "admin.document.upload",
+        }
+    ):
+        from app.knowledge.models import KnowledgeBase
+
+        rows = await db.execute(select(KnowledgeBase.id))
+        return {row[0] for row in rows.fetchall()}
 
     user_kb_q = select(KnowledgeBasePermission.kb_id).where(
         KnowledgeBasePermission.subject_type == "user",

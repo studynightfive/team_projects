@@ -1,6 +1,17 @@
-import axios from "axios";
-import type { AxiosInstance, CreateAxiosDefaults } from "axios";
+import axios, { AxiosHeaders } from "axios";
+import type {
+  AxiosError,
+  AxiosInstance,
+  CreateAxiosDefaults,
+  InternalAxiosRequestConfig,
+} from "axios";
 
+import {
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+} from "./session";
+import { isMockApiMode } from "../config/runtime";
 import { mockAdapter } from "../mocks/adapter";
 
 export interface PublicApiError {
@@ -12,27 +23,108 @@ interface ApiClientOptions {
   readonly useMock?: boolean;
 }
 
+interface ApiResponse<T> {
+  readonly code: number;
+  readonly message: string;
+  readonly data: T | null;
+  readonly request_id: string;
+}
+
+interface AuthTokenData {
+  readonly access_token: string;
+}
+
+interface RetriableRequestConfig extends InternalAxiosRequestConfig {
+  _authRetried?: boolean;
+}
+
 const GENERIC_ERROR_MESSAGE = "请求失败，请稍后重试。";
 
 const publicStatusMessages: Readonly<Record<number, string>> = {
   401: "登录状态已失效，请重新登录。",
   403: "当前账号没有执行此操作的权限。",
   404: "请求的内容不存在或已被移除。",
+  409: "当前名称已存在，请换一个名称后重试。",
 };
 
 export const createApiClient = (
   options: ApiClientOptions = {},
 ): AxiosInstance => {
+  const useMock = options.useMock === true;
   const config: CreateAxiosDefaults = {
     baseURL: "/api",
     withCredentials: true,
   };
 
-  if (options.useMock === true) {
+  if (useMock) {
     config.adapter = mockAdapter;
   }
 
-  return axios.create(config);
+  const client = axios.create(config);
+
+  client.interceptors.request.use((requestConfig) => {
+    const token = getAccessToken();
+    if (token !== undefined && token !== "") {
+      const headers = AxiosHeaders.from(requestConfig.headers);
+      if (!headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      requestConfig.headers = headers;
+    }
+    return requestConfig;
+  });
+
+  if (!useMock) {
+    const refreshClient = axios.create({
+      baseURL: config.baseURL,
+      withCredentials: true,
+    });
+
+    client.interceptors.response.use(
+      (response) => response,
+      async (error: AxiosError) => {
+        const status = error.response?.status;
+        const originalRequest = error.config as
+          | RetriableRequestConfig
+          | undefined;
+        const url = originalRequest?.url ?? "";
+
+        if (
+          status !== 401 ||
+          originalRequest === undefined ||
+          originalRequest._authRetried === true ||
+          url.includes("/v1/auth/login") ||
+          url.includes("/v1/auth/refresh")
+        ) {
+          if (status === 401) {
+            clearAccessToken();
+          }
+          return Promise.reject(error);
+        }
+
+        originalRequest._authRetried = true;
+
+        try {
+          const refreshResponse =
+            await refreshClient.post<ApiResponse<AuthTokenData>>(
+              "/v1/auth/refresh",
+            );
+          const token = refreshResponse.data.data?.access_token;
+          if (token === undefined || token === "") {
+            clearAccessToken();
+            return Promise.reject(error);
+          }
+          setAccessToken(token);
+          return client.request(originalRequest);
+        } catch {
+          clearAccessToken();
+          return Promise.reject(error);
+        }
+      },
+    );
+  }
+
+  return client;
 };
 
 /**
@@ -64,5 +156,7 @@ export const toPublicApiError = (error: unknown): PublicApiError => {
 };
 
 export const apiClient = createApiClient({
-  useMock: import.meta.env.MODE === "mock",
+  useMock: isMockApiMode,
 });
+
+export { clearAccessToken, getAccessToken, setAccessToken };

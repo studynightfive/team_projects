@@ -51,13 +51,6 @@ const businessRoutes: readonly BusinessRouteCase[] = [
     activeNavigation: "AI 搜索",
   },
   {
-    name: "deep-research",
-    path: "/research",
-    title: "深度研究",
-    shell: "user",
-    activeNavigation: "深度研究",
-  },
-  {
     name: "knowledge-spaces",
     path: "/spaces",
     title: "我的空间",
@@ -79,31 +72,10 @@ const businessRoutes: readonly BusinessRouteCase[] = [
     activeNavigation: "搜索历史",
   },
   {
-    name: "data-sources",
-    path: "/data-sources",
-    title: "数据源",
-    shell: "user",
-    activeNavigation: "数据源",
-  },
-  {
     name: "search-settings",
     path: "/settings",
     title: "搜索设置",
     shell: "user",
-  },
-  {
-    name: "chat-new",
-    path: "/chat",
-    title: "AI 助手",
-    shell: "user",
-    activeNavigation: "AI 助手",
-  },
-  {
-    name: "chat-detail",
-    path: "/chat/conv-release-review",
-    title: "会话详情",
-    shell: "user",
-    activeNavigation: "AI 助手",
   },
   {
     name: "conversations",
@@ -267,10 +239,6 @@ describe("M02-M14 本地业务路由", () => {
       path: "/knowledge/product-handbook/documents/release-guide",
       moduleName: "企业知识库",
     },
-    {
-      path: "/chat/conv-release-review",
-      moduleName: "AI 助手",
-    },
   ])("$path 的详情上下文归属于 $moduleName", async ({ path, moduleName }) => {
     const { wrapper, router } = await renderAppAt(path);
 
@@ -349,7 +317,8 @@ describe("M02-M14 本地业务路由", () => {
     const profilePreview = document.body.querySelector(".profile-preview");
     expect(document.body.textContent).toContain("个人资料");
     expect(profilePreview).not.toBeNull();
-    expect(profilePreview?.textContent).toContain("等待认证服务接入");
+    expect(profilePreview?.textContent).toContain("已通过统一认证");
+    expect(profilePreview?.textContent).toContain("/api/v1/me");
     expect(
       profilePreview?.querySelectorAll(".profile-preview-detail-card"),
     ).toHaveLength(3);
@@ -538,46 +507,6 @@ describe("M03-M07 用户页面本地交互", () => {
     await flushPromises();
   });
 
-  it("新问答逐段展示、停止和历史引用均不启动网络请求", async () => {
-    const requestSpy = vi.spyOn(apiClient, "request");
-    const chat = await renderAppAt("/chat");
-    const promptInput = chat.wrapper.get("#chat-prompt");
-
-    expect(chat.wrapper.findAll(".suggested-prompt")).toHaveLength(3);
-    await chat.wrapper.findAll(".suggested-prompt")[0]?.trigger("click");
-    expect((promptInput.element as HTMLTextAreaElement).value).toBe(
-      "发布上线前需要检查哪些内容？",
-    );
-    await promptInput.setValue("如何准备发布？");
-    await promptInput.trigger("keydown", { key: "Enter", shiftKey: true });
-    expect(chat.wrapper.findAll(".message")).toHaveLength(0);
-    await promptInput.trigger("keydown", { key: "Enter" });
-    expect(chat.wrapper.text()).toContain("如何准备发布？");
-    expect(chat.wrapper.get(".preview-status").text()).toBe("正在逐段展示");
-    await getButton(chat.wrapper, "停止生成").trigger("click");
-    expect(chat.wrapper.get(".preview-status").text()).toBe("已停止本地预览");
-    chat.wrapper.unmount();
-
-    const history = await renderAppAt("/chat/conv-release-review");
-    expect(history.wrapper.findAll(".message")).toHaveLength(2);
-    expect(history.wrapper.get(".citation-card").attributes("href")).toContain(
-      "/knowledge/product-handbook/documents/release-guide",
-    );
-    expect(
-      history.wrapper.find(".citation-card .lucide-arrow-up-right").exists(),
-    ).toBe(false);
-    expect(
-      history.wrapper.find(".citation-card .lucide-chevron-right").exists(),
-    ).toBe(true);
-    history.wrapper.unmount();
-
-    const missing = await renderAppAt("/chat/missing-conversation");
-    expect(missing.wrapper.get("h1").text()).toBe("会话不存在");
-    expect(missing.wrapper.text()).toContain("未找到这条会话");
-    expect(missing.wrapper.find("form.composer").exists()).toBe(false);
-    expect(requestSpy).not.toHaveBeenCalled();
-  });
-
   it("会话重命名、删除确认和下载筛选只影响当前页面", async () => {
     const requestSpy = vi.spyOn(apiClient, "request");
     const conversations = await renderAppAt("/conversations");
@@ -619,39 +548,42 @@ describe("M03-M07 用户页面本地交互", () => {
   });
 });
 
-describe("M09-M14 管理页面本地交互", () => {
-  it("用户和角色筛选提供空状态与本地编辑入口", async () => {
-    const requestSpy = vi.spyOn(apiClient, "request");
+describe("M09-M14 管理页面真实 API 渲染", () => {
+  it("用户和角色页面使用 API 数据并提供真实编辑入口", async () => {
     const users = await renderAppAt("/admin/users");
+    await flushPromises();
+    expect(users.wrapper.text()).toContain("admin");
+    expect(users.wrapper.text()).toContain("liuhaiwang");
     await users.wrapper
-      .get('input[placeholder="姓名、邮箱、部门或角色"]')
+      .get('input[placeholder="账号 ID、姓名或角色"]')
       .setValue("不存在的用户");
     expect(users.wrapper.text()).toContain("没有匹配的用户");
     await users.wrapper
-      .get('input[placeholder="姓名、邮箱、部门或角色"]')
+      .get('input[placeholder="账号 ID、姓名或角色"]')
       .setValue("");
     await getButton(users.wrapper, "编辑").trigger("click");
     await flushPromises();
-    expect(document.body.textContent).toContain("编辑用户（本地预览）");
+    expect(document.body.textContent).toContain("编辑用户");
     users.wrapper.unmount();
 
     const roles = await renderAppAt("/admin/roles");
+    await flushPromises();
+    expect(roles.wrapper.text()).toContain("超级管理员");
     await roles.wrapper
-      .get('input[placeholder="角色名称、说明或授权范围"]')
+      .get('input[placeholder="角色名称、说明或状态"]')
       .setValue("不存在的角色");
     expect(roles.wrapper.text()).toContain("没有匹配的角色");
     await roles.wrapper
-      .get('input[placeholder="角色名称、说明或授权范围"]')
+      .get('input[placeholder="角色名称、说明或状态"]')
       .setValue("");
-    await getButton(roles.wrapper, "编辑授权预览").trigger("click");
+    await getButton(roles.wrapper, "编辑授权").trigger("click");
     await flushPromises();
-    expect(document.body.textContent).toContain("角色授权（本地预览）");
-    expect(requestSpy).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("角色授权");
   });
 
   it("模型密钥默认空、关闭即清空且不写入浏览器存储", async () => {
-    const requestSpy = vi.spyOn(apiClient, "request");
     const { wrapper } = await renderAppAt("/admin/models");
+    await flushPromises();
 
     await getButton(wrapper, "配置").trigger("click");
     await flushPromises();
@@ -662,7 +594,7 @@ describe("M09-M14 管理页面本地交互", () => {
     if (credential === null) return;
 
     expect(credential.value).toBe("");
-    credential.value = "local-preview-placeholder";
+    credential.value = "local-secret-placeholder";
     credential.dispatchEvent(new Event("input", { bubbles: true }));
     getDocumentButton("取消并清空密钥").click();
     await flushPromises();
@@ -678,180 +610,63 @@ describe("M09-M14 管理页面本地交互", () => {
     ).toBe("");
     expect(localStorage).toHaveLength(0);
     expect(sessionStorage).toHaveLength(0);
-    expect(requestSpy).not.toHaveBeenCalled();
   });
 
-  it("知识库归档与文档、任务状态逐条更新且不提交服务端", async () => {
-    const requestSpy = vi.spyOn(apiClient, "request");
+  it("知识库、文档和任务页面展示 API 返回的真实状态", async () => {
     const knowledgeBases = await renderAppAt("/admin/knowledge-bases");
-    await getButton(knowledgeBases.wrapper, "归档").trigger("click");
-    expect(knowledgeBases.wrapper.get("tbody tr .status-chip").text()).toBe(
-      "归档中",
-    );
+    await flushPromises();
+    expect(knowledgeBases.wrapper.text()).toContain("默认知识库");
+    expect(knowledgeBases.wrapper.text()).toContain("医疗信息化知识库");
     knowledgeBases.wrapper.unmount();
 
     const documents = await renderAppAt("/admin/documents");
-    await getButton(documents.wrapper, "重试").trigger("click");
-    const retriedDocument = documents.wrapper
-      .findAll("tbody tr")
-      .find((row) => row.text().includes("服务降级复盘模板"));
-    expect(retriedDocument?.text()).toContain("处理中");
-    expect(
-      documents.wrapper
-        .findAll("tbody tr")
-        .find((row) => row.text().includes("统一发布流程与回滚指南"))
-        ?.text(),
-    ).not.toContain("重试");
-    await getButton(documents.wrapper, "预览").trigger("click");
     await flushPromises();
-    expect(document.body.textContent).toContain("文档详情（本地预览）");
+    expect(documents.wrapper.text()).toContain("医疗信息化IT系统分析文档");
+    expect(documents.wrapper.text()).toContain("服务降级复盘模板");
+    await getButton(documents.wrapper, "详情").trigger("click");
+    await flushPromises();
+    expect(document.body.textContent).toContain("文档详情");
     documents.wrapper.unmount();
 
     const tasks = await renderAppAt("/admin/tasks");
+    await flushPromises();
     expect(tasks.wrapper.get("progress").attributes("aria-label")).toContain(
       "处理进度",
     );
-    await getButton(tasks.wrapper, "重试").trigger("click");
-    const retriedTask = tasks.wrapper
-      .findAll("tbody tr")
-      .find((row) => row.text().includes("服务降级复盘模板"));
-    expect(retriedTask?.text()).toContain("处理中");
-    expect(retriedTask?.text()).toContain("已重新进入处理队列");
-    expect(requestSpy).not.toHaveBeenCalled();
+    expect(tasks.wrapper.text()).toContain("转换失败");
   });
 
-  it("命中率测试保留参数并生成固定本地结果", async () => {
-    const requestSpy = vi.spyOn(apiClient, "request");
+  it("命中率测试读取真实测试集和运行记录", async () => {
     const { wrapper } = await renderAppAt("/admin/retrieval-tests");
-
-    await wrapper.findAll(".retrieval-form select").at(0)?.setValue("向量");
-    await wrapper.get(".retrieval-form").trigger("submit");
-
-    expect(wrapper.findAll(".retrieval-results li")).toHaveLength(3);
-    expect(wrapper.text()).toContain("向量模式 · TopK 8");
-    expect(wrapper.text()).toContain("demo-retrieval-preview");
-
-    await wrapper.get<HTMLInputElement>('input[type="number"]').setValue(1);
-    expect(wrapper.findAll(".retrieval-results li")).toHaveLength(1);
-
-    await wrapper.get<HTMLInputElement>('input[type="number"]').setValue(8);
-    await wrapper
-      .findAll(".retrieval-form select")
-      .at(2)
-      ?.setValue("quality-gates");
-    await wrapper.get<HTMLInputElement>('input[type="range"]').setValue(0.9);
-    expect(wrapper.findAll(".retrieval-results li")).toHaveLength(1);
-    expect(wrapper.get(".retrieval-results li").text()).toContain(
-      "前端质量门禁清单",
-    );
-
-    await wrapper.get<HTMLInputElement>('input[type="range"]').setValue(1);
-    expect(wrapper.findAll(".retrieval-results li")).toHaveLength(0);
-    expect(wrapper.text()).toContain("没有命中当前参数的固定结果");
-
-    await wrapper
-      .findAll(".retrieval-form select")
-      .at(1)
-      ?.setValue("engineering-playbook");
     await flushPromises();
-    expect(wrapper.findAll(".retrieval-results li")).toHaveLength(0);
-    expect(wrapper.text()).not.toContain("统一发布流程与回滚指南");
-    expect(requestSpy).not.toHaveBeenCalled();
+
+    expect(wrapper.text()).toContain("医疗信息化验收测试集");
+    expect(wrapper.text()).toContain("run-1");
+    await wrapper.get(".retrieval-form").trigger("submit");
+    await flushPromises();
+    expect(wrapper.text()).toContain("真实测试记录");
   });
 
-  it("审计筛选与详情只展示掩码后的示例标识", async () => {
-    const requestSpy = vi.spyOn(apiClient, "request");
+  it("审计日志使用 API 数据并掩码网络标识", async () => {
     const { wrapper } = await renderAppAt("/admin/audit-logs");
+    await flushPromises();
     const maskedRequestIds = wrapper
       .findAll("tbody tr")
       .map((row) => row.findAll("td")[4]?.text());
     expect(new Set(maskedRequestIds).size).toBe(4);
     expect(
       maskedRequestIds.every((value) =>
-        /^demo-req-\*\*[0-9a-f]{2}$/u.test(value ?? ""),
+        /^demo-r\*\*\*\*[0-9a-f]{4}$/u.test(value ?? ""),
       ),
     ).toBe(true);
 
-    await wrapper.findAll(".filter-bar select").at(1)?.setValue("失败");
+    await wrapper.findAll(".filter-bar select").at(0)?.setValue("失败");
     expect(wrapper.findAll("tbody tr")).toHaveLength(1);
     await getButton(wrapper, "查看详情").trigger("click");
     await flushPromises();
 
-    expect(document.body.textContent).toContain("审计详情（只读）");
-    expect(document.body.textContent).toContain("demo-req-**82");
+    expect(document.body.textContent).toContain("审计详情");
     expect(document.body.textContent).toContain("203.0.113.xxx");
-    expect(document.body.textContent).not.toContain("demo-req-4a82");
-    expect(document.body.textContent).not.toContain("203.0.113.9");
-    expect(requestSpy).not.toHaveBeenCalled();
-  });
-
-  it("编辑固定样例会保留多角色、完整权限与原知识库参数", async () => {
-    const users = await renderAppAt("/admin/users");
-    const multiRoleUser = users.wrapper
-      .findAll("tbody tr")
-      .find((row) => row.text().includes("周予安"));
-    await multiRoleUser?.get("button").trigger("click");
-    await flushPromises();
-    getDocumentButton("保存本地预览").click();
-    await flushPromises();
-    expect(
-      users.wrapper
-        .findAll("tbody tr")
-        .find((row) => row.text().includes("周予安"))
-        ?.text(),
-    ).toContain("平台管理员、知识库编辑者");
-    users.wrapper.unmount();
-
-    const roles = await renderAppAt("/admin/roles");
-    await getButton(roles.wrapper, "编辑授权预览").trigger("click");
-    await flushPromises();
-    expect(
-      document.querySelectorAll(
-        '.checkbox-list input[type="checkbox"]:checked',
-      ),
-    ).toHaveLength(18);
-    getDocumentButton("保存本地预览").click();
-    await flushPromises();
-    expect(roles.wrapper.get(".role-card").text()).toContain("18");
-    roles.wrapper.unmount();
-
-    const knowledgeBases = await renderAppAt("/admin/knowledge-bases");
-    const researchBase = knowledgeBases.wrapper
-      .findAll("tbody tr")
-      .find((row) => row.text().includes("研发效能手册"));
-    await researchBase?.get("button").trigger("click");
-    await flushPromises();
-    const parameters = Array.from(
-      document.querySelectorAll<HTMLInputElement>(
-        '.ant-drawer input[type="number"]',
-      ),
-    );
-    expect(parameters.map((input) => input.value)).toEqual(["10", "0.58"]);
-    const thresholdInput = parameters[1];
-    if (thresholdInput === undefined) {
-      throw new Error("未找到知识库阈值输入框");
-    }
-    thresholdInput.value = "";
-    thresholdInput.dispatchEvent(new Event("input", { bubbles: true }));
-    document
-      .querySelector<HTMLFormElement>(".ant-drawer form.drawer-form")
-      ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    await flushPromises();
-    expect(document.body.textContent).toContain("知识库配置（本地预览）");
-    thresholdInput.value = "0.58";
-    thresholdInput.dispatchEvent(new Event("input", { bubbles: true }));
-    const adminAuthorization = document.querySelector<HTMLInputElement>(
-      '.ant-drawer input[value="平台管理员"]',
-    );
-    adminAuthorization?.click();
-    getDocumentButton("保存本地预览").click();
-    await flushPromises();
-    await researchBase?.get("button").trigger("click");
-    await flushPromises();
-    expect(
-      document.querySelector<HTMLInputElement>(
-        '.ant-drawer input[value="平台管理员"]',
-      )?.checked,
-    ).toBe(true);
+    expect(document.body.textContent).not.toContain("203.0.113.10");
   });
 });

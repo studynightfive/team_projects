@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { App as AntApp, Modal as AntModal } from "ant-design-vue";
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import { RouterLink, useRoute } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import {
   isNavigationItemActive,
   type NavigationItem,
 } from "../data/foundation";
+import { logoutCurrentUser } from "../services/auth";
+import { useSessionStore } from "../stores/session";
 import AppSidebar from "./AppSidebar.vue";
 import {
   Building2,
@@ -28,7 +30,7 @@ defineProps<{
   identityName: string;
   identityRole: string;
   identityInitial: string;
-  workspaceSwitch: {
+  workspaceSwitch?: {
     readonly label: string;
     readonly mobileLabel: string;
     readonly to: string;
@@ -41,6 +43,8 @@ defineSlots<{
 }>();
 
 const route = useRoute();
+const router = useRouter();
+const sessionStore = useSessionStore();
 const { message } = AntApp.useApp();
 const isDrawerOpen = ref(false);
 const isSidebarCollapsed = ref(false);
@@ -69,6 +73,19 @@ const toggleSidebar = (): void => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
   if (tabletViewportQuery?.matches !== true) {
     desktopCollapsedPreference = isSidebarCollapsed.value;
+  }
+};
+
+const handleLogout = async (): Promise<void> => {
+  try {
+    await logoutCurrentUser();
+    void message.success("已退出登录");
+  } catch {
+    void message.warning("登录状态已清理，请重新登录");
+  } finally {
+    sessionStore.clearUser();
+    isProfileOpen.value = false;
+    await router.replace("/login");
   }
 };
 
@@ -109,6 +126,7 @@ onBeforeUnmount(() => {
       @toggle-collapse="toggleSidebar"
       @notice="showNotice"
       @open-profile="isProfileOpen = true"
+      @logout="handleLogout"
     />
 
     <div class="workspace-main-column">
@@ -159,10 +177,14 @@ onBeforeUnmount(() => {
       :dialog-label="`${areaTitle}完整导航`"
       :variant="variant"
       :navigation="navigation"
-      :workspace-switch="{
-        label: workspaceSwitch.mobileLabel,
-        to: workspaceSwitch.to,
-      }"
+      :workspace-switch="
+        workspaceSwitch === undefined
+          ? undefined
+          : {
+            label: workspaceSwitch.mobileLabel,
+            to: workspaceSwitch.to,
+          }
+      "
       :return-focus-to="menuButtonRef"
       @update:open="isDrawerOpen = $event"
       @notice="showNotice"
@@ -184,7 +206,7 @@ onBeforeUnmount(() => {
           <div class="profile-preview-identity">
             <div class="profile-preview-name-row">
               <strong>{{ identityName }}</strong>
-              <span class="local-preview-badge">本地模拟资料</span>
+              <span class="local-preview-badge">真实账号资料</span>
             </div>
             <span>{{ identityRole }}</span>
           </div>
@@ -205,7 +227,7 @@ onBeforeUnmount(() => {
             </span>
             <div class="profile-preview-detail-copy">
               <dt>认证状态</dt>
-              <dd>等待认证服务接入</dd>
+              <dd>已通过统一认证</dd>
             </div>
           </div>
           <div class="profile-preview-detail-card">
@@ -214,7 +236,7 @@ onBeforeUnmount(() => {
             </span>
             <div class="profile-preview-detail-copy">
               <dt>资料来源</dt>
-              <dd>固定演示数据</dd>
+              <dd>/api/v1/me</dd>
             </div>
           </div>
         </dl>
@@ -223,7 +245,7 @@ onBeforeUnmount(() => {
           <div>
             <strong>资料接入说明</strong>
             <p>
-              当前资料仅用于界面演示；真实姓名、部门和权限将在个人资料接口确认后接入。
+              当前资料来自登录态和 /me 接口；权限变化后请重新登录或刷新会话。
             </p>
           </div>
         </div>

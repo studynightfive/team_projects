@@ -17,7 +17,7 @@ class CreateUserRequest(BaseModel):
 
     username: str = Field(..., min_length=1, max_length=150)
     display_name: str = Field(..., min_length=1, max_length=150)
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = Field(..., min_length=7, max_length=128)
     role_ids: list[str] = []
 
 
@@ -32,7 +32,7 @@ class UpdateUserRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     """重置密码请求"""
 
-    new_password: str = Field(..., min_length=8, max_length=128)
+    new_password: str = Field(..., min_length=7, max_length=128)
 
 
 # ============================================================

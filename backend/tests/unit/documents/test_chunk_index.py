@@ -32,6 +32,20 @@ async def test_chunker_and_embedding() -> None:
 
 
 @pytest.mark.asyncio
+async def test_chunker_prefers_markdown_headings_and_paragraphs() -> None:
+    md = "# 文档\n\n## 第一节\n\n段落一。\n\n段落二。\n\n## 第二节\n\n段落三。"
+    chunks = await Chunker().split(md, {"chunk_size": 800, "chunk_overlap": 120})
+    contents = [chunk.content for chunk in chunks]
+
+    assert "# 文档" in contents
+    assert "## 第一节" in contents
+    assert any(content == "## 第一节\n\n段落一。" for content in contents)
+    assert any(content == "## 第一节\n\n段落二。" for content in contents)
+    assert any(content == "## 第二节\n\n段落三。" for content in contents)
+    assert not any("段落一。\n\n段落二。" in content for content in contents)
+
+
+@pytest.mark.asyncio
 async def test_markdown_package() -> None:
     parsed = ParsedDocument(
         title="标题",

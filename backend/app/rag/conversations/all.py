@@ -17,7 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import get_current_user, require_any_permission
 from app.common.database import Base, get_db
 from app.common.exceptions import ForbiddenException, NotFoundException, ValidationException
 from app.common.models import User
@@ -309,7 +309,7 @@ async def list_conversations_endpoint(
     query_text: str | None = Query(None, alias="q"),
     include_archived: bool = Query(False),
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("conversation:read")),
+    _perm: None = Depends(require_any_permission("conversation:read", "conversation.view")),
     db: AsyncSession = Depends(get_db),
 ):
     convs, total = await list_conversations(
@@ -331,7 +331,7 @@ async def create_conversation_endpoint(
     request: Request,
     payload: ConversationCreate,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("conversation:write")),
+    _perm: None = Depends(require_any_permission("conversation:write", "chat.use")),
     db: AsyncSession = Depends(get_db),
 ):
     conv, _first = await create_conversation(db, user_id=user.id, payload=payload)
@@ -354,7 +354,7 @@ async def patch_conversation_endpoint(
     request: Request,
     payload: ConversationUpdate,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("conversation:write")),
+    _perm: None = Depends(require_any_permission("conversation:write", "chat.use")),
     db: AsyncSession = Depends(get_db),
 ):
     conv = await get_conversation(db, conv_id=conversation_id, user_id=user.id)
@@ -376,7 +376,7 @@ async def delete_conversation_endpoint(
     conversation_id: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("conversation:delete")),
+    _perm: None = Depends(require_any_permission("conversation:delete", "conversation.view")),
     db: AsyncSession = Depends(get_db),
 ):
     # SELECT FOR UPDATE 保证并发删除原子化
@@ -408,7 +408,7 @@ async def list_messages_endpoint(
     page_size: int = Query(50, ge=1, le=200),
     only_latest: bool = Query(True),
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("conversation:read")),
+    _perm: None = Depends(require_any_permission("conversation:read", "conversation.view")),
     db: AsyncSession = Depends(get_db),
 ):
     conv = await get_conversation(db, conv_id=conversation_id, user_id=user.id)
@@ -437,7 +437,7 @@ async def append_message_endpoint(
     request: Request,
     payload: dict,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("conversation:write")),
+    _perm: None = Depends(require_any_permission("conversation:write", "chat.use")),
     db: AsyncSession = Depends(get_db),
 ):
     conv = await get_conversation(db, conv_id=conversation_id, user_id=user.id)

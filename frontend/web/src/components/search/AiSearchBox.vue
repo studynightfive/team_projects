@@ -2,14 +2,14 @@
 import { computed, nextTick, ref, watch } from "vue";
 
 import type {
+  KnowledgeBaseOption,
   ModelOption,
   SearchMode,
   SearchModeOption,
   SearchRequest,
-  SearchScopeOption,
   SearchSourceType,
 } from "../../types/ai-search";
-import { ChevronDown, FileText, Paperclip, Send, X } from "../icons";
+import { FileText, Paperclip, Send, X } from "../icons";
 
 const props = withDefaults(
   defineProps<{
@@ -17,9 +17,10 @@ const props = withDefaults(
     mode: SearchMode;
     sources: readonly SearchSourceType[];
     modelId: string;
+    workspaceId?: string;
     modeOptions: readonly SearchModeOption[];
-    scopeOptions: readonly SearchScopeOption[];
     modelOptions: readonly ModelOption[];
+    knowledgeBaseOptions?: readonly KnowledgeBaseOption[];
     busy?: boolean;
     disabled?: boolean;
     compact?: boolean;
@@ -28,6 +29,8 @@ const props = withDefaults(
     busy: false,
     disabled: false,
     compact: false,
+    workspaceId: undefined,
+    knowledgeBaseOptions: () => [],
   },
 );
 
@@ -36,6 +39,7 @@ const emit = defineEmits<{
   "update:mode": [value: SearchMode];
   "update:sources": [value: SearchSourceType[]];
   "update:model-id": [value: string];
+  "update:workspace-id": [value: string | undefined];
   "attachments-change": [names: string[]];
   submit: [request: SearchRequest];
   notice: [message: string];
@@ -62,19 +66,18 @@ const activeMode = computed(
     props.modeOptions.find((option) => option.value === props.mode) ??
     props.modeOptions[0],
 );
-const selectedScopeLabel = computed(() => {
-  const exactScope = props.scopeOptions.find(
-    (option) =>
-      option.sources.length === props.sources.length &&
-      option.sources.every((source) => props.sources.includes(source)),
+const selectedKnowledgeBaseLabel = computed(() => {
+  const selected = props.knowledgeBaseOptions.find(
+    (item) => item.id === props.workspaceId,
   );
-  if (exactScope !== undefined) return exactScope.label;
-  return `已选 ${props.sources.length} 类`;
+  return selected?.name ?? props.knowledgeBaseOptions[0]?.name ?? "暂无可用知识库";
 });
 const canSubmit = computed(
   () =>
     props.query.trim().length > 0 &&
     props.sources.length > 0 &&
+    props.workspaceId !== undefined &&
+    props.workspaceId !== "" &&
     !props.busy &&
     !props.disabled,
 );
@@ -90,24 +93,18 @@ const resizeTextarea = async (): Promise<void> => {
 
 watch(() => props.query, resizeTextarea, { immediate: true });
 
+watch(
+  () => props.knowledgeBaseOptions,
+  (options) => {
+    if (options.length === 0) return;
+    const exists = options.some((item) => item.id === props.workspaceId);
+    if (!exists) emit("update:workspace-id", options[0]?.id);
+  },
+  { immediate: true },
+);
+
 const updateQuery = (event: Event): void => {
   emit("update:query", (event.target as HTMLTextAreaElement).value);
-};
-
-const isScopeSelected = (option: SearchScopeOption): boolean =>
-  option.sources.every((source) => props.sources.includes(source));
-
-const toggleScope = (option: SearchScopeOption): void => {
-  const optionSelected = isScopeSelected(option);
-  const nextSources = optionSelected
-    ? props.sources.filter((source) => !option.sources.includes(source))
-    : [...new Set([...props.sources, ...option.sources])];
-
-  if (nextSources.length === 0) {
-    emit("notice", "请至少保留一个搜索范围");
-    return;
-  }
-  emit("update:sources", [...nextSources]);
 };
 
 const clearQuery = (): void => {
@@ -118,6 +115,9 @@ const clearQuery = (): void => {
 const submit = (): void => {
   if (!canSubmit.value) {
     if (props.query.trim().length === 0) emit("notice", "请输入要查找的问题");
+    else if (props.workspaceId === undefined || props.workspaceId === "") {
+      emit("notice", "请选择要检索的知识库");
+    }
     return;
   }
 
@@ -125,6 +125,10 @@ const submit = (): void => {
     query: props.query.trim(),
     mode: props.mode,
     sources: [...props.sources],
+    workspaceId:
+      props.workspaceId !== undefined && props.workspaceId !== ""
+        ? props.workspaceId
+        : undefined,
     attachmentIds: attachments.value.map((file) => file.name),
     modelId: props.modelId,
   });
@@ -304,23 +308,36 @@ defineExpose({
           </select>
         </label>
 
-        <details class="search-picker">
-          <summary title="选择搜索范围">
-            <span>{{ selectedScopeLabel }}</span>
-            <ChevronDown :size="15" aria-hidden="true" />
-          </summary>
-          <div class="search-picker-menu" role="group" aria-label="搜索范围">
-            <label v-for="option in scopeOptions" :key="option.value">
-              <input
-                type="checkbox"
-                :checked="isScopeSelected(option)"
-                :disabled="disabled || busy"
-                @change="toggleScope(option)"
-              />
-              <span>{{ option.label }}</span>
-            </label>
-          </div>
-        </details>
+        <label
+          v-if="knowledgeBaseOptions.length > 0"
+          class="search-select-label"
+        >
+          <span class="visually-hidden">选择知识库</span>
+          <select
+            :value="workspaceId ?? ''"
+            :disabled="disabled || busy"
+            :title="`选择知识库：${selectedKnowledgeBaseLabel}`"
+            @change="
+              emit(
+                'update:workspace-id',
+                ($event.target as HTMLSelectElement).value || undefined,
+              )
+            "
+          >
+            <option
+              v-for="knowledgeBase in knowledgeBaseOptions"
+              :key="knowledgeBase.id"
+              :value="knowledgeBase.id"
+            >
+              {{ knowledgeBase.name }}（{{
+                knowledgeBase.readyDocumentCount
+              }}/{{ knowledgeBase.documentCount }}）
+            </option>
+          </select>
+        </label>
+        <span v-else class="search-empty-knowledge" aria-live="polite">
+          暂无可用知识库
+        </span>
 
         <label class="search-select-label">
           <span class="visually-hidden">选择 AI 模型</span>
@@ -360,7 +377,7 @@ defineExpose({
     <div class="search-box-meta">
       <span>{{ activeMode?.description }}</span>
       <span aria-live="polite">{{
-        busy ? "正在检索已选数据源，请稍候" : "Enter 发送，Shift + Enter 换行"
+        busy ? "正在检索已选知识库，请稍候" : "Enter 发送，Shift + Enter 换行"
       }}</span>
     </div>
   </form>
@@ -519,7 +536,6 @@ defineExpose({
 }
 
 .search-tool-button,
-.search-picker summary,
 .search-select-label select {
   display: inline-flex;
   min-height: 36px;
@@ -533,57 +549,21 @@ defineExpose({
   font-size: var(--font-size-13);
 }
 
-.search-picker {
-  position: relative;
-}
-
-.search-picker summary {
-  cursor: pointer;
-  list-style: none;
-}
-
-.search-picker summary::-webkit-details-marker {
-  display: none;
-}
-
-.search-picker-menu {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  left: 0;
-  z-index: 20;
-  display: grid;
-  width: 240px;
-  padding: var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-12);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
-}
-
-.search-picker-menu label {
-  display: flex;
-  min-height: 40px;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-8);
-  color: var(--color-text-secondary);
-}
-
-.search-picker-menu label:hover {
-  background: var(--color-surface-subtle);
-}
-
-.search-picker-menu input {
-  width: 16px;
-  height: 16px;
-  min-height: 0;
-  accent-color: var(--color-primary);
-}
-
 .search-select-label select {
   appearance: auto;
   min-width: 136px;
+}
+
+.search-empty-knowledge {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  color: var(--color-text-muted);
+  background: var(--color-surface-subtle);
+  font-size: var(--font-size-13);
 }
 
 .search-submit-button {
@@ -630,7 +610,6 @@ defineExpose({
 
   .search-mode-list button,
   .search-tool-button,
-  .search-picker summary,
   .search-select-label select,
   .search-submit-button {
     min-height: 44px;
@@ -648,21 +627,10 @@ defineExpose({
   }
 
   .search-tool-button,
-  .search-picker summary,
   .search-select-label select,
   .search-select-label,
-  .search-picker {
+  .search-empty-knowledge {
     width: 100%;
-  }
-
-  .search-picker-menu {
-    position: fixed;
-    right: var(--space-4);
-    bottom: calc(var(--mobile-nav-height) + var(--space-6));
-    left: var(--space-4);
-    width: auto;
-    max-height: 50vh;
-    overflow-y: auto;
   }
 
   .search-submit-button {

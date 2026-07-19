@@ -1856,6 +1856,32 @@ p {
   font-size: var(--font-size-14);
 }
 
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: calc(var(--space-6) * -1) 0 var(--space-6);
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-muted);
+}
+
+.auth-mode-switch button {
+  min-height: 36px;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
+}
+
+.auth-mode-switch button.active {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 10%);
+}
+
 .form-field {
   display: grid;
   gap: 6px;

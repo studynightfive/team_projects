@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -147,6 +148,7 @@ class DocumentChunk(Base):
     char_end: Mapped[int] = mapped_column(Integer, nullable=False)
     token_estimate: Mapped[int] = mapped_column(Integer, default=0)
     embedding_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    embedding_vector: Mapped[list[float] | None] = mapped_column(Vector(1024), nullable=True)
     index_generation: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(

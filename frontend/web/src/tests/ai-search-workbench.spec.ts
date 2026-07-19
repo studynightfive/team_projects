@@ -39,7 +39,7 @@ describe("AI 搜索工作台关键链路", () => {
     const query = "本季度重点项目进展如何？";
     const response = await runAiSearch({
       query,
-      mode: "research",
+      mode: "smart",
       sources: ["project"],
       modelId: "enterprise-general",
     });

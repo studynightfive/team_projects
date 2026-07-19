@@ -29,6 +29,17 @@ async def user_can_access_kb(db: AsyncSession, user: User, kb_id: str) -> bool:
     perms = user_permission_codes(user)
     if "admin.document.view" in perms or "admin.document.upload" in perms:
         return True
+    role_ids = [role.id for role in user.roles if role.status == "active"]
+    if role_ids:
+        result = await db.execute(
+            select(KnowledgeBasePermission).where(
+                KnowledgeBasePermission.subject_type == "role",
+                KnowledgeBasePermission.subject_id.in_(role_ids),
+                KnowledgeBasePermission.kb_id == kb_id,
+            )
+        )
+        if result.scalar_one_or_none() is not None:
+            return True
     result = await db.execute(
         select(KnowledgeBasePermission).where(
             KnowledgeBasePermission.subject_type == "user",

@@ -1,24 +1,107 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
+import { isRealApiMode } from "../../config/runtime";
 import InlineState from "../../components/InlineState.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
-import { ChevronLeft, Download, Eye } from "../../components/icons";
+import { ChevronLeft, Download, Eye, FileUp } from "../../components/icons";
 import { localPageData } from "../../data/local-pages";
+import { toPublicApiError } from "../../api/client";
+import { useSessionStore } from "../../stores/session";
+import {
+  listDocuments,
+  listKnowledgeBases,
+  uploadDocuments,
+  type DocumentRecord,
+  type KnowledgeBaseRecord,
+} from "../../services/knowledge";
 
 const route = useRoute();
 const { message } = AntApp.useApp();
+const sessionStore = useSessionStore();
 const query = ref("");
 const status = ref("全部状态");
 const selectedDocumentIds = ref<string[]>([]);
+const realKnowledgeBase = ref<KnowledgeBaseRecord>();
+const realDocuments = ref<readonly DocumentRecord[]>([]);
+const loadState = ref<"idle" | "loading" | "error">(
+  isRealApiMode ? "loading" : "idle",
+);
+const loadError = ref("");
+const uploadInputRef = ref<HTMLInputElement>();
+const isUploading = ref(false);
+
+let loadController: AbortController | undefined;
 
 const knowledgeBase = computed(() =>
-  localPageData.knowledgeBases.find(
-    (item) => item.id === String(route.params.kb_id ?? ""),
-  ),
+  isRealApiMode
+    ? realKnowledgeBase.value
+    : localPageData.knowledgeBases.find(
+        (item) => item.id === String(route.params.kb_id ?? ""),
+      ),
+);
+const knowledgeBaseDocumentCount = computed(() =>
+  isRealApiMode
+    ? (realKnowledgeBase.value?.document_count ?? 0)
+    : (localPageData.knowledgeBases.find(
+        (item) => item.id === String(route.params.kb_id ?? ""),
+      )?.documents ?? 0),
+);
+const isLoadingRealDetail = computed(
+  () =>
+    isRealApiMode &&
+    (loadState.value === "loading" ||
+      (loadState.value === "idle" && realKnowledgeBase.value === undefined)),
+);
+const pageTitle = computed(() => {
+  if (isLoadingRealDetail.value) return "正在加载知识库";
+  return knowledgeBase.value?.name ?? "知识库不存在";
+});
+const pageDescription = computed(() => {
+  if (isLoadingRealDetail.value) return "正在读取当前账号可访问的知识库文档。";
+  return (
+    knowledgeBase.value?.description ??
+    (isRealApiMode
+      ? "请确认当前账号拥有该知识库权限。"
+      : "当前固定样例中没有此知识库。")
+  );
+});
+const canUploadKnowledge = computed(() => {
+  const permissions = sessionStore.currentUser?.permissions ?? [];
+  return permissions.some((permission) =>
+    ["admin.document.upload", "document.upload"].includes(permission),
+  );
+});
+
+const displayDocuments = computed(() =>
+  isRealApiMode
+    ? realDocuments.value.map((item) => ({
+        id: item.id,
+        knowledgeBaseId: item.knowledge_base_id,
+        name: item.title,
+        category: item.extension.toUpperCase(),
+        status:
+          item.status === "ready"
+            ? "已索引"
+            : item.status === "manual_review"
+              ? "需复核"
+              : "处理中",
+        pages: item.page_count ?? "-",
+        owner: item.parser_name ?? "系统解析",
+        updated:
+          item.updated_at === null
+            ? "刚刚"
+            : new Intl.DateTimeFormat("zh-CN", {
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              }).format(new Date(item.updated_at)),
+      }))
+    : localPageData.documents,
 );
 
 const filteredDocuments = computed(() => {
@@ -27,7 +110,7 @@ const filteredDocuments = computed(() => {
 
   const normalizedQuery = query.value.trim().toLocaleLowerCase("zh-CN");
 
-  return localPageData.documents.filter((item) => {
+  return displayDocuments.value.filter((item) => {
     const matchesKnowledgeBase =
       item.knowledgeBaseId === currentKnowledgeBaseId;
     const matchesStatus =
@@ -78,22 +161,107 @@ const previewExport = (): void => {
     `已选择 ${selectedDocumentIds.value.length} 个文档；导出仅展示本地配置，不会创建任务`,
   );
 };
+
+const loadRealDetail = async (): Promise<void> => {
+  if (!isRealApiMode) return;
+  const kbId = String(route.params.kb_id ?? "");
+  if (kbId === "") return;
+
+  loadController?.abort();
+  loadController = new AbortController();
+  loadState.value = "loading";
+  loadError.value = "";
+  try {
+    const [knowledgeBases, documents] = await Promise.all([
+      listKnowledgeBases(loadController.signal),
+      listDocuments(kbId, loadController.signal),
+    ]);
+    realKnowledgeBase.value = knowledgeBases.find((item) => item.id === kbId);
+    realDocuments.value = documents;
+    selectedDocumentIds.value = [];
+    loadState.value = "idle";
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    loadError.value = toPublicApiError(error).message;
+    loadState.value = "error";
+  }
+};
+
+const openUploadPicker = (): void => {
+  if (!canUploadKnowledge.value) {
+    void message.warning("当前账号没有上传文档权限");
+    return;
+  }
+  uploadInputRef.value?.click();
+};
+
+const handleUpload = async (event: Event): Promise<void> => {
+  const input = event.target as HTMLInputElement;
+  const files = Array.from(input.files ?? []);
+  input.value = "";
+  if (!isRealApiMode || files.length === 0) return;
+
+  isUploading.value = true;
+  try {
+    const results = await uploadDocuments(String(route.params.kb_id ?? ""), files);
+    const readyCount = results.filter(
+      (item) => item.document.status === "ready",
+    ).length;
+    message.success(`已上传 ${results.length} 个文档，${readyCount} 个已完成索引`);
+    await loadRealDetail();
+  } catch (error: unknown) {
+    message.error(toPublicApiError(error).message);
+  } finally {
+    isUploading.value = false;
+  }
+};
+
+watch(
+  () => route.params.kb_id,
+  () => {
+    void loadRealDetail();
+  },
+);
+
+onMounted(() => {
+  void loadRealDetail();
+});
+
+onBeforeUnmount(() => {
+  loadController?.abort();
+});
 </script>
 
 <template>
   <div class="business-page local-page">
     <PageHeader
       eyebrow="企业知识库 / 文档目录"
-      :title="knowledgeBase?.name ?? '知识库不存在'"
-      :description="
-        knowledgeBase?.description ?? '当前固定样例中没有此知识库。'
-      "
+      :title="pageTitle"
+      :description="pageDescription"
     >
       <template #actions>
         <RouterLink class="secondary-button" to="/knowledge">
           <ChevronLeft :size="17" aria-hidden="true" />
           返回知识库
         </RouterLink>
+        <button
+          v-if="isRealApiMode && knowledgeBase && canUploadKnowledge"
+          class="primary-button"
+          type="button"
+          :disabled="isUploading"
+          @click="openUploadPicker"
+        >
+          <FileUp :size="17" aria-hidden="true" />
+          {{ isUploading ? "正在上传" : "上传文档" }}
+        </button>
+        <input
+          ref="uploadInputRef"
+          class="visually-hidden"
+          type="file"
+          multiple
+          accept=".pdf,.doc,.docx,.md,.markdown,.txt,.csv,.xlsx,.pptx,.html,.json"
+          @change="handleUpload"
+        />
         <button
           class="primary-button"
           type="button"
@@ -107,19 +275,43 @@ const previewExport = (): void => {
     </PageHeader>
 
     <InlineState
-      v-if="!knowledgeBase"
+      v-if="isLoadingRealDetail"
+      kind="loading"
+      title="正在加载文档目录"
+      description="正在读取真实知识库和文档列表。"
+    />
+
+    <InlineState
+      v-else-if="isRealApiMode && loadState === 'error'"
+      kind="error"
+      title="文档加载失败"
+      :description="loadError"
+    />
+
+    <InlineState
+      v-else-if="!knowledgeBase"
       kind="error"
       title="未找到知识库"
-      description="请从知识库列表重新进入；此状态不会请求业务接口。"
+      :description="
+        isRealApiMode
+          ? '请确认当前账号拥有该知识库权限。'
+          : '请从知识库列表重新进入；此状态不会请求业务接口。'
+      "
     />
 
     <ResourcePanel
       v-else
       title="文档目录"
-      :description="`${knowledgeBase.documents} 个文档为页面层级示意，当前展示固定样例。`"
+      :description="
+        isRealApiMode
+          ? `${realDocuments.length} 个真实文档，已就绪文档会进入 RAG 检索。`
+          : `${knowledgeBaseDocumentCount} 个文档为页面层级示意，当前展示固定样例。`
+      "
     >
       <template #actions>
-        <span class="local-preview-badge">本地预览</span>
+        <span class="local-preview-badge">{{
+          isRealApiMode ? "真实接口" : "本地预览"
+        }}</span>
       </template>
 
       <div class="filter-bar">
@@ -143,8 +335,22 @@ const previewExport = (): void => {
         </label>
       </div>
 
+      <InlineState
+        v-if="loadState === 'loading'"
+        kind="loading"
+        title="正在加载文档"
+        description="正在读取知识库文档目录。"
+      />
+
+      <InlineState
+        v-else-if="loadState === 'error'"
+        kind="error"
+        title="文档加载失败"
+        :description="loadError"
+      />
+
       <div
-        v-if="filteredDocuments.length > 0"
+        v-else-if="filteredDocuments.length > 0"
         class="data-table-scroll"
         tabindex="0"
         aria-label="文档目录表格，可横向滚动"
@@ -217,7 +423,10 @@ const previewExport = (): void => {
       />
 
       <template #footer>
-        <span>当前展示 {{ filteredDocuments.length }} 条固定样例</span>
+        <span>
+          当前展示 {{ filteredDocuments.length }}
+          条{{ isRealApiMode ? "真实文档" : "固定样例" }}
+        </span>
         <span>选中 {{ selectedDocumentIds.length }} 条</span>
       </template>
     </ResourcePanel>

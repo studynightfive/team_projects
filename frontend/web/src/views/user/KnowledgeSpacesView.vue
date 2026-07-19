@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import {
@@ -11,9 +12,25 @@ import {
   SquareLibrary,
   UsersRound,
 } from "../../components/icons";
+import { isRealApiMode } from "../../config/runtime";
 import { aiSearchMockData } from "../../mocks/ai-search";
+import {
+  listKnowledgeBases,
+  type KnowledgeBaseRecord,
+} from "../../services/knowledge";
 
 type SpaceTab = "overview" | "documents" | "members" | "questions" | "settings";
+interface DisplaySpace {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly department: string;
+  readonly owner: string;
+  readonly permissionType: string;
+  readonly memberCount: number;
+  readonly documentCount: number;
+  readonly recentQuestions: readonly string[];
+}
 
 const spaceTabOptions = [
   { value: "overview", label: "空间概览" },
@@ -30,23 +47,49 @@ const department = ref("all");
 const selectedSpaceId = ref<string>("");
 const activeTab = ref<SpaceTab>("overview");
 const detailPanel = ref<HTMLElement>();
+const realKnowledgeBases = ref<readonly KnowledgeBaseRecord[]>([]);
+const loadState = ref<"idle" | "loading" | "success" | "error">("idle");
+const loadError = ref("");
+let loadController: AbortController | undefined;
+
+const realSpaces = computed<readonly DisplaySpace[]>(() =>
+  realKnowledgeBases.value.map((kb) => ({
+    id: kb.id,
+    name: kb.name,
+    description: kb.description ?? "当前账号有权限访问的真实知识库。",
+    department: "知识库",
+    owner: "当前账号",
+    permissionType: "可访问",
+    memberCount: 1,
+    documentCount: kb.document_count,
+    recentQuestions: [
+      `请总结${kb.name}的核心内容`,
+      `这个知识库里有哪些重点风险`,
+      `基于${kb.name}给出演示提纲`,
+    ],
+  })),
+);
+
+const spaces = computed<readonly DisplaySpace[]>(() =>
+  isRealApiMode ? realSpaces.value : aiSearchMockData.knowledgeSpaces,
+);
 
 const routeSpaceId = computed(() => {
   const queryValue = route.query.space;
   const candidate = Array.isArray(queryValue) ? queryValue[0] : queryValue;
 
   return typeof candidate === "string" &&
-    aiSearchMockData.knowledgeSpaces.some((space) => space.id === candidate)
+    spaces.value.some((space) => space.id === candidate)
     ? candidate
     : undefined;
 });
 
 const departments = computed(() => [
-  ...new Set(aiSearchMockData.knowledgeSpaces.map((space) => space.department)),
+  ...new Set(spaces.value.map((space) => space.department)),
 ]);
 const filteredSpaces = computed(() => {
   const normalizedKeyword = keyword.value.trim().toLocaleLowerCase("zh-CN");
-  return aiSearchMockData.knowledgeSpaces.filter(
+  return spaces.value.filter(
     (space) =>
       (department.value === "all" || space.department === department.value) &&
       (normalizedKeyword.length === 0 ||
@@ -96,10 +139,25 @@ const openSpace = async (spaceId: string): Promise<void> => {
 
 const askSpace = (question?: string): void => {
   if (selectedSpace.value === undefined) return;
+  const nextQuery = question ?? `请总结${selectedSpace.value.name}的核心内容`;
+  if (isRealApiMode) {
+    void router.push({
+      path: "/search",
+      state: {
+        initialSearch: {
+          q: nextQuery,
+          mode: "smart",
+          sources: "knowledge",
+        },
+      },
+    });
+    return;
+  }
+
   void router.push({
     path: "/search",
     query: {
-      q: question ?? `请总结${selectedSpace.value.name}的核心内容`,
+      q: nextQuery,
       mode: "smart",
       sources: "knowledge",
       model: "enterprise-general",
@@ -136,6 +194,33 @@ const handleSpaceTabKeydown = (
   const nextTab = spaceTabOptions[nextIndex]?.value;
   if (nextTab !== undefined) selectSpaceTab(nextTab, true);
 };
+
+const loadRealSpaces = async (): Promise<void> => {
+  if (!isRealApiMode) return;
+
+  loadController?.abort();
+  const controller = new AbortController();
+  loadController = controller;
+  loadState.value = "loading";
+  loadError.value = "";
+
+  try {
+    realKnowledgeBases.value = await listKnowledgeBases(controller.signal);
+    loadState.value = "success";
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    loadError.value = toPublicApiError(error).message;
+    loadState.value = "error";
+  }
+};
+
+onMounted(() => {
+  void loadRealSpaces();
+});
+
+onBeforeUnmount(() => {
+  loadController?.abort();
+});
 </script>
 
 <template>
@@ -143,10 +228,20 @@ const handleSpaceTabKeydown = (
     <PageHeader
       eyebrow="企业知识空间"
       title="我的空间"
-      description="按部门和主题访问有权限的知识，并从空间上下文直接发起 AI 搜索。"
+      :description="
+        isRealApiMode
+          ? '展示当前账号可访问的真实知识库，并从空间上下文发起 RAG 问答。'
+          : '按部门和主题访问有权限的知识，并从空间上下文直接发起 AI 搜索。'
+      "
     >
       <template #actions>
-        <span class="local-preview-badge">6 个模拟空间</span>
+        <span class="local-preview-badge">
+          {{
+            isRealApiMode
+              ? `${realKnowledgeBases.length} 个真实空间`
+              : "6 个模拟空间"
+          }}
+        </span>
       </template>
     </PageHeader>
 
@@ -169,7 +264,20 @@ const handleSpaceTabKeydown = (
     </div>
 
     <div class="space-browser-layout">
-      <div v-if="filteredSpaces.length > 0" class="knowledge-space-grid">
+      <InlineState
+        v-if="isRealApiMode && loadState === 'loading'"
+        kind="loading"
+        title="正在加载真实空间"
+        description="系统正在读取当前账号可访问的知识库。"
+      />
+      <InlineState
+        v-else-if="isRealApiMode && loadState === 'error'"
+        kind="error"
+        title="真实空间加载失败"
+        :description="loadError"
+      />
+
+      <div v-else-if="filteredSpaces.length > 0" class="knowledge-space-grid">
         <article
           v-for="space in filteredSpaces"
           :key="space.id"
@@ -271,7 +379,9 @@ const handleSpaceTabKeydown = (
           <template v-else-if="activeTab === 'documents'">
             <p>
               文档清单等待知识库 OpenAPI；当前空间共有
-              {{ selectedSpace.documentCount }} 份模拟文档。
+              {{ selectedSpace.documentCount }} 份{{
+                isRealApiMode ? "真实文档" : "模拟文档"
+              }}。
             </p>
           </template>
           <template v-else-if="activeTab === 'members'">

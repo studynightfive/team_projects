@@ -1,21 +1,20 @@
 <script setup lang="ts">
 import { App as AntApp, Drawer } from "ant-design-vue";
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
+import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
-import { localPageData } from "../../data/local-pages";
-
-type DocumentItem = (typeof localPageData.adminDocuments)[number];
+import { listAdminDocuments, type AdminDocument } from "../../services/admin";
+import { deleteDocument, reprocessDocument } from "../../services/knowledge";
 
 const { message, modal } = AntApp.useApp();
-const documents = ref<DocumentItem[]>(
-  localPageData.adminDocuments.map((item) => ({ ...item })),
-);
+const documents = ref<readonly AdminDocument[]>([]);
 const query = ref("");
 const statusFilter = ref("全部状态");
 const selectedId = ref<string>();
+const loading = ref(false);
 const selectedDocument = computed(() =>
   documents.value.find((item) => item.id === selectedId.value),
 );
@@ -24,51 +23,92 @@ const filteredDocuments = computed(() => {
   return documents.value.filter((item) => {
     const matchesQuery =
       keyword.length === 0 ||
-      [item.name, item.knowledgeBase].some((value) =>
-        value.toLowerCase().includes(keyword),
+      [item.title, item.original_filename, item.knowledge_base_name].some(
+        (value) => value.toLowerCase().includes(keyword),
       );
     return (
       matchesQuery &&
-      (statusFilter.value === "全部状态" || item.status === statusFilter.value)
+      (statusFilter.value === "全部状态" ||
+        statusLabel(item.status) === statusFilter.value)
     );
   });
 });
 
+const statusLabel = (status: string): string =>
+  ({
+    uploaded: "已上传",
+    detecting: "检测中",
+    converting: "转换中",
+    ocr: "OCR",
+    normalizing: "标准化",
+    chunking: "切分中",
+    indexing: "索引中",
+    ready: "已索引",
+    failed: "失败",
+    manual_review: "需复核",
+    cancelled: "已取消",
+  })[status] ?? status;
+
 const statusTone = (status: string): string =>
   ({
-    已索引: "success",
-    处理中: "info",
-    失败: "danger",
-    需复核: "warning",
+    ready: "success",
+    uploaded: "info",
+    detecting: "info",
+    converting: "info",
+    ocr: "info",
+    normalizing: "info",
+    chunking: "info",
+    indexing: "info",
+    failed: "danger",
+    manual_review: "warning",
   })[status] ?? "neutral";
 
-const previewUpload = (): void => {
-  void message.info("上传区域仅作视觉预览，未读取任何本地文件");
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 };
 
-const retryPreview = (id: string): void => {
-  const item = documents.value.find((document) => document.id === id);
-  if (item === undefined) return;
-  item.status = "处理中";
-  void message.success("文档已切换为本地重试预览状态");
+const formatDate = (value: string | null): string =>
+  value === null ? "-" : new Date(value).toLocaleString("zh-CN");
+
+const loadData = async (): Promise<void> => {
+  loading.value = true;
+  try {
+    const page = await listAdminDocuments();
+    documents.value = page.items;
+  } catch (err) {
+    message.error(toPublicApiError(err).message);
+  } finally {
+    loading.value = false;
+  }
 };
 
-const confirmDelete = (id: string): void => {
-  const item = documents.value.find((document) => document.id === id);
-  if (item === undefined) return;
+const retryDocument = async (id: string): Promise<void> => {
+  try {
+    await reprocessDocument(id);
+    message.success("文档已重新进入处理流程");
+    await loadData();
+  } catch (err) {
+    message.error(toPublicApiError(err).message);
+  }
+};
+
+const confirmDelete = (item: AdminDocument): void => {
   modal.confirm({
-    title: "删除文档预览",
-    content: "仅从当前页面移除，不会删除文件、索引或存储对象。",
-    okText: "确认本地预览",
+    title: "删除文档",
+    content: `确认删除 ${item.title}？此操作会删除文件、索引和处理记录。`,
+    okText: "确认删除",
     cancelText: "取消",
-    onOk: () => {
-      documents.value = documents.value.filter(
-        (document) => document.id !== id,
-      );
-      void message.success(item.name + " 已从本地预览中移除");
+    onOk: async () => {
+      await deleteDocument(item.id);
+      message.success("文档已删除");
+      await loadData();
     },
   });
 };
+
+onMounted(loadData);
 </script>
 
 <template>
@@ -76,32 +116,14 @@ const confirmDelete = (id: string): void => {
     <PageHeader
       eyebrow="内容治理"
       title="文档管理"
-      description="预览上传入口、独立文件状态、筛选、详情、删除和重试流程。"
+      description="查看所有真实文档的知识库归属、处理状态和索引结果。"
     >
       <template #actions>
-        <span class="local-preview-badge">本地预览</span>
-        <button
-          class="admin-primary-button"
-          type="button"
-          @click="previewUpload"
-        >
-          选择文件
+        <button class="secondary-button" type="button" @click="loadData">
+          刷新
         </button>
       </template>
     </PageHeader>
-
-    <section
-      class="upload-preview"
-      aria-label="文档上传预览区域"
-      @dragover.prevent
-      @drop.prevent="previewUpload"
-    >
-      <strong>拖拽文档到这里</strong>
-      <span>本地版本不会读取文件内容，也不会开始上传。</span>
-      <button class="secondary-button" type="button" @click="previewUpload">
-        查看上传说明
-      </button>
-    </section>
 
     <ResourcePanel
       title="文档清单"
@@ -116,8 +138,14 @@ const confirmDelete = (id: string): void => {
           <span>处理状态</span>
           <select v-model="statusFilter">
             <option>全部状态</option>
+            <option>已上传</option>
+            <option>检测中</option>
+            <option>转换中</option>
+            <option>OCR</option>
+            <option>标准化</option>
+            <option>切分中</option>
+            <option>索引中</option>
             <option>已索引</option>
-            <option>处理中</option>
             <option>失败</option>
             <option>需复核</option>
           </select>
@@ -125,17 +153,18 @@ const confirmDelete = (id: string): void => {
       </div>
 
       <InlineState
-        v-if="filteredDocuments.length === 0"
+        v-if="loading"
+        kind="loading"
+        title="正在加载文档"
+        description="请稍候。"
+      />
+      <InlineState
+        v-else-if="filteredDocuments.length === 0"
         kind="empty"
         title="没有匹配的文档"
-        description="请调整关键词或处理状态。"
+        description="上传文档后会在这里显示。"
       />
-      <div
-        v-else
-        class="data-table-scroll"
-        tabindex="0"
-        aria-label="文档表格，可横向滚动"
-      >
+      <div v-else class="data-table-scroll" tabindex="0">
         <table class="data-table">
           <thead>
             <tr>
@@ -150,16 +179,17 @@ const confirmDelete = (id: string): void => {
           <tbody>
             <tr v-for="item in filteredDocuments" :key="item.id">
               <td>
-                <strong>{{ item.name }}</strong>
+                <strong>{{ item.title }}</strong>
+                <small>{{ item.original_filename }}</small>
               </td>
-              <td>{{ item.knowledgeBase }}</td>
-              <td>{{ item.size }}</td>
+              <td>{{ item.knowledge_base_name }}</td>
+              <td>{{ formatBytes(item.size_bytes) }}</td>
               <td>
                 <span class="status-chip" :class="statusTone(item.status)">
-                  {{ item.status }}
+                  {{ statusLabel(item.status) }}
                 </span>
               </td>
-              <td>{{ item.updated }}</td>
+              <td>{{ formatDate(item.updated_at) }}</td>
               <td>
                 <div class="table-actions">
                   <button
@@ -167,20 +197,20 @@ const confirmDelete = (id: string): void => {
                     type="button"
                     @click="selectedId = item.id"
                   >
-                    预览
+                    详情
                   </button>
                   <button
-                    v-if="item.status === '失败'"
+                    v-if="['failed', 'manual_review', 'ready'].includes(item.status)"
                     class="text-button"
                     type="button"
-                    @click="retryPreview(item.id)"
+                    @click="retryDocument(item.id)"
                   >
                     重试
                   </button>
                   <button
                     class="text-button"
                     type="button"
-                    @click="confirmDelete(item.id)"
+                    @click="confirmDelete(item)"
                   >
                     删除
                   </button>
@@ -194,7 +224,7 @@ const confirmDelete = (id: string): void => {
 
     <Drawer
       :open="selectedDocument !== undefined"
-      title="文档详情（本地预览）"
+      title="文档详情"
       width="420"
       root-class-name="variant-admin"
       @close="selectedId = undefined"
@@ -202,49 +232,33 @@ const confirmDelete = (id: string): void => {
       <dl v-if="selectedDocument" class="detail-list">
         <div>
           <dt>文档名称</dt>
-          <dd>{{ selectedDocument.name }}</dd>
+          <dd>{{ selectedDocument.title }}</dd>
+        </div>
+        <div>
+          <dt>原始文件名</dt>
+          <dd>{{ selectedDocument.original_filename }}</dd>
         </div>
         <div>
           <dt>所属知识库</dt>
-          <dd>{{ selectedDocument.knowledgeBase }}</dd>
+          <dd>{{ selectedDocument.knowledge_base_name }}</dd>
         </div>
         <div>
           <dt>文件大小</dt>
-          <dd>{{ selectedDocument.size }}</dd>
+          <dd>{{ formatBytes(selectedDocument.size_bytes) }}</dd>
         </div>
         <div>
           <dt>处理状态</dt>
-          <dd>{{ selectedDocument.status }}</dd>
+          <dd>{{ statusLabel(selectedDocument.status) }}</dd>
+        </div>
+        <div v-if="selectedDocument.error_message">
+          <dt>错误信息</dt>
+          <dd>{{ selectedDocument.error_message }}</dd>
         </div>
         <div>
           <dt>更新时间</dt>
-          <dd>{{ selectedDocument.updated }}</dd>
+          <dd>{{ formatDate(selectedDocument.updated_at) }}</dd>
         </div>
       </dl>
-      <p class="preview-note">
-        无文档接口前不读取文件正文，也不提供真实预览或下载地址。
-      </p>
     </Drawer>
   </div>
 </template>
-
-<style scoped>
-.upload-preview {
-  display: grid;
-  min-height: 150px;
-  align-content: center;
-  justify-items: center;
-  gap: var(--space-3);
-  padding: var(--space-6);
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-12);
-  color: var(--color-text-muted);
-  background: var(--color-surface);
-  text-align: center;
-}
-
-.upload-preview strong {
-  color: var(--color-text);
-  font-size: var(--font-size-16);
-}
-</style>

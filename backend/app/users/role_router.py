@@ -21,6 +21,7 @@ from app.users.role_service import (
     create_role,
     delete_role,
     get_role,
+    list_permissions,
     list_roles,
     set_role_permissions,
     update_role,
@@ -28,6 +29,24 @@ from app.users.role_service import (
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v1", tags=["roles"])
+
+
+@router.get("/permissions")
+async def list_permissions_endpoint(
+    module: str | None = Query(None),
+    _user: User = Depends(get_current_user),
+    _perm: None = Depends(require_permission("admin.role.view")),
+    db: AsyncSession = Depends(get_db),
+):
+    """获取权限码列表，用于角色授权配置。"""
+    request_id = str(uuid.uuid4())
+    permissions = await list_permissions(db, module=module)
+    return APIResponse(
+        code=0,
+        message="success",
+        data=[item.model_dump() for item in permissions],
+        request_id=request_id,
+    )
 
 
 # ============================================================

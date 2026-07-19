@@ -16,7 +16,7 @@ const props = defineProps<{
   dialogLabel: string;
   variant: "user" | "admin";
   navigation: readonly NavigationItem[];
-  workspaceSwitch: {
+  workspaceSwitch?: {
     readonly label: string;
     readonly to: string;
   };
@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
           </li>
         </ul>
       </nav>
-      <div class="mobile-drawer-footer">
+      <div v-if="workspaceSwitch !== undefined" class="mobile-drawer-footer">
         <RouterLink
           class="mobile-drawer-link workspace-switch"
           :to="workspaceSwitch.to"

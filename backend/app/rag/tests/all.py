@@ -438,6 +438,7 @@ async def create_dataset_endpoint(
 ):
     ds = await create_dataset(db, user_id=user.id, payload=payload)
     await db.commit()
+    await db.refresh(ds)
     await audit(
         db,
         action="retrieval_test_dataset_create",
@@ -482,6 +483,7 @@ async def patch_dataset_endpoint(
         raise NotFoundException()
     ds = await update_dataset(db, ds, payload)
     await db.commit()
+    await db.refresh(ds)
     return APIResponse(
         data=RetrievalTestDatasetResponse.model_validate(ds).model_dump()
     ).model_dump()

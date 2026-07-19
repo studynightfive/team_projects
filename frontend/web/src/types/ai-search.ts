@@ -1,4 +1,4 @@
-export type SearchMode = "smart" | "precise" | "research" | "document";
+export type SearchMode = "smart" | "precise" | "document";
 
 export type SearchSourceType =
   | "knowledge"
@@ -67,12 +67,20 @@ export interface ModelOption {
   readonly description: string;
 }
 
+export interface KnowledgeBaseOption {
+  readonly id: string;
+  readonly name: string;
+  readonly documentCount: number;
+  readonly readyDocumentCount: number;
+  readonly status: string;
+}
+
 export interface QuickAction {
   readonly id: string;
   readonly label: string;
   readonly description: string;
   readonly to: string;
-  readonly icon: "upload" | "research" | "space" | "favorite" | "data-source";
+  readonly icon: "upload" | "space" | "favorite" | "data-source";
 }
 
 export interface CitationSource {
@@ -195,28 +203,6 @@ export interface Favorite {
   readonly sourceId: string;
 }
 
-export type ResearchStatus = "waiting" | "running" | "completed" | "failed";
-
-export interface ResearchStep {
-  readonly id: string;
-  readonly title: string;
-  readonly description: string;
-  readonly status: ResearchStatus;
-}
-
-export interface Research {
-  readonly id: string;
-  readonly question: string;
-  readonly scopes: readonly SearchSourceType[];
-  readonly status: ResearchStatus;
-  readonly currentStep: number;
-  readonly steps: readonly ResearchStep[];
-  readonly sourceIds: readonly string[];
-  readonly summary: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-}
-
 export type UiStateKind =
   | "initial"
   | "loading"
@@ -240,9 +226,10 @@ export interface UiStateExample {
 }
 
 export interface AiSearchMockMeta {
-  readonly designOnly: true;
-  readonly apiRequestsAllowed: false;
+  readonly designOnly: boolean;
+  readonly apiRequestsAllowed: boolean;
   readonly notice: string;
+  readonly lastUpdated?: string;
 }
 
 export interface AiSearchMockData {
@@ -259,7 +246,6 @@ export interface AiSearchMockData {
   readonly results: readonly SearchResultItem[];
   readonly history: readonly SearchHistory[];
   readonly favorites: readonly Favorite[];
-  readonly research: Research;
   readonly stateExamples: readonly UiStateExample[];
 }
 
@@ -282,7 +268,7 @@ export interface AiSearchResponse {
   readonly answer: AiAnswer;
   readonly results: readonly SearchResultItem[];
   readonly sourceCount: number;
-  readonly isMock: true;
+  readonly isMock: boolean;
   readonly notice: string;
   readonly elapsedLabel: string;
 }
