@@ -197,7 +197,7 @@ async def list_notifications_endpoint(
     result = await db.execute(
         base.order_by(Notification.created_at.desc()).limit(page_size)
     )
-    items = [_serialize(item).model_dump() for item in result.scalars()]
+    items = [_serialize(item) for item in result.scalars()]
     return APIResponse(
         data=NotificationListResponse(items=items, total=total, unread=unread).model_dump(),
         request_id=str(uuid.uuid4()),
