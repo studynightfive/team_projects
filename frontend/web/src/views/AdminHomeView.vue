@@ -1,40 +1,88 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 
+import { toPublicApiError } from "../api/client";
 import StatCard from "../components/StatCard.vue";
+import { Database, FileText, RefreshCw, UsersRound } from "../components/icons";
 import {
-  ChevronLeft,
-  ChevronRight,
-  FileDown,
-  RefreshCw,
-} from "../components/icons";
-import {
-  adminMetricIcons,
-  foundationData,
-  serviceIcons,
-  serviceStatusTone,
-} from "../data/foundation";
+  getDashboardMetrics,
+  listAuditLogs,
+  type AuditLogItem,
+  type DashboardMetrics,
+} from "../services/admin";
 
 const { message } = AntApp.useApp();
-const timeRange = ref("最近 24 小时");
-const lastUpdated = ref("刚刚更新");
+const metrics = ref<DashboardMetrics>();
+const auditLogs = ref<readonly AuditLogItem[]>([]);
+const loading = ref(false);
+const lastUpdated = ref("尚未刷新");
 
-const refreshOverview = (): void => {
-  lastUpdated.value = `${new Date().toLocaleTimeString("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })} 更新`;
-  void message.success("概览数据已按当前演示数据刷新");
+const summaryCards = computed(() => [
+  {
+    label: "用户总数",
+    value: String(metrics.value?.total_users ?? 0),
+    trend: `活跃 ${metrics.value?.active_users ?? 0} / 停用 ${
+      metrics.value?.disabled_users ?? 0
+    }`,
+    tone: "blue" as const,
+    icon: UsersRound,
+    series: [2, 4, 6, 8, 10, metrics.value?.total_users ?? 0],
+  },
+  {
+    label: "知识库",
+    value: String(metrics.value?.total_knowledge_bases ?? 0),
+    trend: "来自真实知识库表",
+    tone: "green" as const,
+    icon: Database,
+    series: [1, 1, 2, 3, 5, metrics.value?.total_knowledge_bases ?? 0],
+  },
+  {
+    label: "文档",
+    value: String(metrics.value?.total_documents ?? 0),
+    trend: "上传处理后的文档数",
+    tone: "amber" as const,
+    icon: FileText,
+    series: [1, 3, 4, 6, 8, metrics.value?.total_documents ?? 0],
+  },
+  {
+    label: "会话",
+    value: String(metrics.value?.total_conversations ?? 0),
+    trend: `用户消息 ${metrics.value?.total_chats_today ?? 0}`,
+    tone: "violet" as const,
+    icon: RefreshCw,
+    series: [0, 1, 1, 2, 3, metrics.value?.total_conversations ?? 0],
+  },
+]);
+
+const resultLabel = (result: string): string =>
+  ({ success: "成功", failure: "失败", denied: "拒绝" })[result] ?? result;
+
+const formatDate = (value: string | null): string =>
+  value === null ? "-" : new Date(value).toLocaleString("zh-CN");
+
+const loadOverview = async (): Promise<void> => {
+  loading.value = true;
+  try {
+    const [dashboard, auditPage] = await Promise.all([
+      getDashboardMetrics(),
+      listAuditLogs(),
+    ]);
+    metrics.value = dashboard;
+    auditLogs.value = auditPage.items.slice(0, 6);
+    lastUpdated.value = `${new Date().toLocaleTimeString("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })} 更新`;
+  } catch (err) {
+    message.error(toPublicApiError(err).message);
+  } finally {
+    loading.value = false;
+  }
 };
 
-const showUpcomingNotice = (feature: string): void => {
-  void message.info(`${feature}将在对应管理里程碑开放`);
-};
-
-const priorityClass = (priority: "高" | "中" | "低"): string =>
-  ({ 高: "high", 中: "medium", 低: "low" })[priority];
+onMounted(loadOverview);
 </script>
 
 <template>
@@ -43,32 +91,17 @@ const priorityClass = (priority: "高" | "中" | "低"): string =>
       <div>
         <span class="system-label">管理系统</span>
         <h1>平台运行总览</h1>
-        <p>用于验证管理层级与信息密度，不代表真实监控数据。</p>
+        <p>展示真实后端聚合指标、业务数据规模和最新审计记录。</p>
       </div>
       <div class="admin-heading-actions">
-        <label class="time-range-select">
-          <span class="visually-hidden">统计时间范围</span>
-          <select v-model="timeRange">
-            <option>最近 24 小时</option>
-            <option>最近 7 天</option>
-            <option>最近 30 天</option>
-          </select>
-        </label>
         <button
           class="admin-primary-button"
           type="button"
-          @click="refreshOverview"
+          :disabled="loading"
+          @click="loadOverview"
         >
           <RefreshCw :size="17" aria-hidden="true" />
-          刷新概览
-        </button>
-        <button
-          class="secondary-button"
-          type="button"
-          @click="showUpcomingNotice('导出报告')"
-        >
-          <FileDown :size="17" aria-hidden="true" />
-          导出报告
+          {{ loading ? "刷新中" : "刷新概览" }}
         </button>
         <span class="last-updated">{{ lastUpdated }}</span>
       </div>
@@ -76,55 +109,40 @@ const priorityClass = (priority: "高" | "中" | "低"): string =>
 
     <section class="stat-grid admin-stat-grid" aria-label="管理指标">
       <StatCard
-        v-for="item in foundationData.adminView.summary"
+        v-for="item in summaryCards"
         :key="item.label"
         :label="item.label"
         :value="item.value"
         :trend="item.trend"
         :tone="item.tone"
-        :icon="adminMetricIcons[item.icon]"
+        :icon="item.icon"
         :series="item.series"
         admin
       />
     </section>
 
     <div class="admin-operations-grid">
-      <section
-        class="content-card service-card"
-        aria-labelledby="service-title"
-      >
+      <section class="content-card service-card" aria-labelledby="service-title">
         <header class="card-heading">
-          <h2 id="service-title">服务健康状态</h2>
-          <RouterLink class="text-button" to="/admin/tasks">
-            查看详细监控
+          <h2 id="service-title">核心数据</h2>
+          <RouterLink class="text-button" to="/admin/documents">
+            查看文档
           </RouterLink>
         </header>
-        <div class="service-list">
-          <div
-            v-for="service in foundationData.adminView.serviceHealth"
-            :key="service.name"
-            class="service-row"
-          >
-            <span class="service-icon" aria-hidden="true">
-              <component
-                :is="serviceIcons[service.icon]"
-                :size="20"
-                :stroke-width="1.8"
-              />
-            </span>
-            <strong>{{ service.name }}</strong>
-            <span
-              class="status-badge"
-              :class="serviceStatusTone[service.status]"
-            >
-              {{ service.status }}
-            </span>
-            <span class="service-metric">
-              {{ service.metricLabel }}
-              <strong>{{ service.metricValue }}</strong>
-            </span>
+        <dl class="dashboard-facts">
+          <div>
+            <dt>角色</dt>
+            <dd>{{ metrics?.total_roles ?? 0 }}</dd>
           </div>
-        </div>
+          <div>
+            <dt>平均响应</dt>
+            <dd>{{ metrics?.avg_response_time_ms ?? 0 }} ms</dd>
+          </div>
+          <div>
+            <dt>成功率</dt>
+            <dd>{{ metrics?.success_rate ?? 0 }}%</dd>
+          </div>
+        </dl>
       </section>
 
       <section
@@ -132,69 +150,33 @@ const priorityClass = (priority: "高" | "中" | "低"): string =>
         aria-labelledby="governance-title"
       >
         <header class="card-heading">
-          <div class="heading-with-count">
-            <h2 id="governance-title">待治理事项</h2>
-            <span class="count-badge" aria-label="7 项待治理">7</span>
-          </div>
+          <h2 id="governance-title">快捷入口</h2>
         </header>
         <div class="governance-list">
-          <article
-            v-for="item in foundationData.adminView.governanceQueue"
-            :key="item.name"
-            class="governance-row"
-          >
-            <div class="governance-main">
-              <div>
-                <strong>{{ item.name }}</strong>
-                <span
-                  class="priority-badge"
-                  :class="priorityClass(item.priority)"
-                >
-                  {{ item.priority }}优先级
-                </span>
-              </div>
-              <p>
-                <span>{{ item.scope }}</span>
-                <span>{{ item.submitter }}</span>
-                <time>{{ item.time }}</time>
-              </p>
-            </div>
-            <div class="governance-actions">
-              <RouterLink
-                class="secondary-button compact"
-                :to="
-                  item.scope.includes('知识库')
-                    ? '/admin/knowledge-bases'
-                    : '/admin/tasks'
-                "
-              >
-                查看
-              </RouterLink>
-              <button
-                class="admin-primary-button compact"
-                type="button"
-                @click="showUpcomingNotice(`处理${item.name}`)"
-              >
-                处理
-              </button>
-            </div>
-          </article>
+          <RouterLink class="secondary-button compact" to="/admin/users">
+            用户管理
+          </RouterLink>
+          <RouterLink class="secondary-button compact" to="/admin/knowledge-bases">
+            知识库管理
+          </RouterLink>
+          <RouterLink class="secondary-button compact" to="/admin/tasks">
+            任务中心
+          </RouterLink>
+          <RouterLink class="secondary-button compact" to="/admin/models">
+            模型管理
+          </RouterLink>
         </div>
       </section>
     </div>
 
     <section class="content-card audit-card" aria-labelledby="audit-title">
       <header class="card-heading audit-heading">
-        <h2 id="audit-title">审计日志</h2>
+        <h2 id="audit-title">最新审计日志</h2>
         <RouterLink class="text-button" to="/admin/audit-logs">
           查看全部
         </RouterLink>
       </header>
-      <div
-        class="audit-table-scroll"
-        tabindex="0"
-        aria-label="审计日志表格，可横向滚动"
-      >
+      <div class="audit-table-scroll" tabindex="0">
         <table class="audit-table">
           <thead>
             <tr>
@@ -202,51 +184,64 @@ const priorityClass = (priority: "高" | "中" | "低"): string =>
               <th scope="col">操作人</th>
               <th scope="col">操作类型</th>
               <th scope="col">操作对象</th>
-              <th scope="col">IP 地址</th>
               <th scope="col">结果</th>
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="item in foundationData.adminView.auditLogs"
-              :key="item.time"
-            >
-              <td>{{ item.time }}</td>
-              <td>{{ item.operator }}</td>
-              <td>{{ item.action }}</td>
-              <td :title="item.target">{{ item.target }}</td>
-              <td class="numeric">{{ item.ip }}</td>
-              <td>
-                <span
-                  class="result-badge"
-                  :class="item.result === '成功' ? 'success' : 'failed'"
-                >
-                  {{ item.result }}
-                </span>
-              </td>
-            </tr>
+            <template v-if="auditLogs.length === 0">
+              <tr>
+                <td colspan="5">暂无审计记录</td>
+              </tr>
+            </template>
+            <template v-else>
+              <tr v-for="item in auditLogs" :key="item.id">
+                <td>{{ formatDate(item.created_at) }}</td>
+                <td>{{ item.username ?? "系统" }}</td>
+                <td>{{ item.action }}</td>
+                <td>
+                  {{ item.resource_type ?? "-" }} /
+                  {{ item.resource_id ?? "-" }}
+                </td>
+                <td>
+                  <span
+                    class="result-badge"
+                    :class="item.result === 'success' ? 'success' : 'failed'"
+                  >
+                    {{ resultLabel(item.result) }}
+                  </span>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
-      <footer class="audit-pagination">
-        <span>共 {{ foundationData.adminView.pagination.total }} 条</span>
-        <span>
-          {{ foundationData.adminView.pagination.page }} /
-          {{ foundationData.adminView.pagination.totalPages }} 页
-        </span>
-        <button class="pagination-button" type="button" disabled>
-          <ChevronLeft :size="15" aria-hidden="true" />
-          上一页
-        </button>
-        <button
-          class="pagination-button"
-          type="button"
-          @click="showUpcomingNotice('审计日志下一页')"
-        >
-          下一页
-          <ChevronRight :size="15" aria-hidden="true" />
-        </button>
-      </footer>
     </section>
   </div>
 </template>
+
+<style scoped>
+.dashboard-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.dashboard-facts div {
+  padding: var(--space-4);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-muted);
+}
+
+.dashboard-facts dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-12);
+}
+
+.dashboard-facts dd {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-semibold);
+}
+</style>

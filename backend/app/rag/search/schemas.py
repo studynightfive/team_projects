@@ -54,3 +54,17 @@ class SearchResponse(BaseModel):
     took_ms: int
     total_candidates: int
     debug: SearchDebug | None = None
+
+
+class RagAnswerRequest(SearchRequest):
+    chat_model_id: str | None = None
+
+
+class RagAnswerResponse(BaseModel):
+    answer: str
+    hits: list[SearchHit]
+    mode: SearchMode
+    took_ms: int
+    model: str | None = None
+    conversation_id: str | None = None
+    generated: bool = True

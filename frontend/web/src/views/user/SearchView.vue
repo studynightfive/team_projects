@@ -3,6 +3,7 @@ import { App as AntApp } from "ant-design-vue";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
 import AiAnswerPanel from "../../components/search/AiAnswerPanel.vue";
 import AiSearchBox from "../../components/search/AiSearchBox.vue";
@@ -18,11 +19,17 @@ import {
   RefreshCw,
   SlidersHorizontal,
 } from "../../components/icons";
+import { isRealApiMode } from "../../config/runtime";
 import { aiSearchMockData } from "../../mocks/ai-search";
 import { runAiSearch } from "../../services/ai-search";
+import { listRealChatModelOptions } from "../../services/ai-search-real";
+import { createFavorite, deleteFavorite } from "../../services/favorites";
+import { listKnowledgeBases } from "../../services/knowledge";
 import type {
   AiSearchResponse,
   CitationSource,
+  KnowledgeBaseOption,
+  ModelOption,
   SearchMode,
   SearchRequest,
   SearchResultItem,
@@ -37,23 +44,19 @@ const router = useRouter();
 const allowedModes: readonly SearchMode[] = [
   "smart",
   "precise",
-  "research",
   "document",
 ];
-const allowedSources: readonly SearchSourceType[] = [
-  "knowledge",
-  "project",
-  "policy",
-  "meeting",
-  "business",
-  "personal",
-  "internet",
-];
+const defaultSources: readonly SearchSourceType[] = ["knowledge"];
 
-const query = ref<string>(aiSearchMockData.answer.query);
+const defaultQuery = isRealApiMode ? "" : aiSearchMockData.answer.query;
+
+const query = ref<string>(defaultQuery);
 const mode = ref<SearchMode>("smart");
-const sources = ref<SearchSourceType[]>([...allowedSources]);
+const sources = ref<SearchSourceType[]>([...defaultSources]);
+const workspaceId = ref<string>();
 const modelId = ref("enterprise-general");
+const modelOptions = ref<readonly ModelOption[]>(aiSearchMockData.modelOptions);
+const knowledgeBaseOptions = ref<readonly KnowledgeBaseOption[]>([]);
 const status = ref<SearchStatus>("idle");
 const response = ref<AiSearchResponse>();
 const errorMessage = ref("");
@@ -63,6 +66,7 @@ const previewDocument = ref<CitationSource | SearchResultItem>();
 const isPreviewOpen = ref(false);
 const previewTrigger = ref<HTMLElement>();
 const answerFavorite = ref(false);
+const answerFavoriteId = ref<string>();
 const attachmentNames = ref<string[]>([]);
 const contextTrigger = ref<HTMLElement>();
 const answerTabRef = ref<HTMLButtonElement>();
@@ -70,25 +74,29 @@ const resultsTabRef = ref<HTMLButtonElement>();
 
 let searchController: AbortController | undefined;
 let desktopContextQuery: MediaQueryList | undefined;
+let skipNextRouteSync = false;
 
 const modeLabel = computed(
   () =>
     aiSearchMockData.modeOptions.find((option) => option.value === mode.value)
       ?.label ?? "智能搜索",
 );
-const scopeLabel = computed(() => {
-  const exactScope = aiSearchMockData.scopeOptions.find(
-    (option) =>
-      option.sources.length === sources.value.length &&
-      option.sources.every((source) => sources.value.includes(source)),
-  );
-  return exactScope?.label ?? `已选 ${sources.value.length} 类范围`;
-});
 const modelLabel = computed(
   () =>
-    aiSearchMockData.modelOptions.find(
-      (option) => option.value === modelId.value,
-    )?.label ?? "企业通用模型",
+    modelOptions.value.find((option) => option.value === modelId.value)
+      ?.label ?? "企业通用模型",
+);
+const selectedKnowledgeBaseLabel = computed(() => {
+  const selected = knowledgeBaseOptions.value.find(
+    (item) => item.id === workspaceId.value,
+  );
+  return selected?.name ?? knowledgeBaseOptions.value[0]?.name ?? "暂无可用知识库";
+});
+const selectedKnowledgeBase = computed(() =>
+  knowledgeBaseOptions.value.find((item) => item.id === workspaceId.value),
+);
+const apiModeLabel = computed(() =>
+  isRealApiMode || response.value?.isMock === false ? "真实接口" : "模拟数据",
 );
 
 const parseMode = (value: unknown): SearchMode =>
@@ -97,13 +105,10 @@ const parseMode = (value: unknown): SearchMode =>
     : "smart";
 
 const parseSources = (value: unknown): SearchSourceType[] => {
-  if (typeof value !== "string") return [...allowedSources];
-  const parsed = value
-    .split(",")
-    .filter((source): source is SearchSourceType =>
-      allowedSources.includes(source as SearchSourceType),
-    );
-  return parsed.length > 0 ? [...new Set(parsed)] : [...allowedSources];
+  if (typeof value !== "string") return [...defaultSources];
+  return value.split(",").includes("knowledge")
+    ? [...defaultSources]
+    : [...defaultSources];
 };
 
 const readAttachmentNames = (): string[] => {
@@ -117,20 +122,62 @@ const readAttachmentNames = (): string[] => {
     .slice(0, 5);
 };
 
+const readInitialSearch = ():
+  | {
+      readonly q: string;
+      readonly mode?: string;
+      readonly sources?: string;
+      readonly workspaceId?: string;
+      readonly modelId?: string;
+    }
+  | undefined => {
+  const state: unknown = router.options.history.state;
+  if (typeof state !== "object" || state === null) return undefined;
+  const initialSearch = (state as Record<string, unknown>).initialSearch;
+  if (typeof initialSearch !== "object" || initialSearch === null) {
+    return undefined;
+  }
+  const value = initialSearch as Record<string, unknown>;
+  if (typeof value.q !== "string" || value.q.trim().length === 0) {
+    return undefined;
+  }
+  return {
+    q: value.q.trim(),
+    mode: typeof value.mode === "string" ? value.mode : undefined,
+    sources: typeof value.sources === "string" ? value.sources : undefined,
+    workspaceId:
+      typeof value.workspaceId === "string" && value.workspaceId !== ""
+        ? value.workspaceId
+        : undefined,
+    modelId:
+      typeof value.modelId === "string" && value.modelId !== ""
+        ? value.modelId
+        : undefined,
+  };
+};
+
 const syncFromRoute = (): void => {
-  query.value =
-    typeof route.query.q === "string" && route.query.q.trim().length > 0
-      ? route.query.q.trim()
-      : aiSearchMockData.answer.query;
-  mode.value = parseMode(route.query.mode);
-  sources.value = parseSources(route.query.sources);
+  const initialSearch = isRealApiMode ? readInitialSearch() : undefined;
+  if (initialSearch !== undefined) {
+    query.value = initialSearch.q;
+  } else if (
+    !isRealApiMode &&
+    typeof route.query.q === "string" &&
+    route.query.q.trim().length > 0
+  ) {
+    query.value = route.query.q.trim();
+  } else {
+    query.value = defaultQuery;
+  }
+  mode.value = parseMode(initialSearch?.mode ?? route.query.mode);
+  sources.value = parseSources(initialSearch?.sources ?? route.query.sources);
+  workspaceId.value = initialSearch?.workspaceId;
   modelId.value =
-    typeof route.query.model === "string" &&
-    aiSearchMockData.modelOptions.some(
-      (option) => option.value === route.query.model,
-    )
+    initialSearch?.modelId ??
+    (typeof route.query.model === "string"
       ? route.query.model
-      : "enterprise-general";
+      : modelOptions.value[0]?.value) ??
+    "enterprise-general";
   attachmentNames.value = readAttachmentNames();
 };
 
@@ -141,6 +188,7 @@ const executeSearch = async (): Promise<void> => {
   errorMessage.value = "";
   activeTab.value = "answer";
   answerFavorite.value = false;
+  answerFavoriteId.value = undefined;
 
   try {
     const nextResponse = await runAiSearch(
@@ -148,6 +196,7 @@ const executeSearch = async (): Promise<void> => {
         query: query.value,
         mode: mode.value,
         sources: sources.value,
+        workspaceId: workspaceId.value,
         modelId: modelId.value,
         attachmentIds: attachmentNames.value,
       },
@@ -167,6 +216,20 @@ const executeSearch = async (): Promise<void> => {
 
 const submitSearch = (request: SearchRequest): void => {
   attachmentNames.value = [...(request.attachmentIds ?? [])];
+  if (isRealApiMode) {
+    query.value = request.query;
+    mode.value = request.mode;
+    sources.value = [...request.sources];
+    workspaceId.value = request.workspaceId;
+    modelId.value = request.modelId ?? modelId.value ?? "enterprise-general";
+    if (Object.keys(route.query).length > 0) {
+      skipNextRouteSync = true;
+      void router.replace({ path: "/search" });
+    }
+    void executeSearch();
+    return;
+  }
+
   const nextQuery = {
     q: request.query,
     mode: request.mode,
@@ -217,10 +280,10 @@ const exportAnswer = (): void => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "AI搜索结果-模拟数据.md";
+  anchor.download = `AI搜索结果-${apiModeLabel.value}.md`;
   anchor.click();
   URL.revokeObjectURL(url);
-  void message.info("已导出本地模拟答案");
+  void message.info(`已导出${apiModeLabel.value}答案`);
 };
 
 const runRelatedSearch = (question: string): void => {
@@ -230,14 +293,85 @@ const runRelatedSearch = (question: string): void => {
     mode: mode.value,
     sources: sources.value,
     modelId: modelId.value,
+    workspaceId: workspaceId.value,
   });
+};
+
+const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
+  if (!isRealApiMode) return;
+  try {
+    const [knowledgeBases, chatModels] = await Promise.all([
+      listKnowledgeBases(),
+      listRealChatModelOptions(),
+    ]);
+    modelOptions.value = chatModels;
+    if (
+      modelOptions.value.length > 0 &&
+      !modelOptions.value.some((item) => item.value === modelId.value)
+    ) {
+      modelId.value = modelOptions.value[0]?.value ?? "env-deepseek";
+    }
+    knowledgeBaseOptions.value = knowledgeBases.map((item) => ({
+      id: item.id,
+      name: item.name,
+      documentCount: item.document_count,
+      readyDocumentCount: item.ready_document_count,
+      status: item.status,
+    }));
+    if (
+      knowledgeBaseOptions.value.length > 0 &&
+      !knowledgeBaseOptions.value.some((item) => item.id === workspaceId.value)
+    ) {
+      workspaceId.value = knowledgeBaseOptions.value[0]?.id;
+    }
+  } catch (error: unknown) {
+    void message.warning(toPublicApiError(error).message);
+  }
 };
 
 const showFeedback = (value: string): void => {
   void message.success(`已记录“${value}”反馈，本地刷新后将清除`);
 };
 
-const toggleAnswerFavorite = (): void => {
+const toggleAnswerFavorite = async (): Promise<void> => {
+  if (response.value === undefined) return;
+
+  if (isRealApiMode) {
+    try {
+      if (answerFavorite.value && answerFavoriteId.value !== undefined) {
+        await deleteFavorite(answerFavoriteId.value);
+        answerFavorite.value = false;
+        answerFavoriteId.value = undefined;
+        void message.success("已取消收藏");
+        return;
+      }
+
+      const favorite = await createFavorite({
+        type: "answer",
+        title: response.value.answer.title,
+        summary: response.value.answer.summary,
+        tags: ["RAG", "AI 答案"],
+        note: "",
+        source_id: response.value.answer.id,
+        source_payload: {
+          query: response.value.answer.query,
+          markdown: response.value.answer.markdown,
+          citations: response.value.answer.citations.map((citation) => ({
+            id: citation.id,
+            title: citation.title,
+            snippet: citation.snippet,
+          })),
+        },
+      });
+      answerFavorite.value = true;
+      answerFavoriteId.value = favorite.id;
+      void message.success("答案已保存到真实收藏");
+    } catch (error: unknown) {
+      void message.error(toPublicApiError(error).message);
+    }
+    return;
+  }
+
   answerFavorite.value = !answerFavorite.value;
   void message.success(
     answerFavorite.value ? "答案已加入本地收藏" : "已取消本地收藏",
@@ -283,13 +417,28 @@ const syncDesktopContext = (
 watch(
   () => route.fullPath,
   () => {
+    if (skipNextRouteSync) {
+      skipNextRouteSync = false;
+      return;
+    }
     syncFromRoute();
+    if (isRealApiMode && query.value.trim().length === 0) {
+      if (Object.keys(route.query).length > 0) {
+        skipNextRouteSync = true;
+        void router.replace({ path: "/search" });
+      }
+      status.value = "idle";
+      response.value = undefined;
+      errorMessage.value = "";
+      return;
+    }
     void executeSearch();
   },
   { immediate: true },
 );
 
 onMounted(() => {
+  void loadRealKnowledgeBaseOptions();
   if (typeof window.matchMedia !== "function") return;
   desktopContextQuery = window.matchMedia("(min-width: 1440px)");
   syncDesktopContext(desktopContextQuery);
@@ -311,7 +460,7 @@ onBeforeUnmount(() => {
         <p>{{ query }}</p>
       </div>
       <div class="search-result-actions">
-        <span class="mock-result-badge">模拟数据</span>
+        <span class="mock-result-badge">{{ apiModeLabel }}</span>
         <button
           class="secondary-button compact"
           type="button"
@@ -355,8 +504,8 @@ onBeforeUnmount(() => {
     <div class="search-query-meta" aria-label="查询摘要">
       <SearchStatusBadge :status="status" />
       <span>{{ modeLabel }}</span>
-      <span>{{ scopeLabel }}</span>
-      <span>{{ response?.sourceCount ?? 0 }} 个数据源</span>
+      <span>{{ selectedKnowledgeBaseLabel }}</span>
+      <span>{{ response?.sourceCount ?? 0 }} 个知识来源</span>
       <span>{{ response?.elapsedLabel ?? "等待检索" }}</span>
       <button
         v-if="!isContextOpen"
@@ -372,12 +521,14 @@ onBeforeUnmount(() => {
       v-model:query="query"
       v-model:mode="mode"
       v-model:sources="sources"
+      v-model:workspace-id="workspaceId"
       v-model:model-id="modelId"
       compact
       :busy="status === 'searching'"
       :mode-options="aiSearchMockData.modeOptions"
-      :scope-options="aiSearchMockData.scopeOptions"
-      :model-options="aiSearchMockData.modelOptions"
+      :model-options="modelOptions"
+      :knowledge-base-options="knowledgeBaseOptions"
+      :requires-workspace="isRealApiMode"
       @attachments-change="attachmentNames = $event"
       @submit="submitSearch"
       @notice="showLocalNotice"
@@ -410,6 +561,14 @@ onBeforeUnmount(() => {
           <button class="primary-button" type="button" @click="executeSearch">
             重新搜索
           </button>
+        </div>
+
+        <div v-else-if="response === undefined" class="search-empty-state">
+          <InlineState
+            kind="empty"
+            title="输入问题开始 RAG 检索"
+            description="系统会先检索你有权限访问的知识库文档，再基于引用内容生成回答。"
+          />
         </div>
 
         <template v-else-if="response !== undefined">
@@ -486,11 +645,10 @@ onBeforeUnmount(() => {
       <SearchContextPanel
         :open="isContextOpen"
         :query="query"
-        :selected-sources="sources"
-        :source-options="aiSearchMockData.scopeOptions"
+        :selected-knowledge-base="selectedKnowledgeBase"
+        :knowledge-base-options="knowledgeBaseOptions"
         :model-label="modelLabel"
         :citations="response?.answer.citations ?? []"
-        :data-sources="aiSearchMockData.dataSources"
         :attachment-names="attachmentNames"
         :return-focus-to="contextTrigger"
         @close="isContextOpen = false"
@@ -607,7 +765,8 @@ onBeforeUnmount(() => {
 }
 
 .search-progress-state,
-.search-error-state {
+.search-error-state,
+.search-empty-state {
   display: grid;
   gap: var(--space-4);
   padding: var(--space-6);

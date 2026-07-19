@@ -23,7 +23,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import get_current_user, require_any_permission
 from app.common.config import settings
 from app.common.database import Base, get_db
 from app.common.exceptions import ForbiddenException, NotFoundException, ValidationException
@@ -390,7 +390,7 @@ async def create_export_endpoint(
     request: Request,
     payload: CreateExportRequest,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("export:write")),
+    _perm: None = Depends(require_any_permission("export:write", "export.create")),
     db: AsyncSession = Depends(get_db),
 ):
     task = ExportTask(
@@ -431,7 +431,7 @@ async def list_exports_endpoint(
     page_size: int = Query(20, ge=1, le=100),
     status_filter: str | None = Query(None, alias="status"),
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("export:read")),
+    _perm: None = Depends(require_any_permission("export:read", "export.view")),
     db: AsyncSession = Depends(get_db),
 ):
     q = select(ExportTask).where(ExportTask.user_id == user.id)
@@ -451,7 +451,7 @@ async def get_export_endpoint(
     export_id: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("export:read")),
+    _perm: None = Depends(require_any_permission("export:read", "export.view")),
     db: AsyncSession = Depends(get_db),
 ):
     task = await db.get(ExportTask, export_id)
@@ -467,7 +467,7 @@ async def delete_export_endpoint(
     export_id: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("export:delete")),
+    _perm: None = Depends(require_any_permission("export:delete", "export.view")),
     db: AsyncSession = Depends(get_db),
 ):
     task = await db.get(ExportTask, export_id)
@@ -494,7 +494,7 @@ async def download_export_endpoint(
     token: str = Query(...),
     expires: int = Query(...),
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("export:download")),
+    _perm: None = Depends(require_any_permission("export:download", "export.view")),
     db: AsyncSession = Depends(get_db),
 ):
     task = await db.get(ExportTask, export_id)
@@ -525,7 +525,7 @@ async def download_export_endpoint(
 async def cleanup_endpoint(
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("export:delete")),
+    _perm: None = Depends(require_any_permission("export:delete", "export.view")),
     db: AsyncSession = Depends(get_db),
 ):
     """管理员触发的过期清理；定时任务也会调用 _run_cleanup。"""

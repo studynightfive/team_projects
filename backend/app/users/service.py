@@ -83,9 +83,14 @@ async def list_users(
 
 async def create_user(db: AsyncSession, data: CreateUserRequest) -> UserResponse:
     """创建用户"""
+    username = data.username.strip()
+    display_name = data.display_name.strip()
+    if username == "" or display_name == "":
+        raise ValidationException(message="账号 ID 和姓名不能为空")
+
     # 检查用户名唯一性
     result = await db.execute(
-        select(User).where(User.username == data.username)
+        select(User).where(User.username == username)
     )
     if result.scalar_one_or_none():
         raise ConflictException(
@@ -94,8 +99,8 @@ async def create_user(db: AsyncSession, data: CreateUserRequest) -> UserResponse
         )
 
     user = User(
-        username=data.username,
-        display_name=data.display_name,
+        username=username,
+        display_name=display_name,
         password_hash=hash_password(data.password),
         status="active",
     )
@@ -161,8 +166,8 @@ async def reset_user_password(
     """重置用户密码"""
     user = await _get_user_or_404(db, user_id)
 
-    if len(new_password) < 8:
-        raise ValidationException(message="密码长度至少 8 位")
+    if len(new_password) < 7:
+        raise ValidationException(message="密码长度至少 7 位")
 
     user.password_hash = hash_password(new_password)
     await db.commit()

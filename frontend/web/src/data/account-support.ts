@@ -36,12 +36,12 @@ export const notificationSeeds = {
       read: false,
     },
     {
-      id: "user-source-warning",
-      category: "系统",
-      title: "一个数据源需要重新授权",
-      description: "项目管理数据源的权限状态异常，当前页面只展示固定状态样例。",
+      id: "user-knowledge-ready",
+      category: "知识",
+      title: "企业知识库新增可检索文档",
+      description: "上传后的文档已进入知识库目录，可在 AI 搜索中限定知识库检索。",
       time: "2 小时前",
-      action: { label: "查看数据源", to: "/data-sources" },
+      action: { label: "查看知识库", to: "/knowledge" },
       read: false,
     },
     {
@@ -147,14 +147,14 @@ export const helpTopics = [
     category: "开始使用",
     question: "第一次使用时应该从哪里开始？",
     answer:
-      "从 AI 搜索首页输入一个具体业务问题即可。需要按目录浏览时进入企业知识库，需要连续追问时进入 AI 助手。",
+      "从 AI 搜索首页输入一个具体业务问题即可。需要按目录浏览时进入企业知识库，需要回看问答记录时进入历史会话。",
   },
   {
     id: "start-data-boundary",
     category: "开始使用",
     question: "当前页面里的数据是真实业务数据吗？",
     answer:
-      "不是。当前前端使用固定样例验证页面与交互，真实数据、权限和持久化必须等待 OpenAPI 契约及后端接口接入。",
+      "演示链路中的登录、企业知识库、文档上传、RAG 问答、收藏、历史、下载和通知已接入真实接口；帮助和偏好设置仍保留界面级样例。",
   },
   {
     id: "search-modes",
@@ -182,7 +182,7 @@ export const helpTopics = [
     category: "知识与文档",
     question: "导出完成后在哪里查看？",
     answer:
-      "导出任务会进入“我的下载”。当前页面只展示任务状态，不生成真实文件地址；正式下载必须通过鉴权接口。",
+      "导出任务会进入“我的下载”。真实模式下列表、删除和下载都会请求后端鉴权接口，不拼接公开静态文件地址。",
   },
   {
     id: "account-tokens",
@@ -200,7 +200,7 @@ export const helpTopics = [
   },
 ] as const satisfies readonly HelpTopic[];
 
-export type DefaultWorkspace = "ai-search" | "knowledge" | "assistant";
+export type DefaultWorkspace = "ai-search" | "knowledge";
 export type ContentDensity = "comfortable" | "compact";
 export type LinkOpenMode = "same-tab" | "new-tab";
 export type NotificationDigest = "realtime" | "daily" | "weekly";

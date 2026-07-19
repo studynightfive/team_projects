@@ -8,7 +8,6 @@ import {
   Download,
   FilePlus2,
   Files,
-  FlaskConical,
   FolderHeart,
   Gauge,
   History,
@@ -267,19 +266,6 @@ export const userNavigation = [
     activePrefixes: ["/search"],
   },
   {
-    label: "AI 助手",
-    shortLabel: "助手",
-    icon: MessageSquareText,
-    to: "/chat",
-    activePrefixes: ["/chat"],
-  },
-  {
-    label: "深度研究",
-    shortLabel: "研究",
-    icon: FlaskConical,
-    to: "/research",
-  },
-  {
     label: "企业知识库",
     shortLabel: "知识库",
     icon: BookOpen,
@@ -309,12 +295,6 @@ export const userNavigation = [
     shortLabel: "历史",
     icon: ScrollText,
     to: "/history",
-  },
-  {
-    label: "数据源",
-    shortLabel: "数据源",
-    icon: Database,
-    to: "/data-sources",
   },
   {
     label: "我的下载",
@@ -381,9 +361,9 @@ export const adminNavigation = [
 
 export const userMobileNavigation = [
   userNavigation[0],
-  userNavigation[3],
-  userNavigation[7],
   userNavigation[1],
+  userNavigation[4],
+  userNavigation[5],
 ] as const;
 export const adminMobileNavigation = [
   adminNavigation[0],

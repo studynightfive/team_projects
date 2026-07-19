@@ -1,26 +1,36 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import type {
   CitationSource,
-  DataSource,
-  SearchScopeOption,
-  SearchSourceType,
+  KnowledgeBaseOption,
 } from "../../types/ai-search";
-import { BookOpen, Database, FileText, Settings2, X } from "../icons";
+import { BookOpen, FileText, Settings2, X } from "../icons";
 import SearchStatusBadge from "./SearchStatusBadge.vue";
 
 const props = defineProps<{
   open: boolean;
   query: string;
-  selectedSources: readonly SearchSourceType[];
-  sourceOptions: readonly SearchScopeOption[];
+  selectedKnowledgeBase?: KnowledgeBaseOption;
+  knowledgeBaseOptions: readonly KnowledgeBaseOption[];
   modelLabel: string;
   citations: readonly CitationSource[];
-  dataSources: readonly DataSource[];
   attachmentNames?: readonly string[];
   returnFocusTo?: HTMLElement;
 }>();
+
+const totalDocumentCount = computed(() =>
+  props.knowledgeBaseOptions.reduce(
+    (sum, item) => sum + item.documentCount,
+    0,
+  ),
+);
+const totalReadyDocumentCount = computed(() =>
+  props.knowledgeBaseOptions.reduce(
+    (sum, item) => sum + item.readyDocumentCount,
+    0,
+  ),
+);
 
 const emit = defineEmits<{
   close: [];
@@ -151,18 +161,6 @@ onBeforeUnmount(() => {
         <p class="context-query">{{ query }}</p>
       </section>
 
-      <section>
-        <h3><Database :size="16" aria-hidden="true" />已选择范围</h3>
-        <div class="context-chip-list">
-          <span v-for="source in selectedSources" :key="source">
-            {{
-              sourceOptions.find((option) => option.value === source)?.label ??
-                source
-            }}
-          </span>
-        </div>
-      </section>
-
       <section v-if="attachmentNames && attachmentNames.length > 0">
         <h3><FileText :size="16" aria-hidden="true" />上传附件</h3>
         <ul class="context-file-list">
@@ -174,35 +172,25 @@ onBeforeUnmount(() => {
         <h3><Settings2 :size="16" aria-hidden="true" />模型与来源</h3>
         <dl class="context-definition-list">
           <div>
+            <dt>当前知识库</dt>
+            <dd>{{ selectedKnowledgeBase?.name ?? "未选择" }}</dd>
+          </div>
+          <div>
             <dt>AI 模型</dt>
             <dd>{{ modelLabel }}</dd>
           </div>
           <div>
-            <dt>可用数据源</dt>
-            <dd>
-              {{
-                dataSources.filter(
-                  (source) => source.connectionStatus === "connected",
-                ).length
-              }}
-              个
-            </dd>
+            <dt>可访问知识库</dt>
+            <dd>{{ knowledgeBaseOptions.length }} 个</dd>
           </div>
           <div>
-            <dt>异常数据源</dt>
-            <dd>
-              {{
-                dataSources.filter(
-                  (source) => source.connectionStatus !== "connected",
-                ).length
-              }}
-              个
-            </dd>
+            <dt>已就绪文档</dt>
+            <dd>{{ totalReadyDocumentCount }} / {{ totalDocumentCount }} 个</dd>
           </div>
         </dl>
       </section>
 
-      <section>
+      <section v-if="citations.length > 0">
         <h3><FileText :size="16" aria-hidden="true" />引用来源概览</h3>
         <div class="context-citation-list">
           <button
@@ -218,8 +206,10 @@ onBeforeUnmount(() => {
           </button>
         </div>
       </section>
-
-      <p class="context-mock-notice">当前状态与来源均为设计验证用模拟数据。</p>
+      <section v-else>
+        <h3><FileText :size="16" aria-hidden="true" />引用来源概览</h3>
+        <p class="context-query">检索完成后会显示真实命中文档引用。</p>
+      </section>
     </aside>
   </div>
 </template>
@@ -302,20 +292,6 @@ onBeforeUnmount(() => {
   line-height: 1.65;
 }
 
-.context-chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.context-chip-list span {
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-4);
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  font-size: var(--font-size-12);
-}
-
 .context-file-list {
   margin: 0;
   padding-left: var(--space-5);
@@ -366,14 +342,6 @@ onBeforeUnmount(() => {
 .context-citation-list button > span:first-child {
   min-width: 0;
   flex: 1;
-}
-
-.context-mock-notice {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  color: var(--color-text-muted);
-  background: var(--color-surface-subtle);
-  font-size: var(--font-size-12);
 }
 
 @media (max-width: 1439px) {

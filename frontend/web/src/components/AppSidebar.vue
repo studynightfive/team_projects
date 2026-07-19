@@ -30,6 +30,7 @@ const emit = defineEmits<{
   "toggle-collapse": [];
   notice: [message: string];
   "open-profile": [];
+  logout: [];
 }>();
 
 const route = useRoute();
@@ -56,6 +57,10 @@ const runProfileAction = async (label: string): Promise<void> => {
   await closeProfileMenu();
   if (label === "个人中心") {
     emit("open-profile");
+    return;
+  }
+  if (label === "退出登录") {
+    emit("logout");
     return;
   }
   emit("notice", `${label}将在认证与个人中心里程碑开放`);

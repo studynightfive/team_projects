@@ -6,18 +6,76 @@ import uuid
 
 import structlog
 from fastapi import APIRouter, Cookie, Depends, Request, Response
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.auth.schemas import LoginRequest
+from app.auth.schemas import LoginRequest, RegisterRequest, UsernameAvailability
 from app.auth.service import get_me, login, logout, refresh_access_token
 from app.common.database import get_db
 from app.common.exceptions import AppException
-from app.common.models import User
+from app.common.models import Role, User
 from app.common.schemas import APIResponse
+from app.users.schemas import CreateUserRequest
+from app.users.service import create_user
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v1", tags=["auth"])
+
+
+@router.get("/auth/check-username")
+async def check_username_endpoint(
+    username: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """检查账号 ID 是否可注册。"""
+    normalized = username.strip()
+    existing = None
+    if normalized != "":
+        result = await db.execute(select(User.id).where(User.username == normalized))
+        existing = result.scalar_one_or_none()
+    return APIResponse(
+        code=0,
+        message="success",
+        data=UsernameAvailability(
+            username=normalized,
+            available=normalized != "" and existing is None,
+        ).model_dump(),
+        request_id=str(uuid.uuid4()),
+    )
+
+
+@router.post("/auth/register", status_code=201)
+async def register_endpoint(
+    body: RegisterRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """公开注册普通用户账号，创建后进入用户管理列表。"""
+    request_id = str(uuid.uuid4())
+    role_result = await db.execute(select(Role).where(Role.name == "普通用户"))
+    user_role = role_result.scalar_one_or_none()
+    role_ids = [user_role.id] if user_role is not None else []
+
+    try:
+        user = await create_user(
+            db,
+            CreateUserRequest(
+                username=body.username.strip(),
+                display_name=body.display_name.strip(),
+                password=body.password,
+                role_ids=role_ids,
+            ),
+        )
+    except AppException as e:
+        e.request_id = request_id
+        raise e
+
+    return APIResponse(
+        code=0,
+        message="注册成功",
+        data=user.model_dump(),
+        request_id=request_id,
+    )
 
 
 # ============================================================

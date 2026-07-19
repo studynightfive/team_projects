@@ -6,6 +6,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.models import Role, User
+from app.documents.models import Document
+from app.knowledge.models import KnowledgeBase
+from app.rag.conversations.all import Conversation, Message
 from app.users.dashboard_schemas import DashboardMetrics
 
 
@@ -35,5 +38,19 @@ async def get_dashboard_metrics(db: AsyncSession) -> DashboardMetrics:
         select(func.count(Role.id)).where(Role.status == "active")
     )
     metrics.total_roles = result.scalar() or 0
+
+    result = await db.execute(select(func.count(KnowledgeBase.id)))
+    metrics.total_knowledge_bases = result.scalar() or 0
+
+    result = await db.execute(select(func.count(Document.id)))
+    metrics.total_documents = result.scalar() or 0
+
+    result = await db.execute(select(func.count(Conversation.id)))
+    metrics.total_conversations = result.scalar() or 0
+
+    result = await db.execute(
+        select(func.count(Message.id)).where(Message.role == "user")
+    )
+    metrics.total_chats_today = result.scalar() or 0
 
     return metrics

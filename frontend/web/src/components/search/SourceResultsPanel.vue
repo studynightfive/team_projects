@@ -318,10 +318,10 @@ onBeforeUnmount(() => {
         </select>
       </label>
       <label class="advanced-filter-field">
-        <span class="mobile-filter-label">数据源</span>
-        <span class="visually-hidden">数据源</span>
-        <select v-model="sourceFilter" aria-label="按数据源筛选">
-          <option value="all">全部数据源</option>
+        <span class="mobile-filter-label">来源</span>
+        <span class="visually-hidden">来源</span>
+        <select v-model="sourceFilter" aria-label="按来源筛选">
+          <option value="all">全部来源</option>
           <option v-for="source in sourceOptions" :key="source" :value="source">
             {{ source }}
           </option>
@@ -378,7 +378,7 @@ onBeforeUnmount(() => {
     </div>
 
     <p class="result-count" aria-live="polite">
-      共 {{ filteredResults.length }} 条模拟结果，内容按当前账号权限状态展示
+      共 {{ filteredResults.length }} 条知识库结果，内容按当前账号权限状态展示
     </p>
 
     <div
@@ -451,7 +451,7 @@ onBeforeUnmount(() => {
       v-else
       kind="empty"
       title="没有符合条件的结果"
-      description="请减少筛选条件、缩短关键词或恢复全部数据源。"
+      description="请减少筛选条件、缩短关键词或恢复全部来源。"
     />
 
     <button

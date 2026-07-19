@@ -17,4 +17,13 @@ describe("Vite API 代理模式", () => {
       },
     });
   });
+
+  it("API mode 可覆盖代理目标以适配 Docker Nginx", () => {
+    expect(apiProxyForMode("api", "http://127.0.0.1")).toEqual({
+      "/api": {
+        target: "http://127.0.0.1",
+        changeOrigin: true,
+      },
+    });
+  });
 });

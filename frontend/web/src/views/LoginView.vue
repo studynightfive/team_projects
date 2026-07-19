@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { nextTick, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import {
   Award,
@@ -18,16 +19,59 @@ import {
   UsersRound,
 } from "../components/icons";
 import PlatformLogo from "../components/PlatformLogo.vue";
+import { toPublicApiError } from "../api/client";
+import { useSessionStore } from "../stores/session";
+import {
+  checkUsernameAvailable,
+  loginWithPassword,
+  registerAccount,
+} from "../services/auth";
 
 const { message } = AntApp.useApp();
+const router = useRouter();
+const route = useRoute();
+const sessionStore = useSessionStore();
 const account = ref("");
 const password = ref("");
+const authMode = ref<"login" | "register">("login");
+const registerAccountId = ref("");
+const registerName = ref("");
+const registerPassword = ref("");
 const rememberMe = ref(false);
 const showPassword = ref(false);
 const accountError = ref("");
+const registerAccountError = ref("");
+const registerNameError = ref("");
+const registerPasswordError = ref("");
+const loading = ref(false);
+const registerLoading = ref(false);
 const passwordError = ref("");
 const accountInputRef = ref<HTMLInputElement>();
 const passwordInputRef = ref<HTMLInputElement>();
+const registerAccountInputRef = ref<HTMLInputElement>();
+const registerNameInputRef = ref<HTMLInputElement>();
+const registerPasswordInputRef = ref<HTMLInputElement>();
+
+const headingTitle = computed(() =>
+  authMode.value === "login" ? "欢迎回到工作台" : "创建企业账号",
+);
+const headingDescription = computed(() =>
+  authMode.value === "login"
+    ? "请使用企业账号登录"
+    : "注册成功后，账号会进入管理中心的用户管理",
+);
+
+const redirectTarget = (): string => {
+  const redirect = route.query.redirect;
+  if (
+    typeof redirect === "string" &&
+    redirect.startsWith("/") &&
+    !redirect.startsWith("/login")
+  ) {
+    return redirect;
+  }
+  return "/";
+};
 
 const metrics = [
   { value: "1,000+", label: "头部企业客户", icon: UsersRound },
@@ -76,7 +120,79 @@ const submit = async (): Promise<void> => {
     return;
   }
 
-  void message.info("当前仅验证界面交互，认证接口将在 M02 里程碑接入");
+  loading.value = true;
+  try {
+    const user = await loginWithPassword({
+      username: account.value.trim(),
+      password: password.value,
+    });
+    sessionStore.setUser(user);
+    message.success("登录成功");
+    await router.replace(redirectTarget());
+  } catch (err) {
+    const publicError = toPublicApiError(err);
+    message.error(
+      publicError.status === 401
+        ? "账号或密码错误，请重新尝试"
+        : publicError.message,
+    );
+  } finally {
+    loading.value = false;
+  }
+};
+
+const validateRegisterAccount = async (): Promise<boolean> => {
+  const username = registerAccountId.value.trim();
+  if (username === "") {
+    registerAccountError.value = "请输入账号 ID";
+    return false;
+  }
+  try {
+    const available = await checkUsernameAvailable(username);
+    registerAccountError.value = available ? "" : "账号 ID 已存在，请更换";
+    return available;
+  } catch (err) {
+    registerAccountError.value = toPublicApiError(err).message;
+    return false;
+  }
+};
+
+const submitRegister = async (): Promise<void> => {
+  registerNameError.value =
+    registerName.value.trim() === "" ? "请输入姓名或展示名称" : "";
+  registerPasswordError.value =
+    registerPassword.value.length < 7 ? "密码至少 7 位" : "";
+  const accountOk = await validateRegisterAccount();
+
+  if (
+    !accountOk ||
+    registerNameError.value !== "" ||
+    registerPasswordError.value !== ""
+  ) {
+    await nextTick();
+    if (!accountOk) registerAccountInputRef.value?.focus();
+    else if (registerNameError.value !== "")
+      registerNameInputRef.value?.focus();
+    else registerPasswordInputRef.value?.focus();
+    return;
+  }
+
+  registerLoading.value = true;
+  try {
+    await registerAccount({
+      username: registerAccountId.value.trim(),
+      display_name: registerName.value.trim(),
+      password: registerPassword.value,
+    });
+    message.success("注册成功，请使用新账号登录");
+    account.value = registerAccountId.value.trim();
+    password.value = "";
+    authMode.value = "login";
+  } catch (err) {
+    message.error(toPublicApiError(err).message);
+  } finally {
+    registerLoading.value = false;
+  }
 };
 </script>
 
@@ -146,11 +262,28 @@ const submit = async (): Promise<void> => {
           <span class="mobile-login-mark" aria-hidden="true">
             <BookOpen :size="20" />
           </span>
-          <h2 id="login-title">欢迎回到工作台</h2>
-          <p>请使用企业账号登录</p>
+          <h2 id="login-title">{{ headingTitle }}</h2>
+          <p>{{ headingDescription }}</p>
         </header>
 
-        <form novalidate @submit.prevent="submit">
+        <div class="auth-mode-switch" aria-label="认证方式">
+          <button
+            type="button"
+            :class="{ active: authMode === 'login' }"
+            @click="authMode = 'login'"
+          >
+            登录
+          </button>
+          <button
+            type="button"
+            :class="{ active: authMode === 'register' }"
+            @click="authMode = 'register'"
+          >
+            注册
+          </button>
+        </div>
+
+        <form v-if="authMode === 'login'" novalidate @submit.prevent="submit">
           <div class="form-field">
             <label for="account">账号</label>
             <input
@@ -239,8 +372,114 @@ const submit = async (): Promise<void> => {
             </button>
           </div>
 
-          <button class="primary-button login-submit-button" type="submit">
-            进入工作区
+          <button
+            class="primary-button login-submit-button"
+            type="submit"
+            :disabled="loading"
+          >
+            {{ loading ? "正在登录" : "进入工作区" }}
+          </button>
+        </form>
+
+        <form v-else novalidate @submit.prevent="submitRegister">
+          <div class="form-field">
+            <label for="register-account">账号 ID</label>
+            <input
+              id="register-account"
+              ref="registerAccountInputRef"
+              v-model="registerAccountId"
+              type="text"
+              autocomplete="username"
+              placeholder="例如 liuhaiwang"
+              :aria-invalid="registerAccountError !== ''"
+              :aria-describedby="
+                registerAccountError === ''
+                  ? undefined
+                  : 'register-account-error'
+              "
+              @blur="validateRegisterAccount"
+              @input="registerAccountError = ''"
+            />
+            <p
+              v-if="registerAccountError !== ''"
+              id="register-account-error"
+              class="field-error"
+            >
+              {{ registerAccountError }}
+            </p>
+          </div>
+
+          <div class="form-field">
+            <label for="register-name">姓名</label>
+            <input
+              id="register-name"
+              ref="registerNameInputRef"
+              v-model="registerName"
+              type="text"
+              autocomplete="name"
+              placeholder="请输入姓名或展示名称"
+              :aria-invalid="registerNameError !== ''"
+              :aria-describedby="
+                registerNameError === '' ? undefined : 'register-name-error'
+              "
+              @input="registerNameError = ''"
+            />
+            <p
+              v-if="registerNameError !== ''"
+              id="register-name-error"
+              class="field-error"
+            >
+              {{ registerNameError }}
+            </p>
+          </div>
+
+          <div class="form-field password-field">
+            <label for="register-password">密码</label>
+            <div class="password-input-wrap">
+              <input
+                id="register-password"
+                ref="registerPasswordInputRef"
+                v-model="registerPassword"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="new-password"
+                placeholder="至少 7 位"
+                :aria-invalid="registerPasswordError !== ''"
+                :aria-describedby="
+                  registerPasswordError === ''
+                    ? undefined
+                    : 'register-password-error'
+                "
+                @input="registerPasswordError = ''"
+              />
+              <button
+                class="password-toggle"
+                type="button"
+                :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+                :aria-pressed="showPassword"
+                @click="showPassword = !showPassword"
+              >
+                <component
+                  :is="showPassword ? EyeOff : Eye"
+                  :size="17"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+            <p
+              v-if="registerPasswordError !== ''"
+              id="register-password-error"
+              class="field-error"
+            >
+              {{ registerPasswordError }}
+            </p>
+          </div>
+
+          <button
+            class="primary-button login-submit-button"
+            type="submit"
+            :disabled="registerLoading"
+          >
+            {{ registerLoading ? "正在注册" : "创建账号" }}
           </button>
         </form>
 

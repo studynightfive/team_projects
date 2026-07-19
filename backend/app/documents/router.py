@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import get_current_user, require_any_permission, require_permission
 from app.common.database import get_db
 from app.common.exceptions import AppException
 from app.common.models import User
@@ -46,11 +46,55 @@ async def list_documents(
     )
 
 
+@router.get("/admin/documents")
+async def list_admin_documents(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None),
+    status: str | None = Query(None),
+    _user: User = Depends(get_current_user),
+    _perm: None = Depends(require_permission("admin.document.view")),
+    service: DocumentService = Depends(get_service),
+):
+    items, total = await service.list_admin_documents(
+        page=page,
+        page_size=page_size,
+        search=search,
+        status=status,
+    )
+    return APIResponse(
+        data=PaginatedData(items=items, page=page, page_size=page_size, total=total),
+        request_id=str(uuid.uuid4()),
+    )
+
+
+@router.get("/admin/tasks")
+async def list_admin_tasks(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None),
+    status: str | None = Query(None),
+    _user: User = Depends(get_current_user),
+    _perm: None = Depends(require_permission("admin.task.view")),
+    service: DocumentService = Depends(get_service),
+):
+    items, total = await service.list_admin_tasks(
+        page=page,
+        page_size=page_size,
+        search=search,
+        status=status,
+    )
+    return APIResponse(
+        data=PaginatedData(items=items, page=page, page_size=page_size, total=total),
+        request_id=str(uuid.uuid4()),
+    )
+
+
 @router.post("/knowledge-bases/{kb_id}/documents")
 async def upload_documents(
     kb_id: str,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("admin.document.upload")),
+    _perm: None = Depends(require_any_permission("admin.document.upload", "document.upload")),
     service: DocumentService = Depends(get_service),
     files: list[UploadFile] = File(...),
     folder_path: str = Form(""),

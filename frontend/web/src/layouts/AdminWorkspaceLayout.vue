@@ -5,13 +5,11 @@ import { RouterLink, useRoute } from "vue-router";
 import NotificationPreview from "../components/NotificationPreview.vue";
 import WorkspaceShell from "../components/WorkspaceShell.vue";
 import { ChevronDown } from "../components/icons";
-import {
-  adminMobileNavigation,
-  adminNavigation,
-  foundationData,
-} from "../data/foundation";
+import { adminMobileNavigation, adminNavigation } from "../data/foundation";
+import { useSessionStore } from "../stores/session";
 
 const route = useRoute();
+const sessionStore = useSessionStore();
 const environment = ref("演示");
 const currentTitle = computed(() =>
   typeof route.meta.title === "string" ? route.meta.title : "平台总览",
@@ -25,9 +23,9 @@ const currentTitle = computed(() =>
     :navigation="adminNavigation"
     navigation-label="管理中心"
     :mobile-navigation="adminMobileNavigation"
-    :identity-name="foundationData.adminView.profile.name"
-    :identity-role="foundationData.adminView.profile.department"
-    :identity-initial="foundationData.adminView.profile.initial"
+    :identity-name="sessionStore.displayName"
+    :identity-role="sessionStore.roleLabel"
+    :identity-initial="sessionStore.initial"
     :workspace-switch="{
       label: '返回用户工作区',
       mobileLabel: '返回用户工作区',
@@ -54,10 +52,10 @@ const currentTitle = computed(() =>
           <button
             class="avatar topbar-avatar admin-avatar"
             type="button"
-            :aria-label="`${foundationData.adminView.profile.name}的账号菜单`"
+            :aria-label="`${sessionStore.displayName}的账号菜单`"
             @click="openProfile"
           >
-            {{ foundationData.adminView.profile.initial }}
+            {{ sessionStore.initial }}
           </button>
           <RouterLink class="secondary-button compact" to="/">
             返回用户工作区

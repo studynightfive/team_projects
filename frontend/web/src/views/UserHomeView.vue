@@ -6,21 +6,22 @@ import { RouterLink, useRouter } from "vue-router";
 import InlineState from "../components/InlineState.vue";
 import AiSearchBox from "../components/search/AiSearchBox.vue";
 import SearchContextPanel from "../components/search/SearchContextPanel.vue";
-import SearchStatusBadge from "../components/search/SearchStatusBadge.vue";
 import {
   ChevronRight,
   Database,
   FileUp,
-  FlaskConical,
   FolderHeart,
   PanelRightOpen,
   ScanSearch,
   SquareLibrary,
 } from "../components/icons";
-import { foundationData } from "../data/foundation";
+import { isRealApiMode } from "../config/runtime";
 import { loadAiSearchHome } from "../services/ai-search";
+import { listKnowledgeBases } from "../services/knowledge";
+import { useSessionStore } from "../stores/session";
 import type {
   AiSearchHomeData,
+  KnowledgeBaseOption,
   QuickAction,
   SearchMode,
   SearchRequest,
@@ -34,13 +35,16 @@ interface SearchBoxHandle {
 
 const { message } = AntApp.useApp();
 const router = useRouter();
+const sessionStore = useSessionStore();
 const searchBoxRef = ref<SearchBoxHandle>();
 const homeData = ref<AiSearchHomeData>();
 const loadError = ref("");
 const query = ref("");
 const mode = ref<SearchMode>("smart");
 const sources = ref<SearchSourceType[]>([]);
+const workspaceId = ref<string>();
 const modelId = ref("enterprise-general");
+const knowledgeBaseOptions = ref<readonly KnowledgeBaseOption[]>([]);
 const isContextOpen = ref(false);
 const attachmentNames = ref<string[]>([]);
 const contextTrigger = ref<HTMLElement>();
@@ -50,23 +54,34 @@ let desktopContextQuery: MediaQueryList | undefined;
 
 const quickActionIcons = {
   upload: FileUp,
-  research: FlaskConical,
   space: SquareLibrary,
   favorite: FolderHeart,
   "data-source": Database,
 } as const satisfies Record<QuickAction["icon"], typeof FileUp>;
 
-const connectedSourceCount = computed(
-  () =>
-    homeData.value?.dataSources.filter(
-      (source) => source.connectionStatus === "connected",
-    ).length ?? 0,
-);
 const modelLabel = computed(
   () =>
     homeData.value?.modelOptions.find(
       (option) => option.value === modelId.value,
     )?.label ?? "企业通用模型",
+);
+const selectedKnowledgeBase = computed(() =>
+  knowledgeBaseOptions.value.find((item) => item.id === workspaceId.value),
+);
+const canUploadKnowledge = computed(() => {
+  const permissions = sessionStore.currentUser?.permissions ?? [];
+  return permissions.some((permission) =>
+    ["admin.document.upload", "document.upload"].includes(permission),
+  );
+});
+const visibleQuickActions = computed(
+  () =>
+    homeData.value?.quickActions.filter(
+      (action) => action.icon !== "upload" || canUploadKnowledge.value,
+    ) ?? [],
+);
+const apiModeLabel = computed(() =>
+  homeData.value?.meta.apiRequestsAllowed === true ? "真实接口" : "模拟数据",
 );
 
 const formatDate = (value: string): string =>
@@ -85,10 +100,29 @@ const initializeHome = async (): Promise<void> => {
   try {
     const data = await loadAiSearchHome(loadController.signal);
     homeData.value = data;
-    sources.value = [
-      ...(data.scopeOptions.find((option) => option.value === "all")?.sources ??
-        []),
-    ];
+    sources.value = ["knowledge"];
+    if (
+      data.modelOptions.length > 0 &&
+      !data.modelOptions.some((item) => item.value === modelId.value)
+    ) {
+      modelId.value = data.modelOptions[0]?.value ?? "env-deepseek";
+    }
+    if (data.meta.apiRequestsAllowed) {
+      const knowledgeBases = await listKnowledgeBases(loadController.signal);
+      knowledgeBaseOptions.value = knowledgeBases.map((item) => ({
+        id: item.id,
+        name: item.name,
+        documentCount: item.document_count,
+        readyDocumentCount: item.ready_document_count,
+        status: item.status,
+      }));
+      if (
+        knowledgeBaseOptions.value.length > 0 &&
+        !knowledgeBaseOptions.value.some((item) => item.id === workspaceId.value)
+      ) {
+        workspaceId.value = knowledgeBaseOptions.value[0]?.id;
+      }
+    }
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") return;
     loadError.value = "工作台数据暂时无法加载，请重新尝试。";
@@ -100,6 +134,23 @@ const showNotice = (notice: string): void => {
 };
 
 const submitSearch = (request: SearchRequest): void => {
+  if (isRealApiMode) {
+    void router.push({
+      path: "/search",
+      state: {
+        initialSearch: {
+          q: request.query,
+          mode: request.mode,
+          sources: request.sources.join(","),
+          workspaceId: request.workspaceId,
+          modelId: request.modelId,
+        },
+        attachmentNames: [...(request.attachmentIds ?? [])],
+      },
+    });
+    return;
+  }
+
   void router.push({
     path: "/search",
     query: {
@@ -124,6 +175,21 @@ const openRecentSearch = (historyId: string): void => {
   );
   if (item === undefined) return;
 
+  if (isRealApiMode) {
+    void router.push({
+      path: "/search",
+      state: {
+        initialSearch: {
+          q: item.query,
+          mode: item.mode,
+          sources: item.sources.join(","),
+          workspaceId: workspaceId.value,
+        },
+      },
+    });
+    return;
+  }
+
   void router.push({
     path: "/search",
     query: {
@@ -137,6 +203,10 @@ const openRecentSearch = (historyId: string): void => {
 
 const runQuickAction = (action: QuickAction): void => {
   if (action.icon === "upload") {
+    if (!canUploadKnowledge.value) {
+      void message.warning("当前账号没有上传文档权限");
+      return;
+    }
     searchBoxRef.value?.openFilePicker();
     return;
   }
@@ -189,7 +259,7 @@ onBeforeUnmount(() => {
       <InlineState
         kind="loading"
         title="正在准备 AI 搜索工作台"
-        description="正在加载搜索范围、知识空间和数据源概览。"
+        description="正在加载搜索范围、知识空间和企业知识库概览。"
       />
     </div>
 
@@ -202,14 +272,16 @@ onBeforeUnmount(() => {
         <header class="search-hero">
           <div class="search-hero-status">
             <span>企业知识中心</span>
-            <span aria-label="当前使用模拟数据">模拟数据</span>
+            <span :aria-label="`当前使用${apiModeLabel}`">{{
+              apiModeLabel
+            }}</span>
           </div>
           <p class="search-hero-greeting">
-            {{ foundationData.userView.profile.name }}，欢迎回到工作台
+            {{ sessionStore.displayName }}，欢迎回到工作台
           </p>
           <h1>今天想查找什么？</h1>
           <p class="search-hero-description">
-            搜索企业知识、项目资料、制度文档与业务信息，获得带来源依据的智能答案。
+            搜索企业知识库中的文档和业务资料，获得带来源依据的智能答案。
           </p>
 
           <AiSearchBox
@@ -217,10 +289,12 @@ onBeforeUnmount(() => {
             v-model:query="query"
             v-model:mode="mode"
             v-model:sources="sources"
+            v-model:workspace-id="workspaceId"
             v-model:model-id="modelId"
             :mode-options="homeData.modeOptions"
-            :scope-options="homeData.scopeOptions"
             :model-options="homeData.modelOptions"
+            :knowledge-base-options="knowledgeBaseOptions"
+            :requires-workspace="isRealApiMode"
             @attachments-change="attachmentNames = $event"
             @submit="submitSearch"
             @notice="showNotice"
@@ -258,7 +332,7 @@ onBeforeUnmount(() => {
           </header>
           <div class="quick-action-list">
             <button
-              v-for="action in homeData.quickActions"
+              v-for="action in visibleQuickActions"
               :key="action.id"
               type="button"
               @click="runQuickAction(action)"
@@ -344,53 +418,16 @@ onBeforeUnmount(() => {
             </div>
           </section>
         </div>
-
-        <section
-          class="home-section data-source-overview"
-          aria-labelledby="data-source-overview-title"
-        >
-          <header class="home-section-heading">
-            <div>
-              <span>信息可用性</span>
-              <h2 id="data-source-overview-title">数据源状态</h2>
-            </div>
-            <RouterLink
-              class="secondary-button compact home-view-all-button"
-              to="/data-sources"
-            >
-              {{ connectedSourceCount }} 个已连接，查看全部
-              <ChevronRight :size="14" aria-hidden="true" />
-            </RouterLink>
-          </header>
-          <div class="data-source-summary-list">
-            <article
-              v-for="source in homeData.dataSources.slice(0, 4)"
-              :key="source.id"
-            >
-              <span class="source-mark" aria-hidden="true"><Database :size="17" /></span>
-              <span>
-                <strong>{{ source.name }}</strong>
-                <small>{{
-                  source.contentCount.toLocaleString("zh-CN")
-                }}
-                  条已同步内容</small>
-              </span>
-              <SearchStatusBadge :status="source.connectionStatus" />
-            </article>
-          </div>
-          <p class="mock-data-notice">{{ homeData.meta.notice }}</p>
-        </section>
       </main>
 
       <SearchContextPanel
         class="home-search-context"
         :open="isContextOpen"
         :query="query || '尚未输入搜索问题'"
-        :selected-sources="sources"
-        :source-options="homeData.scopeOptions"
+        :selected-knowledge-base="selectedKnowledgeBase"
+        :knowledge-base-options="knowledgeBaseOptions"
         :model-label="modelLabel"
         :citations="[]"
-        :data-sources="homeData.dataSources"
         :attachment-names="attachmentNames"
         :return-focus-to="contextTrigger"
         @close="isContextOpen = false"
@@ -526,8 +563,7 @@ onBeforeUnmount(() => {
 .home-section-heading > div,
 .quick-action-list button,
 .recent-search-list button,
-.knowledge-space-list a,
-.data-source-summary-list article {
+.knowledge-space-list a {
   display: flex;
   align-items: center;
 }
@@ -605,8 +641,7 @@ onBeforeUnmount(() => {
 
 .quick-action-list button > span:nth-child(2),
 .recent-search-list button > span,
-.knowledge-space-list a > span:nth-child(2),
-.data-source-summary-list article > span:nth-child(2) {
+.knowledge-space-list a > span:nth-child(2) {
   display: grid;
   min-width: 0;
   flex: 1;
@@ -626,8 +661,7 @@ onBeforeUnmount(() => {
 
 .quick-action-list strong,
 .recent-search-list strong,
-.knowledge-space-list strong,
-.data-source-summary-list strong {
+.knowledge-space-list strong {
   overflow: hidden;
   color: var(--color-text);
   font-size: var(--font-size-13);
@@ -644,16 +678,14 @@ onBeforeUnmount(() => {
 
 .quick-action-list small,
 .recent-search-list small,
-.knowledge-space-list small,
-.data-source-summary-list small {
+.knowledge-space-list small {
   color: var(--color-text-muted);
   font-size: var(--font-size-12);
   line-height: 1.5;
 }
 
 .quick-action-icon,
-.space-mark,
-.source-mark {
+.space-mark {
   display: grid;
   flex: 0 0 36px;
   width: 36px;
@@ -699,43 +731,6 @@ onBeforeUnmount(() => {
   height: 34px;
 }
 
-.data-source-summary-list {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.data-source-summary-list article {
-  display: grid;
-  min-width: 0;
-  min-height: 132px;
-  align-content: start;
-  justify-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-8);
-  background: var(--color-surface-subtle);
-  text-align: center;
-}
-
-.data-source-summary-list article > span:nth-child(2) {
-  width: 100%;
-  justify-items: center;
-}
-
-.data-source-summary-list strong {
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-}
-
-.mock-data-notice {
-  margin: var(--space-4) 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-12);
-}
-
 @media (min-width: 1440px) {
   .workbench-home-layout.context-open {
     display: grid;
@@ -757,9 +752,6 @@ onBeforeUnmount(() => {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .data-source-summary-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 767px) {
@@ -814,8 +806,7 @@ onBeforeUnmount(() => {
     justify-self: end;
   }
 
-  .quick-action-list,
-  .data-source-summary-list {
+  .quick-action-list {
     grid-template-columns: minmax(0, 1fr);
   }
 

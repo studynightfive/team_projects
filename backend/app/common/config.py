@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     app_name: str = "智能知识库平台"
     app_version: str = "0.1.0"
     debug: bool = False  # 生产环境必须为 False
+    auto_seed_demo_data: bool = True
 
     # ============================================================
     # CORS 配置
@@ -55,6 +56,15 @@ class Settings(BaseSettings):
     # 模型配置
     # ============================================================
     model_api_key: str = ""
+    deepseek_api_key: str = ""
+    deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_chat_model: str = "deepseek-v4-pro"
+    dashscope_api_key: str = ""
+    dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    qwen_embedding_model: str = "qwen3.7-text-embedding"
+    qwen_embedding_dimensions: int = 1024
+    rag_answer_max_context_chars: int = 12000
+    rag_answer_max_tokens: int = 1200
 
     # ============================================================
     # 文档处理（员工 4）

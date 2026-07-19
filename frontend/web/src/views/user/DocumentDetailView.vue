@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
+import { toPublicApiError } from "../../api/client";
+import SafeMarkdown from "../../components/common/SafeMarkdown.vue";
 import InlineState from "../../components/InlineState.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { isRealApiMode } from "../../config/runtime";
 import { ChevronLeft, FileDown, ScrollText } from "../../components/icons";
 import { localPageData } from "../../data/local-pages";
+import {
+  getDocument,
+  getDocumentMarkdown,
+  type DocumentDetailRecord,
+} from "../../services/knowledge";
 
 const route = useRoute();
 const { message } = AntApp.useApp();
@@ -21,6 +29,18 @@ const sections = [
 type SectionId = (typeof sections)[number]["id"];
 
 const activeSection = ref<SectionId>("overview");
+const realDocument = ref<DocumentDetailRecord>();
+const markdownContent = ref("");
+const loadState = ref<"idle" | "loading" | "error">(
+  isRealApiMode ? "loading" : "idle",
+);
+const markdownState = ref<"idle" | "loading" | "error" | "unavailable">(
+  "idle",
+);
+const loadError = ref("");
+const markdownError = ref("");
+
+let loadController: AbortController | undefined;
 
 const knowledgeBaseId = computed(() => String(route.params.kb_id ?? ""));
 const knowledgeBase = computed(() =>
@@ -28,23 +48,104 @@ const knowledgeBase = computed(() =>
     (item) => item.id === knowledgeBaseId.value,
   ),
 );
-const document = computed(() => {
+const documentId = computed(() => String(route.params.document_id ?? ""));
+const localDocument = computed(() => {
   if (knowledgeBase.value === undefined) return undefined;
 
   return localPageData.documents.find(
     (item) =>
-      item.id === String(route.params.document_id ?? "") &&
+      item.id === documentId.value &&
       item.knowledgeBaseId === knowledgeBase.value?.id,
   );
 });
+const displayDocument = computed(() =>
+  isRealApiMode ? realDocument.value : localDocument.value,
+);
+const isLoadingRealDocument = computed(
+  () =>
+    isRealApiMode &&
+    (loadState.value === "loading" ||
+      (loadState.value === "idle" && realDocument.value === undefined)),
+);
 const documentTitle = computed(
-  () => document.value?.name.replace(/\.[^.]+$/u, "") ?? "",
+  () =>
+    (isRealApiMode
+      ? realDocument.value?.title
+      : localDocument.value?.name.replace(/\.[^.]+$/u, "")) ?? "",
 );
 const returnPath = computed(() =>
-  knowledgeBase.value === undefined
-    ? "/knowledge"
-    : `/knowledge/${knowledgeBase.value.id}`,
+  knowledgeBaseId.value === "" ? "/knowledge" : `/knowledge/${knowledgeBaseId.value}`,
 );
+const realDocumentDescription = computed(() => {
+  const item = realDocument.value;
+  if (item === undefined) return "正在读取真实文档详情。";
+  return [
+    item.extension.toUpperCase(),
+    item.page_count === null ? undefined : `${item.page_count} 页`,
+    item.status === "ready" ? "已索引" : "处理中",
+    item.parser_name ?? undefined,
+  ]
+    .filter((value): value is string => value !== undefined)
+    .join(" · ");
+});
+const pageTitle = computed(() => {
+  if (isLoadingRealDocument.value) return "正在加载文档";
+  if (displayDocument.value === undefined) return "文档不存在";
+  return isRealApiMode
+    ? (realDocument.value?.title ?? "文档预览")
+    : (localDocument.value?.name ?? "文档预览");
+});
+const pageDescription = computed(() => {
+  if (isLoadingRealDocument.value) return "正在读取真实文档详情。";
+  if (displayDocument.value === undefined) {
+    return isRealApiMode
+      ? "正在确认真实文档是否存在。"
+      : "当前固定样例中没有此文档。";
+  }
+  if (isRealApiMode) return realDocumentDescription.value;
+  return `${localDocument.value?.category} · ${localDocument.value?.pages} 页 · ${localDocument.value?.owner}`;
+});
+
+const loadRealDocument = async (): Promise<void> => {
+  if (!isRealApiMode) return;
+
+  loadController?.abort();
+  loadController = new AbortController();
+  loadState.value = "loading";
+  markdownState.value = "idle";
+  loadError.value = "";
+  markdownError.value = "";
+  markdownContent.value = "";
+  realDocument.value = undefined;
+
+  try {
+    const document = await getDocument(documentId.value, loadController.signal);
+    realDocument.value = document;
+    loadState.value = "idle";
+
+    if (document.status !== "ready") {
+      markdownState.value = "unavailable";
+      return;
+    }
+
+    markdownState.value = "loading";
+    const markdown = await getDocumentMarkdown(
+      document.id,
+      loadController.signal,
+    );
+    markdownContent.value = markdown.content;
+    markdownState.value = "idle";
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    if (loadState.value === "loading") {
+      loadError.value = toPublicApiError(error).message;
+      loadState.value = "error";
+      return;
+    }
+    markdownError.value = toPublicApiError(error).message;
+    markdownState.value = "error";
+  }
+};
 
 watch(
   () => route.query.page,
@@ -58,20 +159,48 @@ watch(
 );
 
 const previewExport = (): void => {
+  if (isRealApiMode) {
+    if (markdownContent.value === "") {
+      void message.warning("当前文档尚未生成可导出的 Markdown 预览");
+      return;
+    }
+    const blob = new Blob([markdownContent.value], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${documentTitle.value || "文档预览"}.md`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    void message.success("已导出当前 Markdown 预览");
+    return;
+  }
   void message.info("已打开导出本地预览；鉴权任务接口接入前不会生成文件");
 };
+
+watch(
+  () => route.params.document_id,
+  () => {
+    void loadRealDocument();
+  },
+);
+
+onMounted(() => {
+  void loadRealDocument();
+});
+
+onBeforeUnmount(() => {
+  loadController?.abort();
+});
 </script>
 
 <template>
   <div class="business-page local-page">
     <PageHeader
       eyebrow="企业知识库 / 文档预览"
-      :title="document?.name ?? '文档不存在'"
-      :description="
-        document
-          ? `${document.category} · ${document.pages} 页 · ${document.owner}`
-          : '当前固定样例中没有此文档。'
-      "
+      :title="pageTitle"
+      :description="pageDescription"
     >
       <template #actions>
         <RouterLink class="secondary-button" :to="returnPath">
@@ -79,7 +208,7 @@ const previewExport = (): void => {
           返回目录
         </RouterLink>
         <button
-          v-if="document"
+          v-if="displayDocument"
           class="primary-button"
           type="button"
           @click="previewExport"
@@ -91,23 +220,48 @@ const previewExport = (): void => {
     </PageHeader>
 
     <InlineState
-      v-if="!document"
+      v-if="isLoadingRealDocument"
+      kind="loading"
+      title="正在加载文档预览"
+      description="正在读取真实文档详情和处理后的 Markdown 内容。"
+    />
+
+    <InlineState
+      v-else-if="isRealApiMode && loadState === 'error'"
       kind="error"
-      :title="knowledgeBase ? '此知识库中未找到文档' : '未找到知识库'"
+      title="文档加载失败"
+      :description="loadError"
+    />
+
+    <InlineState
+      v-else-if="!displayDocument"
+      kind="error"
+      :title="
+        isRealApiMode
+          ? '未找到真实文档'
+          : knowledgeBase
+            ? '此知识库中未找到文档'
+            : '未找到知识库'
+      "
       :description="
-        knowledgeBase
-          ? '文档与当前知识库不匹配，请从文档目录重新进入；此状态不会请求业务接口。'
-          : '父级知识库不存在，请返回知识库列表；此状态不会请求业务接口。'
+        isRealApiMode
+          ? '请确认该文档仍存在，并且当前账号拥有访问该知识库的权限。'
+          : knowledgeBase
+            ? '文档与当前知识库不匹配，请从文档目录重新进入；此状态不会请求业务接口。'
+            : '父级知识库不存在，请返回知识库列表；此状态不会请求业务接口。'
       "
     />
 
     <div
       v-else
       class="document-layout"
-      :class="{ 'single-column': document.id !== 'release-guide' }"
+      :class="{
+        'single-column':
+          isRealApiMode || localDocument?.id !== 'release-guide',
+      }"
     >
       <ResourcePanel
-        v-if="document.id === 'release-guide'"
+        v-if="!isRealApiMode && localDocument?.id === 'release-guide'"
         title="页码目录"
         description="点击章节切换本地高亮位置。"
       >
@@ -130,14 +284,55 @@ const previewExport = (): void => {
 
       <ResourcePanel
         title="正文预览"
-        description="受控 Vue 模板，不解析真实 Markdown。"
+        :description="
+          isRealApiMode
+            ? '展示后端文档处理生成的 Markdown，前端会再次进行安全过滤。'
+            : '受控 Vue 模板，不解析真实 Markdown。'
+        "
       >
         <template #actions>
-          <span class="local-preview-badge">本地预览</span>
+          <span class="local-preview-badge">{{
+            isRealApiMode ? "真实接口" : "本地预览"
+          }}</span>
         </template>
 
+        <InlineState
+          v-if="isRealApiMode && markdownState === 'loading'"
+          kind="loading"
+          title="正在生成正文预览"
+          description="正在读取文档处理后的 Markdown 内容。"
+        />
+
+        <InlineState
+          v-else-if="isRealApiMode && markdownState === 'unavailable'"
+          kind="info"
+          title="文档仍在处理中"
+          description="文档处理完成后会生成 Markdown 预览，并进入 RAG 检索。请稍后刷新目录或重新打开预览。"
+        />
+
+        <InlineState
+          v-else-if="isRealApiMode && markdownState === 'error'"
+          kind="error"
+          title="正文预览加载失败"
+          :description="markdownError"
+        />
+
         <article
-          v-if="document.id === 'release-guide'"
+          v-else-if="isRealApiMode"
+          class="document-content real-document-content"
+        >
+          <header>
+            <ScrollText :size="24" aria-hidden="true" />
+            <div>
+              <h2>{{ documentTitle }}</h2>
+              <p>{{ realDocumentDescription }}</p>
+            </div>
+          </header>
+          <SafeMarkdown :content="markdownContent" />
+        </article>
+
+        <article
+          v-else-if="localDocument?.id === 'release-guide'"
           class="document-content"
         >
           <header>

@@ -1,15 +1,29 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 
+import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
 import { MessageSquarePlus, X } from "../../components/icons";
+import { isRealApiMode } from "../../config/runtime";
 import { localPageData } from "../../data/local-pages";
+import {
+  deleteConversation,
+  listConversations,
+  type ConversationRecord,
+} from "../../services/conversations";
 
-type ConversationItem = (typeof localPageData.conversations)[number];
+interface DisplayConversation {
+  readonly id: string;
+  readonly title: string;
+  readonly preview: string;
+  readonly updated: string;
+  readonly messages: number;
+  readonly pinned: boolean;
+}
 
 const { message, modal } = AntApp.useApp();
 const query = ref("");
@@ -20,15 +34,42 @@ const visibleIds = ref<string[]>(
 const titleOverrides = ref<Record<string, string>>({});
 const editingId = ref<string>();
 const editTitle = ref("");
+const realConversations = ref<readonly ConversationRecord[]>([]);
+const loadState = ref<"idle" | "loading" | "success" | "error">("idle");
+const loadError = ref("");
+let loadController: AbortController | undefined;
 
-const getConversationTitle = (item: ConversationItem): string =>
+const toDisplayConversation = (item: ConversationRecord): DisplayConversation => ({
+  id: item.id,
+  title: item.title || "知识库问答",
+  preview: item.title || "查看会话消息了解提问与回答。",
+  updated: new Date(
+    item.last_message_at ?? item.updated_at ?? item.created_at ?? Date.now(),
+  ).toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }),
+  messages: item.message_count,
+  pinned: item.is_pinned,
+});
+
+const conversations = computed<readonly DisplayConversation[]>(() =>
+  isRealApiMode
+    ? realConversations.value.map(toDisplayConversation)
+    : localPageData.conversations,
+);
+
+const getConversationTitle = (item: DisplayConversation): string =>
   titleOverrides.value[item.id] ?? item.title;
 
 const filteredConversations = computed(() => {
   const normalizedQuery = query.value.trim().toLocaleLowerCase("zh-CN");
 
-  return localPageData.conversations.filter((item) => {
-    const isVisible = visibleIds.value.includes(item.id);
+  return conversations.value.filter((item) => {
+    const isVisible = isRealApiMode || visibleIds.value.includes(item.id);
     const matchesPinned = !pinnedOnly.value || item.pinned;
     const matchesQuery =
       normalizedQuery.length === 0 ||
@@ -40,7 +81,26 @@ const filteredConversations = computed(() => {
   });
 });
 
-const startRename = (item: ConversationItem): void => {
+const loadRealConversations = async (): Promise<void> => {
+  if (!isRealApiMode) return;
+
+  loadController?.abort();
+  const controller = new AbortController();
+  loadController = controller;
+  loadState.value = "loading";
+  loadError.value = "";
+
+  try {
+    realConversations.value = await listConversations(controller.signal);
+    loadState.value = "success";
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    loadError.value = toPublicApiError(error).message;
+    loadState.value = "error";
+  }
+};
+
+const startRename = (item: DisplayConversation): void => {
   editingId.value = item.id;
   editTitle.value = getConversationTitle(item);
 };
@@ -59,25 +119,50 @@ const saveRename = (): void => {
     [editingId.value]: nextTitle,
   };
   editingId.value = undefined;
-  void message.success("本地预览名称已更新，刷新后恢复固定数据");
+  void message.success(
+    isRealApiMode ? "当前版本暂不支持重命名真实会话" : "本地预览名称已更新，刷新后恢复固定数据",
+  );
 };
 
 const requestDelete = (conversationId: string): void => {
   editingId.value = undefined;
   modal.confirm({
-    title: "确认从本地预览中删除这条会话？",
-    content: "不会发送删除请求，刷新页面后固定数据会恢复。",
+    title: isRealApiMode ? "确认删除这条真实会话？" : "确认从本地预览中删除这条会话？",
+    content: isRealApiMode
+      ? "删除后该会话不会再出现在历史记录中。"
+      : "不会发送删除请求，刷新页面后固定数据会恢复。",
     okText: "确认删除",
     okType: "danger",
     cancelText: "取消",
     centered: true,
     autoFocusButton: "cancel",
-    onOk: () => {
+    onOk: async () => {
+      if (isRealApiMode) {
+        try {
+          await deleteConversation(conversationId);
+          realConversations.value = realConversations.value.filter(
+            (item) => item.id !== conversationId,
+          );
+          void message.success("真实会话已删除");
+        } catch (error: unknown) {
+          void message.error(toPublicApiError(error).message);
+        }
+        return;
+      }
+
       visibleIds.value = visibleIds.value.filter((id) => id !== conversationId);
       void message.success("会话已从本地预览中移除");
     },
   });
 };
+
+onMounted(() => {
+  void loadRealConversations();
+});
+
+onBeforeUnmount(() => {
+  loadController?.abort();
+});
 </script>
 
 <template>
@@ -85,10 +170,14 @@ const requestDelete = (conversationId: string): void => {
     <PageHeader
       eyebrow="用户工作区"
       title="历史会话"
-      description="搜索、重命名、删除确认和继续提问均为当前页面的本地状态。"
+      :description="
+        isRealApiMode
+          ? '展示真实 RAG 问答生成后的历史会话。'
+          : '搜索、重命名、删除确认和继续提问均为当前页面的本地状态。'
+      "
     >
       <template #actions>
-        <RouterLink class="primary-button" to="/chat">
+        <RouterLink class="primary-button" to="/">
           <MessageSquarePlus :size="17" aria-hidden="true" />
           新建问答
         </RouterLink>
@@ -97,10 +186,16 @@ const requestDelete = (conversationId: string): void => {
 
     <ResourcePanel
       title="会话列表"
-      description="固定数据不代表真实会话或分页契约。"
+      :description="
+        isRealApiMode
+          ? '记录来自后端会话表；RAG 问答完成后会自动新增。'
+          : '固定数据不代表真实会话或分页契约。'
+      "
     >
       <template #actions>
-        <span class="local-preview-badge">本地预览</span>
+        <span class="local-preview-badge">
+          {{ isRealApiMode ? "真实记录" : "本地预览" }}
+        </span>
       </template>
 
       <div class="filter-bar">
@@ -119,7 +214,20 @@ const requestDelete = (conversationId: string): void => {
         </label>
       </div>
 
-      <div v-if="filteredConversations.length > 0" class="conversation-list">
+      <InlineState
+        v-if="isRealApiMode && loadState === 'loading'"
+        kind="loading"
+        title="正在加载真实会话"
+        description="系统正在读取当前账号的 RAG 问答记录。"
+      />
+      <InlineState
+        v-else-if="isRealApiMode && loadState === 'error'"
+        kind="error"
+        title="真实会话加载失败"
+        :description="loadError"
+      />
+
+      <div v-else-if="filteredConversations.length > 0" class="conversation-list">
         <article v-for="item in filteredConversations" :key="item.id">
           <div class="conversation-copy">
             <span v-if="item.pinned" class="status-chip success">已置顶</span>
@@ -159,8 +267,8 @@ const requestDelete = (conversationId: string): void => {
             </template>
           </div>
           <div v-if="editingId !== item.id" class="conversation-actions">
-            <RouterLink class="primary-button compact" :to="`/chat/${item.id}`">
-              继续提问
+            <RouterLink class="primary-button compact" to="/">
+              发起新问答
             </RouterLink>
             <button
               class="secondary-button compact"
@@ -189,7 +297,11 @@ const requestDelete = (conversationId: string): void => {
       />
 
       <template #footer>
-        <span>共 {{ filteredConversations.length }} 条本地记录</span>
+        <span>
+          共 {{ filteredConversations.length }} 条{{
+            isRealApiMode ? "真实记录" : "本地记录"
+          }}
+        </span>
         <span>第 1 / 1 页</span>
       </template>
     </ResourcePanel>

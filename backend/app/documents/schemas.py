@@ -102,6 +102,18 @@ class TaskResponse(BaseModel):
         )
 
 
+class AdminDocumentItem(DocumentSummary):
+    knowledge_base_name: str
+
+
+class AdminTaskItem(TaskResponse):
+    document_id: str
+    document_title: str
+    knowledge_base_id: str
+    knowledge_base_name: str
+    started_at: datetime | None = None
+
+
 class ReprocessRequest(BaseModel):
     ocr_enabled: bool | None = None
     language: str | None = None

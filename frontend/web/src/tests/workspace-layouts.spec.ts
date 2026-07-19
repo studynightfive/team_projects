@@ -4,7 +4,6 @@ import { nextTick } from "vue";
 import { apiClient } from "../api/client";
 import {
   adminNavigation,
-  serviceStatusTone,
   userMobileNavigation,
   userNavigation,
 } from "../data/foundation";
@@ -22,38 +21,34 @@ describe("M01 V2 工作区布局", () => {
       .map((item) => item.text().trim());
 
     expect(navigationLabels).toEqual(userNavigation.map((item) => item.label));
-    expect(navigationLabels.slice(0, 2)).toEqual(["AI 搜索", "AI 助手"]);
+    expect(navigationLabels.slice(0, 2)).toEqual(["AI 搜索", "企业知识库"]);
     expect(userMobileNavigation.map((item) => item.shortLabel)).toEqual([
       "搜索",
       "知识库",
+      "会话",
       "历史",
-      "助手",
     ]);
     expect(navigationLabels).not.toContain("搜索设置");
     await wrapper.get(".sidebar-profile-trigger").trigger("click");
     expect(
       wrapper.get('.sidebar-profile-menu a[href="/settings"]').text(),
     ).toBe("搜索设置");
-    expect(wrapper.get('.topbar-workspace-link[href="/admin"]').text()).toBe(
-      "管理中心",
+    expect(wrapper.find('.topbar-workspace-link[href="/admin"]').exists()).toBe(
+      false,
     );
     expect(wrapper.findAll("h1")).toHaveLength(1);
     expect(wrapper.find("header.workspace-topbar").exists()).toBe(true);
     expect(wrapper.find("main.workspace-content").exists()).toBe(true);
     expect(wrapper.findAll(".search-suggestion-list button")).toHaveLength(6);
-    expect(wrapper.findAll(".quick-action-list button")).toHaveLength(5);
+    expect(wrapper.findAll(".quick-action-list button")).toHaveLength(2);
     expect(wrapper.findAll(".recent-search-list button")).toHaveLength(4);
     expect(wrapper.findAll(".knowledge-space-list a")).toHaveLength(3);
-    expect(wrapper.findAll(".data-source-summary-list article")).toHaveLength(
-      4,
-    );
     expect(wrapper.text()).toContain("企业知识中心");
     expect(wrapper.text()).toContain("模拟数据");
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
   it("管理布局呈现七项导航、四条趋势与审计表", async () => {
-    const requestSpy = vi.spyOn(apiClient, "request");
     const { wrapper } = await renderAppAt("/admin");
     const navigationLabels = wrapper
       .findAll(".app-sidebar .sidebar-navigation-item")
@@ -66,20 +61,11 @@ describe("M01 V2 工作区布局", () => {
     expect(wrapper.findAll("h1")).toHaveLength(1);
     expect(wrapper.findAll(".admin-stat-grid .stat-card")).toHaveLength(4);
     expect(wrapper.findAll(".admin-stat-grid .sparkline")).toHaveLength(4);
-    expect(wrapper.findAll(".sparkline-point")).toHaveLength(28);
-    expect(wrapper.findAll(".service-row")).toHaveLength(3);
-    expect(wrapper.findAll(".service-row .status-badge.success")).toHaveLength(
-      3,
-    );
-    expect(serviceStatusTone).toEqual({
-      运行正常: "success",
-      降级: "warning",
-      异常: "failed",
-    });
-    expect(wrapper.findAll(".governance-row")).toHaveLength(3);
+    expect(wrapper.findAll(".sparkline-point")).toHaveLength(24);
+    expect(wrapper.findAll(".dashboard-facts div")).toHaveLength(3);
+    expect(wrapper.findAll(".governance-list a")).toHaveLength(4);
     expect(wrapper.findAll(".audit-table tbody tr")).toHaveLength(4);
-    expect(wrapper.text()).toContain("运行正常");
-    expect(requestSpy).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain("真实后端聚合指标");
   });
 
   it("侧边栏可折叠并保留明确的 ARIA 状态", async () => {
@@ -99,7 +85,7 @@ describe("M01 V2 工作区布局", () => {
     ).toBe("AI 搜索");
     expect(
       wrapper.get(".sidebar-profile-trigger").attributes("aria-label"),
-    ).toBe("李明");
+    ).toBe("未登录用户");
   });
 
   it("账号按钮组按 Escape 关闭并把焦点还给触发按钮", async () => {

@@ -1,0 +1,116 @@
+import { apiClient, clearAccessToken, setAccessToken } from "../api/client";
+
+interface ApiResponse<T> {
+  readonly code: number;
+  readonly message: string;
+  readonly data: T | null;
+  readonly request_id: string;
+}
+
+interface UserRole {
+  readonly id: string;
+  readonly name: string;
+}
+
+interface KnowledgeBaseAccess {
+  readonly kb_id: string;
+  readonly access_level: string;
+}
+
+export interface AuthenticatedUser {
+  readonly id: string;
+  readonly username: string;
+  readonly display_name: string;
+  readonly roles: readonly UserRole[];
+  readonly permissions: readonly string[];
+  readonly knowledge_base_access: readonly KnowledgeBaseAccess[];
+}
+
+interface LoginData {
+  readonly access_token: string;
+  readonly token_type: string;
+  readonly user: AuthenticatedUser;
+}
+
+export interface LoginCredentials {
+  readonly username: string;
+  readonly password: string;
+}
+
+export interface RegisterPayload {
+  readonly username: string;
+  readonly display_name: string;
+  readonly password: string;
+}
+
+export const loginWithPassword = async (
+  credentials: LoginCredentials,
+): Promise<AuthenticatedUser> => {
+  const response = await apiClient.post<ApiResponse<LoginData>>(
+    "/v1/auth/login",
+    credentials,
+  );
+  const data = response.data.data;
+
+  if (response.data.code !== 0 || data === null || data.access_token === "") {
+    throw new Error(response.data.message || "登录失败，请重试");
+  }
+
+  setAccessToken(data.access_token);
+  return data.user;
+};
+
+export const refreshSession = async (): Promise<AuthenticatedUser> => {
+  const response = await apiClient.post<ApiResponse<LoginData>>(
+    "/v1/auth/refresh",
+  );
+  const data = response.data.data;
+
+  if (response.data.code !== 0 || data === null || data.access_token === "") {
+    throw new Error(response.data.message || "登录状态已失效，请重新登录");
+  }
+
+  setAccessToken(data.access_token);
+  return data.user;
+};
+
+export const logoutCurrentUser = async (): Promise<void> => {
+  try {
+    await apiClient.post<ApiResponse<unknown>>("/v1/auth/logout");
+  } finally {
+    clearAccessToken();
+  }
+};
+
+export const getCurrentUser = async (): Promise<AuthenticatedUser> => {
+  const response = await apiClient.get<ApiResponse<AuthenticatedUser>>("/v1/me");
+  const data = response.data.data;
+  if (response.data.code !== 0 || data === null) {
+    throw new Error(response.data.message || "获取当前用户失败");
+  }
+  return data;
+};
+
+export const checkUsernameAvailable = async (
+  username: string,
+): Promise<boolean> => {
+  const response = await apiClient.get<
+    ApiResponse<{ readonly username: string; readonly available: boolean }>
+  >("/v1/auth/check-username", { params: { username } });
+  if (response.data.code !== 0 || response.data.data === null) {
+    throw new Error(response.data.message || "账号检查失败");
+  }
+  return response.data.data.available;
+};
+
+export const registerAccount = async (
+  payload: RegisterPayload,
+): Promise<void> => {
+  const response = await apiClient.post<ApiResponse<unknown>>(
+    "/v1/auth/register",
+    payload,
+  );
+  if (response.data.code !== 0) {
+    throw new Error(response.data.message || "注册失败，请重试");
+  }
+};

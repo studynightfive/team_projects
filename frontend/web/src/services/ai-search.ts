@@ -1,4 +1,5 @@
 import { aiSearchMockData } from "../mocks/ai-search";
+import { isRealApiMode } from "../config/runtime";
 import type {
   AiAnswer,
   AiSearchHomeData,
@@ -87,6 +88,11 @@ const createScopedMockAnswer = (
 export const loadAiSearchHome = async (
   signal?: AbortSignal,
 ): Promise<AiSearchHomeData> => {
+  if (isRealApiMode) {
+    const { loadRealHome } = await import("./ai-search-real");
+    return loadRealHome(signal);
+  }
+
   await waitForMock(signal);
 
   return clone({
@@ -109,6 +115,11 @@ export const runAiSearch = async (
   const query = request.query.trim();
   if (query.length === 0) {
     throw new TypeError("请输入搜索问题。");
+  }
+
+  if (isRealApiMode) {
+    const { runRealSearch } = await import("./ai-search-real");
+    return runRealSearch(request, signal);
   }
 
   await waitForMock(signal);

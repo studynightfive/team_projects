@@ -14,14 +14,25 @@ from app.api.health import router as health_router
 from app.audit.router import router as audit_router
 from app.auth.router import router as auth_router
 from app.common.config import settings
+from app.common.database import async_session_factory
 from app.common.exceptions import AppException
 from app.common.metrics import metrics_endpoint, metrics_middleware
 from app.common.schemas import APIResponse, ErrorCode, get_error_message
+from app.common.seed import (
+    seed_default_chat_model,
+    seed_default_embedding_model,
+    seed_default_knowledge_base,
+    seed_demo_accounts,
+    seed_permissions,
+)
 from app.documents.router import router as documents_router
 
 # 员工5 路由（提示词 01~06）
 from app.exports.all import router as exports_router
+from app.favorites.router import router as favorites_router
+from app.knowledge.router import router as knowledge_router
 from app.models.api import router as models_router
+from app.notifications.router import router as notifications_router
 from app.rag.chat.all import router as chat_router
 from app.rag.conversations.all import router as conversations_router
 from app.rag.search.api import router as retrieval_router
@@ -50,6 +61,19 @@ async def lifespan(app: FastAPI):
         app_name=settings.app_name,
         version=settings.app_version,
     )
+    if settings.auto_seed_demo_data:
+        try:
+            async with async_session_factory() as db:
+                await seed_permissions(db)
+                await seed_demo_accounts(db)
+                await seed_default_knowledge_base(db)
+                await seed_default_chat_model(db)
+                await seed_default_embedding_model(db)
+        except Exception as exc:
+            logger.warning(
+                "demo_seed_skipped",
+                reason=type(exc).__name__,
+            )
     yield
     # 关闭阶段
     logger.info("application_shutting_down")
@@ -165,6 +189,7 @@ app.include_router(audit_router)
 app.include_router(dashboard_router)
 
 # 文档处理（员工 4）
+app.include_router(knowledge_router)
 app.include_router(documents_router)
 
 # Prometheus 指标
@@ -190,4 +215,6 @@ app.include_router(retrieval_router)
 app.include_router(conversations_router)
 app.include_router(chat_router)
 app.include_router(exports_router)
+app.include_router(favorites_router)
 app.include_router(retrieval_tests_router)
+app.include_router(notifications_router)

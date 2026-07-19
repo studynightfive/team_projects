@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
+import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
 import { ExternalLink, Plus, Search, Trash2, X } from "../../components/icons";
+import { isRealApiMode } from "../../config/runtime";
 import { aiSearchMockData } from "../../mocks/ai-search";
+import {
+  deleteFavorite,
+  listFavorites,
+  updateFavorite,
+} from "../../services/favorites";
 import type { Favorite, FavoriteType } from "../../types/ai-search";
 
 const typeLabels = {
@@ -34,20 +41,28 @@ const tagsById = ref<Record<string, string[]>>(
   ),
 );
 const tagDrafts = ref<Record<string, string>>({});
+const realFavorites = ref<readonly Favorite[]>([]);
+const loadState = ref<"idle" | "loading" | "success" | "error">("idle");
+const loadError = ref("");
+let loadController: AbortController | undefined;
+
+const favorites = computed<readonly Favorite[]>(() =>
+  isRealApiMode ? realFavorites.value : aiSearchMockData.favorites,
+);
 
 const getTags = (item: Favorite): readonly string[] =>
   tagsById.value[item.id] ?? item.tags;
 
 const allTags = computed(() =>
   Array.from(
-    new Set(aiSearchMockData.favorites.flatMap((item) => getTags(item))),
+    new Set(favorites.value.flatMap((item) => getTags(item))),
   ).sort((left, right) => left.localeCompare(right, "zh-CN")),
 );
 
 const filteredFavorites = computed(() => {
   const normalizedKeyword = keyword.value.trim().toLocaleLowerCase("zh-CN");
 
-  return aiSearchMockData.favorites.filter((item) => {
+  return favorites.value.filter((item) => {
     const searchableText = `${item.title}${item.summary}${
       noteDrafts.value[item.id] ?? item.note
     }${getTags(item).join("")}`.toLocaleLowerCase("zh-CN");
@@ -72,15 +87,57 @@ const formatSavedAt = (value: string): string =>
     hour12: false,
   });
 
-const saveNote = (item: Favorite): void => {
+const loadRealFavorites = async (): Promise<void> => {
+  if (!isRealApiMode) return;
+
+  loadController?.abort();
+  const controller = new AbortController();
+  loadController = controller;
+  loadState.value = "loading";
+  loadError.value = "";
+
+  try {
+    realFavorites.value = await listFavorites(controller.signal);
+    noteDrafts.value = Object.fromEntries(
+      realFavorites.value.map((item) => [item.id, item.note]),
+    );
+    tagsById.value = Object.fromEntries(
+      realFavorites.value.map((item) => [item.id, [...item.tags]]),
+    );
+    loadState.value = "success";
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    loadError.value = toPublicApiError(error).message;
+    loadState.value = "error";
+  }
+};
+
+const replaceFavorite = (nextFavorite: Favorite): void => {
+  realFavorites.value = realFavorites.value.map((item) =>
+    item.id === nextFavorite.id ? nextFavorite : item,
+  );
+};
+
+const saveNote = async (item: Favorite): Promise<void> => {
   noteDrafts.value = {
     ...noteDrafts.value,
     [item.id]: (noteDrafts.value[item.id] ?? "").trim(),
   };
+  if (isRealApiMode) {
+    try {
+      replaceFavorite(
+        await updateFavorite(item.id, { note: noteDrafts.value[item.id] ?? "" }),
+      );
+      void message.success("备注已保存到服务器");
+    } catch (error: unknown) {
+      void message.error(toPublicApiError(error).message);
+    }
+    return;
+  }
   void message.success("备注已在当前页面保存，刷新后恢复模拟数据");
 };
 
-const addTag = (item: Favorite): void => {
+const addTag = async (item: Favorite): Promise<void> => {
   const nextTag = (tagDrafts.value[item.id] ?? "").trim();
   if (nextTag.length === 0) return;
 
@@ -90,32 +147,62 @@ const addTag = (item: Favorite): void => {
     return;
   }
 
-  tagsById.value = {
-    ...tagsById.value,
-    [item.id]: [...currentTags, nextTag],
-  };
+  const nextTags = [...currentTags, nextTag];
+  tagsById.value = { ...tagsById.value, [item.id]: nextTags };
   tagDrafts.value = { ...tagDrafts.value, [item.id]: "" };
+  if (isRealApiMode) {
+    try {
+      replaceFavorite(await updateFavorite(item.id, { tags: nextTags }));
+      void message.success("标签已保存到服务器");
+    } catch (error: unknown) {
+      void message.error(toPublicApiError(error).message);
+    }
+    return;
+  }
   void message.success("标签已添加到当前页面");
 };
 
-const removeTag = (item: Favorite, tag: string): void => {
+const removeTag = async (item: Favorite, tag: string): Promise<void> => {
+  const nextTags = getTags(item).filter((itemTag) => itemTag !== tag);
   tagsById.value = {
     ...tagsById.value,
-    [item.id]: getTags(item).filter((itemTag) => itemTag !== tag),
+    [item.id]: nextTags,
   };
   if (tagFilter.value === tag) tagFilter.value = "all";
+  if (isRealApiMode) {
+    try {
+      replaceFavorite(await updateFavorite(item.id, { tags: nextTags }));
+    } catch (error: unknown) {
+      void message.error(toPublicApiError(error).message);
+    }
+  }
 };
 
 const requestDelete = (favoriteId: string): void => {
   modal.confirm({
     title: "确认删除这条收藏？",
-    content: "本操作只影响当前页面，刷新后会恢复固定模拟数据。",
+    content: isRealApiMode
+      ? "删除后这条收藏会从服务器移除。"
+      : "本操作只影响当前页面，刷新后会恢复固定模拟数据。",
     okText: "确认删除",
     okType: "danger",
     cancelText: "取消",
     centered: true,
     autoFocusButton: "cancel",
-    onOk: () => {
+    onOk: async () => {
+      if (isRealApiMode) {
+        try {
+          await deleteFavorite(favoriteId);
+          realFavorites.value = realFavorites.value.filter(
+            (item) => item.id !== favoriteId,
+          );
+          void message.success("收藏已删除");
+        } catch (error: unknown) {
+          void message.error(toPublicApiError(error).message);
+        }
+        return;
+      }
+
       hiddenIds.value = new Set([...hiddenIds.value, favoriteId]);
       void message.success("收藏已从当前页面移除，刷新后恢复模拟数据");
     },
@@ -137,12 +224,23 @@ const openFavorite = (item: Favorite): void => {
 
   void router.push({
     path: "/search",
-    query: {
-      q: item.title,
-      mode: item.type === "query" ? "research" : "smart",
+    state: {
+      initialSearch: {
+        q: item.title,
+        mode: "smart",
+        sources: "knowledge",
+      },
     },
   });
 };
+
+onMounted(() => {
+  void loadRealFavorites();
+});
+
+onBeforeUnmount(() => {
+  loadController?.abort();
+});
 </script>
 
 <template>
@@ -150,16 +248,26 @@ const openFavorite = (item: Favorite): void => {
     <PageHeader
       eyebrow="个人知识资产"
       title="收藏内容"
-      description="集中管理答案、文档、知识空间和常用问题；备注与标签仅保留在当前页面。"
+      :description="
+        isRealApiMode
+          ? '集中管理已保存到服务器的答案、文档、知识空间和常用问题。'
+          : '集中管理答案、文档、知识空间和常用问题；备注与标签仅保留在当前页面。'
+      "
     >
       <template #actions>
-        <span class="local-preview-badge">本地模拟收藏</span>
+        <span class="local-preview-badge">
+          {{ isRealApiMode ? "真实收藏" : "本地模拟收藏" }}
+        </span>
       </template>
     </PageHeader>
 
     <ResourcePanel
       title="全部收藏"
-      description="按类型和标签定位内容，打开操作不会访问未接入的业务服务。"
+      :description="
+        isRealApiMode
+          ? '备注、标签和删除会写入后端收藏接口。'
+          : '按类型和标签定位内容，打开操作不会访问未接入的业务服务。'
+      "
     >
       <div class="favorite-filter-bar">
         <label class="favorite-search-field">
@@ -187,7 +295,20 @@ const openFavorite = (item: Favorite): void => {
         </select>
       </div>
 
-      <div v-if="filteredFavorites.length > 0" class="favorite-grid">
+      <InlineState
+        v-if="isRealApiMode && loadState === 'loading'"
+        kind="loading"
+        title="正在加载真实收藏"
+        description="系统正在读取当前账号已保存的收藏。"
+      />
+      <InlineState
+        v-else-if="isRealApiMode && loadState === 'error'"
+        kind="error"
+        title="真实收藏加载失败"
+        :description="loadError"
+      />
+
+      <div v-else-if="filteredFavorites.length > 0" class="favorite-grid">
         <article v-for="item in filteredFavorites" :key="item.id">
           <header>
             <span class="favorite-type">{{ typeLabels[item.type] }}</span>
@@ -282,8 +403,18 @@ const openFavorite = (item: Favorite): void => {
       />
 
       <template #footer>
-        <span>共 {{ filteredFavorites.length }} 条本地收藏</span>
-        <span>备注和标签不会写入服务器</span>
+        <span>
+          共 {{ filteredFavorites.length }} 条{{
+            isRealApiMode ? "真实收藏" : "本地收藏"
+          }}
+        </span>
+        <span>
+          {{
+            isRealApiMode
+              ? "备注和标签会写入服务器"
+              : "备注和标签不会写入服务器"
+          }}
+        </span>
       </template>
     </ResourcePanel>
   </div>

@@ -5,16 +5,22 @@ import {
   type RouterHistory,
 } from "vue-router";
 
+import { getAccessToken } from "../api/client";
+import { isRealApiMode } from "../config/runtime";
 import AdminWorkspaceLayout from "../layouts/AdminWorkspaceLayout.vue";
 import UserWorkspaceLayout from "../layouts/UserWorkspaceLayout.vue";
+import { getCurrentUser, refreshSession } from "../services/auth";
+import { useSessionStore } from "../stores/session";
 import AdminHomeView from "../views/AdminHomeView.vue";
 import ForbiddenView from "../views/ForbiddenView.vue";
 import LoginView from "../views/LoginView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
 import UserHomeView from "../views/UserHomeView.vue";
 
-export const createAppRouter = (history: RouterHistory): Router =>
-  createRouter({
+const publicRouteNames = new Set(["login", "forbidden", "not-found"]);
+
+export const createAppRouter = (history: RouterHistory): Router => {
+  const router = createRouter({
     history,
     routes: [
       {
@@ -26,12 +32,6 @@ export const createAppRouter = (history: RouterHistory): Router =>
             name: "user-home",
             component: UserHomeView,
             meta: { title: "AI 搜索", parentTitle: "企业知识中心" },
-          },
-          {
-            path: "research",
-            name: "deep-research",
-            component: () => import("../views/user/DeepResearchView.vue"),
-            meta: { title: "深度研究", parentTitle: "AI 搜索" },
           },
           {
             path: "notifications",
@@ -95,28 +95,10 @@ export const createAppRouter = (history: RouterHistory): Router =>
             meta: { title: "搜索历史", parentTitle: "AI 搜索" },
           },
           {
-            path: "data-sources",
-            name: "data-sources",
-            component: () => import("../views/user/DataSourcesView.vue"),
-            meta: { title: "数据源", parentTitle: "企业知识中心" },
-          },
-          {
             path: "settings",
             name: "search-settings",
             component: () => import("../views/user/SearchSettingsView.vue"),
             meta: { title: "搜索设置", parentTitle: "AI 搜索" },
-          },
-          {
-            path: "chat",
-            name: "chat-new",
-            component: () => import("../views/user/ChatView.vue"),
-            meta: { title: "AI 助手", parentTitle: "用户工作区" },
-          },
-          {
-            path: "chat/:conversation_id",
-            name: "chat-detail",
-            component: () => import("../views/user/ChatView.vue"),
-            meta: { title: "会话详情", parentTitle: "AI 助手" },
           },
           {
             path: "conversations",
@@ -216,6 +198,36 @@ export const createAppRouter = (history: RouterHistory): Router =>
       },
     ],
   });
+
+  router.beforeEach(async (to) => {
+    if (!isRealApiMode || publicRouteNames.has(String(to.name))) {
+      return true;
+    }
+
+    const sessionStore = useSessionStore();
+
+    try {
+      if (getAccessToken() === undefined) {
+        sessionStore.setUser(await refreshSession());
+      } else if (sessionStore.currentUser === null) {
+        sessionStore.setUser(await getCurrentUser());
+      }
+    } catch {
+      return {
+        name: "login",
+        query: { redirect: to.fullPath },
+      };
+    }
+
+    if (to.path.startsWith("/admin") && !sessionStore.isAdmin) {
+      return { name: "forbidden" };
+    }
+
+    return true;
+  });
+
+  return router;
+};
 
 export const router = createAppRouter(
   createWebHistory(import.meta.env.BASE_URL),

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
+import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
@@ -13,7 +14,13 @@ import {
   Star,
   Trash2,
 } from "../../components/icons";
+import { isRealApiMode } from "../../config/runtime";
 import { aiSearchMockData } from "../../mocks/ai-search";
+import {
+  deleteConversation,
+  listConversations,
+  type ConversationRecord,
+} from "../../services/conversations";
 import type {
   SearchHistory,
   SearchMode,
@@ -28,7 +35,6 @@ interface HistoryGroup {
 const modeLabels = {
   smart: "智能搜索",
   precise: "精准检索",
-  research: "深度研究",
   document: "文档问答",
 } satisfies Record<SearchMode, string>;
 
@@ -52,6 +58,26 @@ const titleOverrides = ref<Record<string, string>>({});
 const favoriteOverrides = ref<Record<string, boolean>>({});
 const editingId = ref<string>();
 const editTitle = ref("");
+const realConversations = ref<readonly ConversationRecord[]>([]);
+const loadState = ref<"idle" | "loading" | "success" | "error">("idle");
+const loadError = ref("");
+let loadController: AbortController | undefined;
+
+const realHistory = computed<readonly SearchHistory[]>(() =>
+  realConversations.value.map((item) => ({
+    id: item.id,
+    query: item.title || "知识库问答",
+    mode: "smart",
+    sources: ["knowledge"],
+    createdAt: item.last_message_at ?? item.updated_at ?? item.created_at ?? new Date().toISOString(),
+    resultCount: Math.max(0, item.message_count - 1),
+    isFavorite: false,
+  })),
+);
+
+const historyItems = computed<readonly SearchHistory[]>(() =>
+  isRealApiMode ? realHistory.value : aiSearchMockData.history,
+);
 
 const getTitle = (item: SearchHistory): string =>
   titleOverrides.value[item.id] ?? item.query;
@@ -62,7 +88,7 @@ const isFavorite = (item: SearchHistory): boolean =>
 const filteredHistory = computed(() => {
   const normalizedKeyword = keyword.value.trim().toLocaleLowerCase("zh-CN");
 
-  return aiSearchMockData.history.filter((item) => {
+  return historyItems.value.filter((item) => {
     const searchableText = `${getTitle(item)}${item.sources
       .map((source) => sourceLabels[source])
       .join("")}`.toLocaleLowerCase("zh-CN");
@@ -118,7 +144,9 @@ const saveRename = (): void => {
     [editingId.value]: nextTitle,
   };
   editingId.value = undefined;
-  void message.success("搜索名称已在当前页面更新，刷新后恢复模拟数据");
+  void message.success(
+    isRealApiMode ? "当前版本暂不支持重命名真实搜索记录" : "搜索名称已在当前页面更新，刷新后恢复模拟数据",
+  );
 };
 
 const toggleFavorite = (item: SearchHistory): void => {
@@ -134,13 +162,28 @@ const requestDelete = (historyId: string): void => {
   editingId.value = undefined;
   modal.confirm({
     title: "确认删除这条搜索记录？",
-    content: "本操作只影响当前页面，刷新后会恢复固定模拟数据。",
+    content: isRealApiMode
+      ? "删除后对应的真实历史会话也会被移除。"
+      : "本操作只影响当前页面，刷新后会恢复固定模拟数据。",
     okText: "确认删除",
     okType: "danger",
     cancelText: "取消",
     centered: true,
     autoFocusButton: "cancel",
-    onOk: () => {
+    onOk: async () => {
+      if (isRealApiMode) {
+        try {
+          await deleteConversation(historyId);
+          realConversations.value = realConversations.value.filter(
+            (item) => item.id !== historyId,
+          );
+          void message.success("真实搜索记录已删除");
+        } catch (error: unknown) {
+          void message.error(toPublicApiError(error).message);
+        }
+        return;
+      }
+
       hiddenIds.value = new Set([...hiddenIds.value, historyId]);
       void message.success("记录已从当前页面移除，刷新后恢复模拟数据");
     },
@@ -178,6 +221,20 @@ const requestBulkDeleteFiltered = (): void => {
 };
 
 const repeatSearch = (item: SearchHistory): void => {
+  if (isRealApiMode) {
+    void router.push({
+      path: "/search",
+      state: {
+        initialSearch: {
+          q: item.query,
+          mode: item.mode,
+          sources: item.sources.join(","),
+        },
+      },
+    });
+    return;
+  }
+
   void router.push({
     path: "/search",
     query: {
@@ -187,6 +244,33 @@ const repeatSearch = (item: SearchHistory): void => {
     },
   });
 };
+
+const loadRealHistory = async (): Promise<void> => {
+  if (!isRealApiMode) return;
+
+  loadController?.abort();
+  const controller = new AbortController();
+  loadController = controller;
+  loadState.value = "loading";
+  loadError.value = "";
+
+  try {
+    realConversations.value = await listConversations(controller.signal);
+    loadState.value = "success";
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    loadError.value = toPublicApiError(error).message;
+    loadState.value = "error";
+  }
+};
+
+onMounted(() => {
+  void loadRealHistory();
+});
+
+onBeforeUnmount(() => {
+  loadController?.abort();
+});
 </script>
 
 <template>
@@ -194,16 +278,26 @@ const repeatSearch = (item: SearchHistory): void => {
     <PageHeader
       eyebrow="个人搜索资产"
       title="搜索历史"
-      description="筛选、整理并重新运行最近的搜索；所有编辑仅保留在当前页面。"
+      :description="
+        isRealApiMode
+          ? '展示真实 RAG 问答形成的搜索记录；刷新后仍可查看已落库记录。'
+          : '筛选、整理并重新运行最近的搜索；所有编辑仅保留在当前页面。'
+      "
     >
       <template #actions>
-        <span class="local-preview-badge">本地模拟记录</span>
+        <span class="local-preview-badge">
+          {{ isRealApiMode ? "真实记录" : "本地模拟记录" }}
+        </span>
       </template>
     </PageHeader>
 
     <ResourcePanel
       title="历史记录"
-      description="搜索名称、收藏和删除状态不会写入服务器。"
+      :description="
+        isRealApiMode
+          ? '记录来自后端会话表；RAG 问答完成后会自动新增。'
+          : '搜索名称、收藏和删除状态不会写入服务器。'
+      "
     >
       <template #actions>
         <button
@@ -253,7 +347,20 @@ const repeatSearch = (item: SearchHistory): void => {
         </label>
       </div>
 
-      <div v-if="historyGroups.length > 0" class="history-groups">
+      <InlineState
+        v-if="isRealApiMode && loadState === 'loading'"
+        kind="loading"
+        title="正在加载真实搜索历史"
+        description="系统正在读取当前账号的 RAG 问答记录。"
+      />
+      <InlineState
+        v-else-if="isRealApiMode && loadState === 'error'"
+        kind="error"
+        title="真实搜索历史加载失败"
+        :description="loadError"
+      />
+
+      <div v-else-if="historyGroups.length > 0" class="history-groups">
         <section
           v-for="group in historyGroups"
           :key="group.label"
@@ -366,8 +473,18 @@ const repeatSearch = (item: SearchHistory): void => {
       />
 
       <template #footer>
-        <span>共 {{ filteredHistory.length }} 条本地记录</span>
-        <span>刷新页面后编辑状态将恢复</span>
+        <span>
+          共 {{ filteredHistory.length }} 条{{
+            isRealApiMode ? "真实记录" : "本地记录"
+          }}
+        </span>
+        <span>
+          {{
+            isRealApiMode
+              ? "收藏与重命名暂未接入真实持久化"
+              : "刷新页面后编辑状态将恢复"
+          }}
+        </span>
       </template>
     </ResourcePanel>
   </div>

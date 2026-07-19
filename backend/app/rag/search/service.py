@@ -13,6 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.config import settings
+from app.common.exceptions import ValidationException
 from app.common.models import User
 from app.models import service as model_service
 from app.models.providers.openai import build_provider
@@ -21,7 +22,10 @@ from app.rag._shared.permissions import (
     get_user_accessible_kb_ids,
     post_filter_hits,
 )
+from app.rag.conversations.all import Conversation, Message
 from app.rag.search.schemas import (
+    RagAnswerRequest,
+    RagAnswerResponse,
     SearchDebug,
     SearchHit,
     SearchRequest,
@@ -64,22 +68,35 @@ async def _keyword_search(
     kb_list = list(accessible_kb_ids)
     sql = text(
         """
-        SELECT chunk_id, doc_id, page, content,
+        SELECT
+               c.id AS chunk_id,
+               c.document_id AS doc_id,
+               d.title AS doc_title,
+               c.knowledge_base_id AS kb_id,
+               c.page_no AS page,
+               c.content AS content,
                ts_rank_cd(
-                   to_tsvector(''simple'', content),
-                   plainto_tsquery(''simple'', :q)
-               ) AS score
-        FROM chunks
-        WHERE kb_id = ANY(:kb_ids)
-          AND to_tsvector(''simple'', content) @@ plainto_tsquery(''simple'', :q)
+                   to_tsvector('simple', c.content),
+                   plainto_tsquery('simple', :q)
+               )
+               + CASE WHEN c.content ILIKE :like_q THEN 0.5 ELSE 0 END AS score
+        FROM document_chunks c
+        JOIN documents d ON d.id = c.document_id
+        WHERE c.knowledge_base_id = ANY(:kb_ids)
+          AND c.is_active IS TRUE
+          AND (
+            to_tsvector('simple', c.content) @@ plainto_tsquery('simple', :q)
+            OR c.content ILIKE :like_q
+          )
         ORDER BY score DESC
         LIMIT :limit
         """
     )
-    res = await db.execute(sql, {"q": query, "kb_ids": kb_list, "limit": top_k * 2})
+    res = await db.execute(
+        sql,
+        {"q": query, "like_q": f"%{query}%", "kb_ids": kb_list, "limit": top_k * 2},
+    )
     rows = [dict(r._mapping) for r in res.fetchall()]
-    for row in rows:
-        row.setdefault("kb_id", None)
     return rows, len(rows)
 
 
@@ -88,15 +105,44 @@ async def _keyword_search(
 # ============================================================
 async def _embed_query(db: AsyncSession, *, query: str, embedding_model_id: str) -> list[float]:
     model = await model_service.get_model(db, embedding_model_id)
-    if model is None or model.kind != "embedding":
+    if model is None or model.kind != "embedding" or not model.enabled:
         raise ValueError("embedding model not found")
     provider = await model_service.get_provider(db, model.provider_code)
-    if provider is None:
+    if provider is None or not provider.enabled:
         raise ValueError("provider not found")
+    if not model.api_key_encrypted:
+        raise ValueError("embedding model api key not configured")
     api_key = decrypt_api_key(model.api_key_encrypted) if model.api_key_encrypted else ""
     p = build_provider(provider.code, provider.base_url, api_key)
     out = await p.embed(model_name=model.model_name, inputs=[query])
     return out[0]
+
+
+async def _resolve_embedding_model_id(
+    db: AsyncSession,
+    requested_model_id: str | None,
+) -> str | None:
+    if requested_model_id:
+        return requested_model_id
+
+    models = await model_service.list_models(db, kind="embedding")
+    configured = next(
+        (
+            model
+            for model in models
+            if model.enabled
+            and model.model_name == settings.qwen_embedding_model
+            and model.api_key_encrypted
+        ),
+        None,
+    )
+    if configured is not None:
+        return configured.id
+    return None
+
+
+def _to_vector_literal(embedding: list[float]) -> str:
+    return "[" + ",".join(str(float(value)) for value in embedding) + "]"
 
 
 async def _vector_search(
@@ -111,16 +157,26 @@ async def _vector_search(
     kb_list = list(accessible_kb_ids)
     sql = text(
         """
-        SELECT chunk_id, doc_id, page, content,
-               1 - (embedding <=> :emb) AS score
-        FROM chunks
-        WHERE kb_id = ANY(:kb_ids)
-          AND embedding IS NOT NULL
-        ORDER BY embedding <=> :emb
+        SELECT c.id AS chunk_id,
+               c.document_id AS doc_id,
+               c.page_no AS page,
+               c.content AS content,
+               d.title AS doc_title,
+               c.knowledge_base_id AS kb_id,
+               1 - (c.embedding_vector <=> CAST(:emb AS vector)) AS score
+        FROM document_chunks c
+        JOIN documents d ON d.id = c.document_id
+        WHERE c.knowledge_base_id = ANY(:kb_ids)
+          AND c.is_active = TRUE
+          AND c.embedding_vector IS NOT NULL
+        ORDER BY c.embedding_vector <=> CAST(:emb AS vector)
         LIMIT :limit
         """
     )
-    res = await db.execute(sql, {"emb": embedding, "kb_ids": kb_list, "limit": top_k * 2})
+    res = await db.execute(
+        sql,
+        {"emb": _to_vector_literal(embedding), "kb_ids": kb_list, "limit": top_k * 2},
+    )
     rows = [dict(r._mapping) for r in res.fetchall()]
     for row in rows:
         row.setdefault("kb_id", None)
@@ -215,6 +271,8 @@ async def search(
     accessible_kbs = {req.kb_id} if req.kb_id else accessible
 
     debug_kt, debug_vt, debug_rt = 0, 0, 0
+    total = 0
+    actual_mode = req.mode
 
     if req.mode == "keyword":
         ts = time.time()
@@ -224,30 +282,50 @@ async def search(
         debug_kt = int((time.time() - ts) * 1000)
         fused = kw_hits
     elif req.mode == "vector":
-        if not req.embedding_model_id:
-            raise ValueError("embedding_model_id required for vector search")
+        embedding_model_id = await _resolve_embedding_model_id(db, req.embedding_model_id)
+        if not embedding_model_id:
+            return SearchResponse(
+                hits=[],
+                mode="vector",
+                reranked=False,
+                took_ms=int((time.time() - start) * 1000),
+                total_candidates=0,
+            )
         ts = time.time()
-        emb = await _embed_query(db, query=req.query, embedding_model_id=req.embedding_model_id)
+        emb = await _embed_query(db, query=req.query, embedding_model_id=embedding_model_id)
         debug_vt = int((time.time() - ts) * 1000)
         vec_hits, total = await _vector_search(
             db, embedding=emb, accessible_kb_ids=accessible_kbs, top_k=req.top_k
         )
         fused = vec_hits
     else:  # hybrid
-        if not req.embedding_model_id:
-            raise ValueError("embedding_model_id required for hybrid search")
         ts = time.time()
         kw_hits, _ = await _keyword_search(
             db, query=req.query, accessible_kb_ids=accessible_kbs, top_k=req.top_k
         )
         debug_kt = int((time.time() - ts) * 1000)
-        ts = time.time()
-        emb = await _embed_query(db, query=req.query, embedding_model_id=req.embedding_model_id)
-        debug_vt = int((time.time() - ts) * 1000)
-        vec_hits, _ = await _vector_search(
-            db, embedding=emb, accessible_kb_ids=accessible_kbs, top_k=req.top_k
-        )
-        fused = rrf_fuse(keyword_hits=kw_hits, vector_hits=vec_hits)
+        total = len(kw_hits)
+        embedding_model_id = await _resolve_embedding_model_id(db, req.embedding_model_id)
+        if embedding_model_id is None:
+            actual_mode = "keyword"
+            fused = kw_hits
+        else:
+            try:
+                ts = time.time()
+                emb = await _embed_query(db, query=req.query, embedding_model_id=embedding_model_id)
+                debug_vt = int((time.time() - ts) * 1000)
+                vec_hits, _ = await _vector_search(
+                    db, embedding=emb, accessible_kb_ids=accessible_kbs, top_k=req.top_k
+                )
+                fused = rrf_fuse(keyword_hits=kw_hits, vector_hits=vec_hits)
+                total = len(fused)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "hybrid_search_fallback_to_keyword",
+                    error_type=type(exc).__name__,
+                )
+                actual_mode = "keyword"
+                fused = kw_hits
 
     # 阈值过滤
     if req.threshold > 0:
@@ -255,7 +333,7 @@ async def search(
 
     # 重排（仅当 top_k > settings.rag_max_top_k 强制启用）
     forced_rerank = req.top_k > settings.rag_max_top_k
-    do_rerank = (req.rerank or forced_rerank) and req.mode != "keyword"  # keyword 不重排
+    do_rerank = (req.rerank or forced_rerank) and actual_mode != "keyword"  # keyword 不重排
     reranked = False
     if do_rerank:
         ts = time.time()
@@ -278,7 +356,7 @@ async def search(
     took_ms = int((time.time() - start) * 1000)
     return SearchResponse(
         hits=[SearchHit(**h) for h in hits],
-        mode=req.mode,
+        mode=actual_mode,
         reranked=reranked,
         took_ms=took_ms,
         total_candidates=total,
@@ -288,3 +366,174 @@ async def search(
             rerank_latency_ms=debug_rt or None,
         ),
     )
+
+
+def _build_answer_messages(query: str, hits: list[SearchHit]) -> list[dict[str, str]]:
+    context_chunks: list[str] = []
+    used_chars = 0
+    for index, hit in enumerate(hits, start=1):
+        text_value = hit.text.strip()
+        if not text_value:
+            continue
+        header = f"[{index}] 文档：{hit.doc_title or hit.doc_id}；片段：{hit.chunk_id}"
+        chunk = f"{header}\n{text_value}"
+        next_size = used_chars + len(chunk)
+        if next_size > settings.rag_answer_max_context_chars:
+            remaining = settings.rag_answer_max_context_chars - used_chars
+            if remaining <= 200:
+                break
+            chunk = chunk[:remaining]
+        context_chunks.append(chunk)
+        used_chars += len(chunk)
+
+    context = "\n\n---\n\n".join(context_chunks) if context_chunks else "未检索到可用片段。"
+    system = (
+        "你是企业知识库 RAG 问答助手。必须只依据给定资料回答，不得编造。"
+        "请先综合资料形成直接回答，再给出关键依据。"
+        "引用依据时使用 [1]、[2] 这样的编号。"
+        "如果资料不足以回答，明确说明“未在文档中找到相关引用”，并指出还需要什么信息。"
+        "不要逐字复述全部原文。"
+    )
+    user_content = f"用户问题：{query}\n\n检索资料：\n{context}"
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_content},
+    ]
+
+
+async def _resolve_chat_model(
+    db: AsyncSession,
+    *,
+    chat_model_id: str | None,
+) -> tuple[str, str, str, str]:
+    if chat_model_id:
+        model = await model_service.get_model(db, chat_model_id)
+        if model is None or model.kind != "chat":
+            raise ValidationException(message="chat_model_id 不存在或不是聊天模型")
+        provider = await model_service.get_provider(db, model.provider_code)
+        if provider is None:
+            raise ValidationException(message="模型 Provider 不存在")
+        api_key = decrypt_api_key(model.api_key_encrypted) if model.api_key_encrypted else ""
+        return provider.code, provider.base_url, model.model_name, api_key
+
+    api_key = settings.deepseek_api_key.strip() or settings.model_api_key.strip()
+    if not api_key:
+        raise ValidationException(
+            message="未配置 DeepSeek API Key，请设置 DEEPSEEK_API_KEY 后重启后端服务"
+        )
+    return (
+        "deepseek",
+        settings.deepseek_base_url,
+        settings.deepseek_chat_model,
+        api_key,
+    )
+
+
+async def answer(
+    db: AsyncSession,
+    *,
+    user: User,
+    req: RagAnswerRequest,
+) -> RagAnswerResponse:
+    start = time.time()
+    search_resp = await search(db, user=user, req=req)
+
+    if not search_resp.hits:
+        return RagAnswerResponse(
+            answer="未在文档中找到相关引用。请确认文档已处理完成，或换一个更贴近文档标题、章节、关键词的问题。",
+            hits=[],
+            mode=search_resp.mode,
+            took_ms=search_resp.took_ms,
+            model=None,
+            conversation_id=None,
+            generated=False,
+        )
+
+    provider_code, base_url, model_name, api_key = await _resolve_chat_model(
+        db, chat_model_id=req.chat_model_id
+    )
+    provider = build_provider(
+        provider_code,
+        base_url,
+        api_key,
+        timeout=settings.model_provider_timeout_seconds,
+    )
+    generated = await provider.chat(
+        model_name=model_name,
+        messages=_build_answer_messages(req.query, search_resp.hits),
+        temperature=0.2,
+        max_tokens=settings.rag_answer_max_tokens,
+        stream=False,
+        timeout=settings.model_provider_timeout_seconds,
+    )
+    answer_text = generated if isinstance(generated, str) else ""
+    conversation = await _persist_answer_conversation(
+        db,
+        user=user,
+        req=req,
+        answer_text=answer_text.strip() or "未在文档中找到相关引用。",
+        hits=search_resp.hits,
+    )
+    return RagAnswerResponse(
+        answer=answer_text.strip() or "未在文档中找到相关引用。",
+        hits=search_resp.hits,
+        mode=search_resp.mode,
+        took_ms=int((time.time() - start) * 1000),
+        model=model_name,
+        conversation_id=conversation.id,
+        generated=True,
+    )
+
+
+async def _persist_answer_conversation(
+    db: AsyncSession,
+    *,
+    user: User,
+    req: RagAnswerRequest,
+    answer_text: str,
+    hits: list[SearchHit],
+) -> Conversation:
+    kb_id = req.kb_id or next((hit.kb_id for hit in hits if hit.kb_id), None)
+    if kb_id is None:
+        raise ValidationException(message="检索结果缺少知识库标识，无法保存会话")
+
+    now = time.time()
+    title = req.query.strip()[:80] or "知识库问答"
+    conversation = Conversation(
+        user_id=user.id,
+        kb_id=kb_id,
+        title=title,
+        message_count=2,
+    )
+    db.add(conversation)
+    await db.flush()
+
+    db.add(
+        Message(
+            conversation_id=conversation.id,
+            role="user",
+            content=req.query,
+            is_latest=True,
+        )
+    )
+    db.add(
+        Message(
+            conversation_id=conversation.id,
+            role="assistant",
+            content=answer_text,
+            citations=[
+                {
+                    "doc_id": hit.doc_id,
+                    "chunk_id": hit.chunk_id,
+                    "page": hit.page,
+                    "score": hit.score,
+                    "text": hit.text,
+                }
+                for hit in hits
+            ],
+            finish_reason="stop",
+            usage={"source": "retrieval_answer", "saved_at_ms": int(now * 1000)},
+            is_latest=True,
+        )
+    )
+    return conversation

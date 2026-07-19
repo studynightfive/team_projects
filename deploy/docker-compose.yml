@@ -60,6 +60,14 @@ services:
       - APP_VERSION=0.1.0
       # 调试模式（开发环境可以开启）
       - DEBUG=${DEBUG:-false}
+      # DeepSeek RAG 问答模型配置
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - DEEPSEEK_CHAT_MODEL=${DEEPSEEK_CHAT_MODEL:-deepseek-chat}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - DASHSCOPE_BASE_URL=${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      - QWEN_EMBEDDING_MODEL=${QWEN_EMBEDDING_MODEL:-qwen3.7-text-embedding}
+      - QWEN_EMBEDDING_DIMENSIONS=${QWEN_EMBEDDING_DIMENSIONS:-1024}
     # 依赖：等数据库和 Redis 健康检查通过后再启动
     depends_on:
       postgres:
@@ -88,6 +96,13 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - DEEPSEEK_CHAT_MODEL=${DEEPSEEK_CHAT_MODEL:-deepseek-chat}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - DASHSCOPE_BASE_URL=${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      - QWEN_EMBEDDING_MODEL=${QWEN_EMBEDDING_MODEL:-qwen3.7-text-embedding}
+      - QWEN_EMBEDDING_DIMENSIONS=${QWEN_EMBEDDING_DIMENSIONS:-1024}
     depends_on:
       postgres:
         condition: service_healthy

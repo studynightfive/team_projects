@@ -89,6 +89,7 @@ class ErrorCode:
     UPLOAD_MIME_MISMATCH = 13005
     DUPLICATE_POLICY = 13006
     ASSET_NOT_FOUND = 13008
+    KB_ALREADY_EXISTS = 13009
 
     # ---- 转换和 OCR (14000–14999) ----
     CONVERSION_FAILED = 14000
@@ -140,6 +141,7 @@ ERROR_MESSAGES: dict[int, str] = {
     ErrorCode.INVALID_ROLE_STATUS: "角色状态无效",
     ErrorCode.KB_NOT_FOUND: "知识库不存在",
     ErrorCode.KB_ACCESS_DENIED: "无权访问该知识库",
+    ErrorCode.KB_ALREADY_EXISTS: "知识库名称已存在",
     ErrorCode.DOCUMENT_NOT_FOUND: "文档不存在",
     ErrorCode.UPLOAD_INVALID: "上传参数无效",
     ErrorCode.UPLOAD_TOO_LARGE: "文件超过大小限制",
