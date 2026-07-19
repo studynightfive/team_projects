@@ -20,14 +20,29 @@ def upgrade() -> None:
     op.create_table(
         "favorites",
         sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=False), primary_key=True),
-        sa.Column("user_id", sa.String(36), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id",
+            sa.String(36),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("type", sa.String(24), nullable=False),
         sa.Column("title", sa.String(300), nullable=False),
         sa.Column("summary", sa.Text, nullable=False, server_default=""),
-        sa.Column("tags", sa.dialects.postgresql.JSONB, nullable=False, server_default=sa.text("'[]'::jsonb")),
+        sa.Column(
+            "tags",
+            sa.dialects.postgresql.JSONB,
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
         sa.Column("note", sa.Text, nullable=False, server_default=""),
         sa.Column("source_id", sa.String(128), nullable=True),
-        sa.Column("source_payload", sa.dialects.postgresql.JSONB, nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "source_payload",
+            sa.dialects.postgresql.JSONB,
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
         sa.Column("saved_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
