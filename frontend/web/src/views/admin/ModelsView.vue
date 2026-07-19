@@ -314,8 +314,8 @@ onBeforeUnmount(clearSensitiveState);
             defaultChatModel === undefined
               ? "请新增 DeepSeek 聊天模型；未配置时后端会尝试使用环境变量兜底。"
               : `${providerLabel(defaultChatModel.provider_code)} · ${
-                  defaultChatModel.api_key_set ? "密钥已配置" : "密钥未配置"
-                }`
+                defaultChatModel.api_key_set ? "密钥已配置" : "密钥未配置"
+              }`
           }}
         </p>
       </article>
@@ -327,8 +327,8 @@ onBeforeUnmount(clearSensitiveState);
             defaultEmbeddingModel === undefined
               ? "请新增 Qwen embedding 模型；否则向量检索会退回兜底向量。"
               : `${providerLabel(defaultEmbeddingModel.provider_code)} · ${
-                  defaultEmbeddingModel.dimensions ?? "-"
-                } 维`
+                defaultEmbeddingModel.dimensions ?? "-"
+              } 维`
           }}
         </p>
       </article>
