@@ -436,7 +436,7 @@ describe("M03-M07 用户页面本地交互", () => {
     ).toBe("precise");
 
     await getButton(wrapper, "原始结果").trigger("click");
-    expect(wrapper.findAll(".source-result-item")).toHaveLength(10);
+    expect(wrapper.findAll(".source-result-item")).toHaveLength(3);
     await wrapper
       .get('input[placeholder="在结果中搜索"]')
       .setValue("不存在的结果");

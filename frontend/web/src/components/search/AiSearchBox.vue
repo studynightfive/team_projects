@@ -21,6 +21,7 @@ const props = withDefaults(
     modeOptions: readonly SearchModeOption[];
     modelOptions: readonly ModelOption[];
     knowledgeBaseOptions?: readonly KnowledgeBaseOption[];
+    requiresWorkspace?: boolean;
     busy?: boolean;
     disabled?: boolean;
     compact?: boolean;
@@ -29,6 +30,7 @@ const props = withDefaults(
     busy: false,
     disabled: false,
     compact: false,
+    requiresWorkspace: true,
     workspaceId: undefined,
     knowledgeBaseOptions: () => [],
   },
@@ -76,8 +78,8 @@ const canSubmit = computed(
   () =>
     props.query.trim().length > 0 &&
     props.sources.length > 0 &&
-    props.workspaceId !== undefined &&
-    props.workspaceId !== "" &&
+    (!props.requiresWorkspace ||
+      (props.workspaceId !== undefined && props.workspaceId !== "")) &&
     !props.busy &&
     !props.disabled,
 );
@@ -114,8 +116,12 @@ const clearQuery = (): void => {
 
 const submit = (): void => {
   if (!canSubmit.value) {
-    if (props.query.trim().length === 0) emit("notice", "请输入要查找的问题");
-    else if (props.workspaceId === undefined || props.workspaceId === "") {
+    if (props.query.trim().length === 0) {
+      emit("notice", "请输入要查找的问题");
+    } else if (
+      props.requiresWorkspace &&
+      (props.workspaceId === undefined || props.workspaceId === "")
+    ) {
       emit("notice", "请选择要检索的知识库");
     }
     return;

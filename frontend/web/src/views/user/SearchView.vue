@@ -528,6 +528,7 @@ onBeforeUnmount(() => {
       :mode-options="aiSearchMockData.modeOptions"
       :model-options="modelOptions"
       :knowledge-base-options="knowledgeBaseOptions"
+      :requires-workspace="isRealApiMode"
       @attachments-change="attachmentNames = $event"
       @submit="submitSearch"
       @notice="showLocalNotice"

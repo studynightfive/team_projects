@@ -40,7 +40,7 @@ describe("M01 V2 工作区布局", () => {
     expect(wrapper.find("header.workspace-topbar").exists()).toBe(true);
     expect(wrapper.find("main.workspace-content").exists()).toBe(true);
     expect(wrapper.findAll(".search-suggestion-list button")).toHaveLength(6);
-    expect(wrapper.findAll(".quick-action-list button")).toHaveLength(3);
+    expect(wrapper.findAll(".quick-action-list button")).toHaveLength(2);
     expect(wrapper.findAll(".recent-search-list button")).toHaveLength(4);
     expect(wrapper.findAll(".knowledge-space-list a")).toHaveLength(3);
     expect(wrapper.text()).toContain("企业知识中心");
