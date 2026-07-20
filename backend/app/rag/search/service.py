@@ -41,6 +41,46 @@ logger = structlog.get_logger()
 RRF_K = 60
 SearchRow: TypeAlias = dict[str, object]
 
+def _embedding_literal(value):
+    """序列化 embedding 为 pgvector 字面量"""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        return "b'" + value.hex() + "'"
+    if isinstance(value, (list, tuple)):
+        return "[" + ",".join(str(float(x)) for x in value) + "]"
+    return str(value)
+
+def _row_to_hit(row):
+    """chunks 表行映射成 SearchHit dict"""
+    return {
+        "doc_id": row.get("doc_id"),
+        "chunk_id": row.get("chunk_id"),
+        "page": row.get("page"),
+        "score": float(row.get("score") or 0.0),
+        "text": row.get("content") or "",
+        "kb_id": row.get("kb_id"),
+    }
+
+def rrf_fuse_many(*lists, k=RRF_K):
+    """多列表 RRF 融合"""
+    scores = {}
+    by_chunk = {}
+    for hits in lists:
+        for rank, hit in enumerate(hits, start=1):
+            cid = hit.get("chunk_id")
+            if not cid:
+                continue
+            scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank)
+            by_chunk.setdefault(cid, hit)
+    fused = []
+    for cid, score in sorted(scores.items(), key=lambda x: -x[1]):
+        hit = dict(by_chunk[cid])
+        hit["score"] = score
+        fused.append(hit)
+    return fused
+
+
 _CJK_STOPWORDS = {
     "的",
     "了",
