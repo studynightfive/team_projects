@@ -331,8 +331,8 @@
         "headings",
         "paragraphs"
       ],
-      "file_size_bytes": 2296,
-      "sha256": "8f72e395c5b0f64890d9c6fca571105201c7c837017d95b8d82e94f0d7128274",
+      "file_size_bytes": 2268,
+      "sha256": "ef89c3b69b69e944e18a0d2fd302942232feb693dfbdb2df7bd2701b33d62002",
       "description": "基础Markdown文件，含中文标题和段落",
       "status": "ready"
     },
@@ -346,8 +346,8 @@
         "text",
         "code-blocks"
       ],
-      "file_size_bytes": 1953,
-      "sha256": "d5aa9182ace96e696308016e30ca38d23c22580b99d059dda2af80f4b38d5fea",
+      "file_size_bytes": 1880,
+      "sha256": "5606d77550fd265d412aeb6b4e6bb56d4bbc046984f2901db15875c897a7f0de",
       "description": "含代码块的Markdown文件",
       "status": "ready"
     },
@@ -361,8 +361,8 @@
         "text",
         "tables"
       ],
-      "file_size_bytes": 1010,
-      "sha256": "1c3f68930acf12ea8e33b093d297c3e64c2cf2aef3cb6e82a323f9c85d916071",
+      "file_size_bytes": 987,
+      "sha256": "c8f4eeca36884aec185f5770db223048cc59225971c02d9226b466a4d2cf558c",
       "description": "含表格的Markdown文件",
       "status": "ready"
     },
@@ -391,8 +391,8 @@
         "xss",
         "malicious"
       ],
-      "file_size_bytes": 995,
-      "sha256": "2f254d6ff4e111e1ef5e75141eda2b7e33da59d237eac9cc96d93e216f1d4f7b",
+      "file_size_bytes": 961,
+      "sha256": "ec9be7da1a5c29fba4af3b3d6f2a2b658418e6b48451a65bf0c978aacd8510ed",
       "description": "含危险HTML的Markdown文件（XSS清洗测试）",
       "status": "ready"
     },
@@ -885,8 +885,8 @@
       "category": "normal",
       "language": "zh-CN",
       "features": ["staff4-regression"],
-      "file_size_bytes": 115,
-      "sha256": "ed5987488a82c3cbfbc47620f3d6889ff3ea543808b0789d3ad08300fe635015",
+      "file_size_bytes": 108,
+      "sha256": "d158eb0345958f471de85a7595200b14c9fdd9308b8d3269f2255a8cbfa6b233",
       "description": "员工4 中文 Markdown 解析回归样本",
       "status": "ready"
     },
@@ -897,8 +897,8 @@
       "category": "abnormal",
       "language": "zh-CN",
       "features": ["staff4-regression", "xss"],
-      "file_size_bytes": 82,
-      "sha256": "3b395bc27040b541fab72ea2c31a28324ce3234e58186a5c8efbcf0e9b2f886a",
+      "file_size_bytes": 77,
+      "sha256": "3c0bad0cf116e12c151ad35a614391a29684af388b8751790863d1c751c4ac97",
       "description": "员工4 Markdown XSS 清洗回归样本",
       "status": "ready"
     },
