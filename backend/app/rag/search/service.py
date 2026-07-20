@@ -54,10 +54,10 @@ def _embedding_literal(value: object) -> str:
 def rrf_fuse_many(*lists: list[dict[str, object]], k: int = RRF_K) -> list[dict[str, object]]:
     """多列表 RRF 融合"""
     scores: dict[str, float] = {}
-    by_chunk: dict[str, dict] = {}
+    by_chunk: dict[str, dict[str, object]] = {}
     for hits in lists:
         for rank, hit in enumerate(hits, start=1):
-            cid = hit.get("chunk_id")
+            cid = str(hit.get("chunk_id") or "")
             if not cid:
                 continue
             scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank)
