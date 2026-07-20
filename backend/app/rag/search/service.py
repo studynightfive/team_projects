@@ -51,7 +51,7 @@ def _embedding_literal(value: object) -> str:
         return "[" + ",".join(str(float(x)) for x in value) + "]"
     return str(value)
 
-def rrf_fuse_many(*lists: list[dict], k: int = RRF_K) -> list[dict]:
+def rrf_fuse_many(*lists: list[dict[str, object]], k: int = RRF_K) -> list[dict[str, object]]:
     """多列表 RRF 融合"""
     scores: dict[str, float] = {}
     by_chunk: dict[str, dict] = {}
