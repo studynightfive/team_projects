@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 
+import { isRealApiMode } from "../../config/runtime";
+import {
+  checkSensitiveWords,
+  type SensitiveCheckResponse,
+} from "../../services/sensitive-filter";
 import type {
   KnowledgeBaseOption,
   ModelOption,
@@ -10,6 +15,7 @@ import type {
   SearchSourceType,
 } from "../../types/ai-search";
 import { FileText, Paperclip, Send, X } from "../icons";
+import SensitiveWordWarning from "./SensitiveWordWarning.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -65,6 +71,11 @@ const textareaRef = ref<HTMLTextAreaElement>();
 const fileInputRef = ref<HTMLInputElement>();
 const attachments = ref<File[]>([]);
 
+// 敏感词检查状态
+const isCheckingSensitiveWords = ref(false);
+const sensitiveWarningOpen = ref(false);
+const sensitiveResult = ref<SensitiveCheckResponse | null>(null);
+
 const activeMode = computed(
   () =>
     props.modeOptions.find((option) => option.value === props.mode) ??
@@ -83,7 +94,8 @@ const canSubmit = computed(
     (!props.requiresWorkspace ||
       (props.workspaceId !== undefined && props.workspaceId !== "")) &&
     !props.busy &&
-    !props.disabled,
+    !props.disabled &&
+    !isCheckingSensitiveWords.value,
 );
 
 const resizeTextarea = async (): Promise<void> => {
@@ -116,7 +128,7 @@ const clearQuery = (): void => {
   textareaRef.value?.focus();
 };
 
-const submit = (): void => {
+const submit = async (): Promise<void> => {
   if (!canSubmit.value) {
     if (props.query.trim().length === 0) {
       emit("notice", "请输入要查找的问题");
@@ -127,6 +139,25 @@ const submit = (): void => {
       emit("notice", "请选择要检索的知识库");
     }
     return;
+  }
+
+  // 敏感词预检（仅真实 API 模式下生效）
+  if (isRealApiMode) {
+    isCheckingSensitiveWords.value = true;
+    try {
+      const result = await checkSensitiveWords(props.query.trim());
+      if (!result.passed) {
+        sensitiveResult.value = result;
+        sensitiveWarningOpen.value = true;
+        isCheckingSensitiveWords.value = false;
+        return;
+      }
+    } catch {
+      // 敏感词检查服务不可用时降级放行
+      emit("notice", "敏感词检查暂不可用，已跳过检查");
+    } finally {
+      isCheckingSensitiveWords.value = false;
+    }
   }
 
   emit("submit", {
@@ -382,9 +413,15 @@ defineExpose({
         class="search-submit-button"
         type="submit"
         :disabled="!canSubmit"
-        :aria-label="busy ? '正在检索企业知识' : '发送搜索问题'"
+        :aria-label="busy ? '正在检索企业知识' : isCheckingSensitiveWords ? '正在检查敏感词' : '发送搜索问题'"
       >
-        <span>{{ busy ? "正在检索" : "开始搜索" }}</span>
+        <span>{{
+          isCheckingSensitiveWords
+            ? "正在检查..."
+            : busy
+              ? "正在检索"
+              : "开始搜索"
+        }}</span>
         <Send :size="17" aria-hidden="true" />
       </button>
     </div>
@@ -395,6 +432,15 @@ defineExpose({
         busy ? "正在检索已选知识库，请稍候" : "Enter 发送，Shift + Enter 换行"
       }}</span>
     </div>
+    <SensitiveWordWarning
+      :open="sensitiveWarningOpen"
+      :reason="sensitiveResult?.reason ?? ''"
+      :regex-matches="sensitiveResult?.regex_matches ?? []"
+      :bert-confidence="sensitiveResult?.bert_confidence ?? 0"
+      :bert-label="sensitiveResult?.bert_label ?? ''"
+      :verdict="sensitiveResult?.verdict ?? ''"
+      @close="sensitiveWarningOpen = false"
+    />
   </form>
 </template>
 

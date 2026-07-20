@@ -69,6 +69,11 @@ dependencies = [
     "weasyprint==66.0",           # WeasyPrint：HTML/CSS 转 PDF
     "python-pptx==1.0.2",
     "cryptography==46.0.3",       # cryptography：Fernet 对称加密（模型密钥）
+    # ============================================================
+    # 敏感词过滤（Layer 2: BERT 语义识别）
+    # ============================================================
+    "torch==2.5.1",               # PyTorch：深度学习框架
+    "transformers==4.47.1",       # HuggingFace Transformers：BERT 模型加载与推理
 ]
 
 # 开发依赖组

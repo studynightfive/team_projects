@@ -44,6 +44,7 @@ from app.rag.chat.all import router as chat_router
 from app.rag.conversations.all import router as conversations_router
 from app.rag.search.api import router as retrieval_router
 from app.rag.tests.all import router as retrieval_tests_router
+from app.rag.sensitive_filter.router import router as sensitive_filter_router
 from app.users.dashboard_router import router as dashboard_router
 from app.users.role_router import router as role_router
 from app.users.router import router as users_router
@@ -282,6 +283,7 @@ app.include_router(chat_router)
 app.include_router(exports_router)
 app.include_router(favorites_router)
 app.include_router(retrieval_tests_router)
+app.include_router(sensitive_filter_router)
 app.include_router(notifications_router)
 
 install_openapi_schema(app)

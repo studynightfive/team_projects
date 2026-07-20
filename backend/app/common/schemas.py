@@ -104,6 +104,7 @@ class ErrorCode:
     # ---- 检索和问答 (15000–15999) ----
     SEARCH_FAILED = 15000
     CHAT_FAILED = 15001
+    SENSITIVE_CONTENT = 15002
 
     # ---- 导出和下载 (16000–16999) ----
     EXPORT_FAILED = 16000
@@ -158,6 +159,7 @@ ERROR_MESSAGES: dict[int, str] = {
     ErrorCode.INDEX_FAILED: "索引失败",
     ErrorCode.SEARCH_FAILED: "检索失败",
     ErrorCode.CHAT_FAILED: "问答失败",
+    ErrorCode.SENSITIVE_CONTENT: "问题包含敏感内容，请修改后重新提问",
     ErrorCode.EXPORT_FAILED: "导出失败",
     ErrorCode.DOWNLOAD_EXPIRED: "下载链接已过期",
     ErrorCode.METRICS_UNAVAILABLE: "指标数据不可用",

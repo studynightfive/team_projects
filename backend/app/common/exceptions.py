@@ -148,3 +148,21 @@ class ValidationException(AppException):
             status_code=422,
             request_id=request_id,
         )
+
+
+class SensitiveContentException(AppException):
+    """问题包含敏感内容（422）—— 敏感词过滤拦截"""
+
+    def __init__(
+        self,
+        message: str | None = None,
+        request_id: str = "",
+        detail: str | None = None,
+    ) -> None:
+        super().__init__(
+            code=ErrorCode.SENSITIVE_CONTENT,
+            message=message or "问题包含敏感内容，请修改后重新提问",
+            status_code=422,
+            request_id=request_id,
+            detail=detail,
+        )
