@@ -103,7 +103,7 @@ async def _seed_user_and_kb(session, *, kb_name: str = "e2e-kb") -> tuple[User, 
     return user, kb
 
 
-@pytest.mark.skip(reason="E2E schema 隔离 flaky: chunks 数 0, 实际数据写入跨 schema 不一致; 后续 PR 修复 conftest")
+@pytest.mark.skip(reason="E2E schema isolation flaky")  # noqa: E501
 @pytest.mark.asyncio
 async def test_upload_markdown_then_keyword_vector_hybrid(pg_session, tmp_path) -> None:
     settings = _make_settings(tmp_path)
@@ -185,7 +185,7 @@ async def test_upload_markdown_then_keyword_vector_hybrid(pg_session, tmp_path) 
     assert hybrid.hits[0].doc_id == doc_id
 
 
-@pytest.mark.skip(reason="E2E schema 隔离 flaky: chunks 列表空; 后续 PR 修复 conftest")
+@pytest.mark.skip(reason="E2E schema isolation flaky")  # noqa: E501
 @pytest.mark.asyncio
 async def test_delete_document_removes_retrieval_chunks(pg_session, tmp_path) -> None:
     settings = _make_settings(tmp_path)
