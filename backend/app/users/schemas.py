@@ -24,9 +24,10 @@ class CreateUserRequest(BaseModel):
 class UpdateUserRequest(BaseModel):
     """更新用户请求"""
 
-    display_name: str | None = Field(None, min_length=1, max_length=150)
     status: str | None = None  # active, disabled
     role_ids: list[str] | None = None
+
+    model_config = {"extra": "forbid"}
 
 
 class ResetPasswordRequest(BaseModel):

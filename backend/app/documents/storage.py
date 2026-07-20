@@ -6,12 +6,16 @@ import hashlib
 import json
 import re
 import shutil
+import uuid
 from pathlib import Path
+
+from pydantic import JsonValue, TypeAdapter
 
 from app.common.config import Settings
 from app.common.config import settings as app_settings
 
 _UNSAFE_NAME = re.compile(r"[^\w.\u4e00-\u9fff\-]+", re.UNICODE)
+_MANIFEST_ADAPTER = TypeAdapter(dict[str, JsonValue])
 
 
 def sanitize_filename(name: str) -> str:
@@ -75,11 +79,40 @@ class DocumentStorage:
         target.write_bytes(data)
         return target
 
+    def backup_document(self, document_id: str) -> Path:
+        target = self._document_target(document_id)
+        backup_root = self.root / ".upload-backups"
+        backup_root.mkdir(parents=True, exist_ok=True)
+        backup = backup_root / uuid.uuid4().hex
+        backup.mkdir()
+        try:
+            if target.exists():
+                shutil.copytree(target, backup / "document")
+        except Exception:
+            shutil.rmtree(backup, ignore_errors=True)
+            raise
+        return backup
+
+    def restore_document(self, document_id: str, backup: Path) -> None:
+        target = self._document_target(document_id)
+        self._validate_backup(backup)
+        snapshot = backup / "document"
+        if target.exists():
+            shutil.rmtree(target)
+        if snapshot.exists():
+            shutil.move(str(snapshot), str(target))
+        shutil.rmtree(backup)
+
+    def discard_backup(self, backup: Path) -> None:
+        self._validate_backup(backup)
+        if backup.exists():
+            shutil.rmtree(backup)
+
     def write_markdown_package(
         self,
         document_id: str,
         content_md: str,
-        manifest: dict,
+        manifest: dict[str, JsonValue],
         assets: list[tuple[str, bytes]],
     ) -> tuple[Path, Path, list[Path]]:
         md_path = self.markdown_dir(document_id) / "content.md"
@@ -97,16 +130,16 @@ class DocumentStorage:
     def read_markdown(self, document_id: str) -> str:
         return (self.markdown_dir(document_id) / "content.md").read_text(encoding="utf-8")
 
-    def read_manifest(self, document_id: str) -> dict:
+    def read_manifest(self, document_id: str) -> dict[str, JsonValue]:
         path = self.document_dir(document_id) / "manifest.json"
         if not path.exists():
             return {}
-        return json.loads(path.read_text(encoding="utf-8"))
+        return _MANIFEST_ADAPTER.validate_json(path.read_bytes())
 
     def resolve_asset(self, document_id: str, relative_path: str) -> Path:
         base = self.document_dir(document_id).resolve()
         candidate = (base / relative_path).resolve()
-        if not str(candidate).startswith(str(base)):
+        if not candidate.is_relative_to(base):
             raise ValueError("path traversal blocked")
         return candidate
 
@@ -118,3 +151,20 @@ class DocumentStorage:
         manifest = self.document_dir(document_id) / "manifest.json"
         if manifest.exists():
             manifest.unlink()
+
+    def delete_document(self, document_id: str) -> None:
+        target = self._document_target(document_id)
+        if target.exists():
+            shutil.rmtree(target)
+
+    def _document_target(self, document_id: str) -> Path:
+        root = self.root.resolve()
+        target = (root / str(document_id)).resolve()
+        if target.parent != root:
+            raise ValueError("invalid document storage path")
+        return target
+
+    def _validate_backup(self, backup: Path) -> None:
+        backup_root = (self.root / ".upload-backups").resolve()
+        if backup.resolve().parent != backup_root:
+            raise ValueError("invalid document backup path")

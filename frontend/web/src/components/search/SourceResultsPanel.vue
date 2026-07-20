@@ -105,12 +105,14 @@ const sourceTypeLabel: Readonly<Record<SearchSourceType, string>> = {
   internet: "互联网信息",
 };
 
-const formatDate = (value: string): string =>
-  new Intl.DateTimeFormat("zh-CN", {
+const formatDate = (value: string): string => {
+  if (value === "") return "时间未提供";
+  return new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(value));
+};
 
 const resetFilters = (): void => {
   keyword.value = "";
@@ -417,8 +419,8 @@ onBeforeUnmount(() => {
           </div>
         </div>
         <div class="source-result-side">
-          <strong>{{ result.relevance }}%</strong>
-          <span>相关度</span>
+          <strong>{{ result.scoreLabel ?? `${result.relevance}%` }}</strong>
+          <span>{{ result.scoreDescription ?? "相关度" }}</span>
           <button
             type="button"
             :class="{ 'favorite-active': isFavorite(result.id) }"

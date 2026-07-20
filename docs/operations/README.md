@@ -1,58 +1,25 @@
 # 运维文档索引
 
-> 文档版本：1.0
-> 维护人：员工6（测试与平台工程）
+本文档集描述当前仓库可以实际执行的本地/单机 Compose 流程。默认编排不是完整生产平台：TLS、Prometheus、Alertmanager、Grafana、对象存储和外部备份介质需要由部署环境另行提供。
 
----
+| 文档 | 说明 |
+|---|---|
+| [deployment.md](deployment.md) | 环境配置、启动、迁移和故障排查 |
+| [testing.md](testing.md) | 前后端门禁与隔离 Docker 测试 |
+| [monitoring.md](monitoring.md) | 真实可用的健康检查和 HTTP 指标 |
+| [alerting.md](alerting.md) | 当前可用告警与待补 exporter 边界 |
+| [backup-restore.md](backup-restore.md) | 数据库与文件卷的一致性备份、恢复 |
+| [rollback.md](rollback.md) | 镜像回滚和有损数据恢复决策 |
+| [release-checklist.md](release-checklist.md) | 发布前强制检查项 |
 
-## 文档列表
+常用命令：
 
-| 文档 | 说明 | 适用场景 |
-|---|---|---|
-| [deployment.md](deployment.md) | 部署指南 | 首次部署、环境搭建 |
-| [release-checklist.md](release-checklist.md) | 发布检查清单 | 每次发布前逐项确认 |
-| [rollback.md](rollback.md) | 回滚方案 | 发布失败时恢复 |
-| [monitoring.md](monitoring.md) | 监控指南 | 查看指标、日志、健康检查 |
-| [alerting.md](alerting.md) | 告警基线 | 配置告警规则 |
-| [backup-restore.md](backup-restore.md) | 备份与恢复指南 | 数据备份和灾难恢复 |
-| [testing.md](testing.md) | 测试指南 | 运行测试、查看覆盖率 |
+```bash
+docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml up -d --build
+docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml exec api-server /app/backend/.venv/bin/python scripts/bootstrap_admin.py  # 仅新环境首次交互执行
+bash scripts/health-check.sh
+bash scripts/backup.sh
+docker compose -f deploy/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner
+```
 
----
-
-## 发布记录
-
-| 版本 | 日期 | 发布人 | 说明 |
-|---|---|---|---|
-| [v1.0.0](release-notes/v1.0.0.md) | 待定 | 员工6 | 首次正式发布 |
-
----
-
-## 快速导航
-
-### 我要部署项目
-
-1. [deployment.md](deployment.md) - 快速启动
-2. 配置 `deploy/env/.env`
-
-### 我要发布新版本
-
-1. [release-checklist.md](release-checklist.md) - 逐项检查
-2. `bash scripts/build-release.sh v1.0.0`
-3. 部署后验证
-
-### 我遇到了问题
-
-1. [deployment.md](deployment.md) - 故障排查章节
-2. [rollback.md](rollback.md) - 回滚步骤
-
-### 我要查看系统状态
-
-1. [monitoring.md](monitoring.md) - 指标和日志
-2. `bash scripts/health-check.sh`
-3. `curl /api/v1/metrics`
-
-### 我要备份数据
-
-1. [backup-restore.md](backup-restore.md) - 备份策略
-2. `bash scripts/backup-postgres.sh`
-3. `bash scripts/backup-files.sh`
+`make clean` 只移除容器并保留数据卷。只有显式执行 `make purge-data CONFIRM=delete-data` 才删除本地数据库和文件卷。

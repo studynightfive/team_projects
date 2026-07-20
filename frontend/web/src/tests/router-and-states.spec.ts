@@ -31,7 +31,6 @@ describe("M01 V2 路由与通用状态", () => {
 
     await wrapper.get("#account").setValue("demo-user");
     await wrapper.get("#password").setValue("local-only-value");
-    await wrapper.get('input[type="checkbox"]').setValue(true);
 
     const passwordToggle = wrapper.get(".password-toggle");
     expect(wrapper.get("#password").attributes("type")).toBe("password");

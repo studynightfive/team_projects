@@ -1,11 +1,10 @@
 import { apiClient, clearAccessToken, setAccessToken } from "../api/client";
-
-interface ApiResponse<T> {
-  readonly code: number;
-  readonly message: string;
-  readonly data: T | null;
-  readonly request_id: string;
-}
+import {
+  assertApiSuccess,
+  type ApiResponse,
+  type ApiSchema,
+} from "../api/contracts";
+import type { paths } from "../api/generated/openapi";
 
 interface UserRole {
   readonly id: string;
@@ -32,16 +31,13 @@ interface LoginData {
   readonly user: AuthenticatedUser;
 }
 
-export interface LoginCredentials {
-  readonly username: string;
-  readonly password: string;
-}
+export type LoginCredentials = Readonly<
+  paths["/auth/login"]["post"]["requestBody"]["content"]["application/json"]
+>;
 
-export interface RegisterPayload {
-  readonly username: string;
-  readonly display_name: string;
-  readonly password: string;
-}
+export type RegisterPayload = Readonly<
+  paths["/auth/register"]["post"]["requestBody"]["content"]["application/json"]
+>;
 
 export const loginWithPassword = async (
   credentials: LoginCredentials,
@@ -52,7 +48,12 @@ export const loginWithPassword = async (
   );
   const data = response.data.data;
 
-  if (response.data.code !== 0 || data === null || data.access_token === "") {
+  if (
+    response.data.code !== 0 ||
+    data === null ||
+    data === undefined ||
+    data.access_token === ""
+  ) {
     throw new Error(response.data.message || "登录失败，请重试");
   }
 
@@ -61,12 +62,16 @@ export const loginWithPassword = async (
 };
 
 export const refreshSession = async (): Promise<AuthenticatedUser> => {
-  const response = await apiClient.post<ApiResponse<LoginData>>(
-    "/v1/auth/refresh",
-  );
+  const response =
+    await apiClient.post<ApiResponse<LoginData>>("/v1/auth/refresh");
   const data = response.data.data;
 
-  if (response.data.code !== 0 || data === null || data.access_token === "") {
+  if (
+    response.data.code !== 0 ||
+    data === null ||
+    data === undefined ||
+    data.access_token === ""
+  ) {
     throw new Error(response.data.message || "登录状态已失效，请重新登录");
   }
 
@@ -76,16 +81,21 @@ export const refreshSession = async (): Promise<AuthenticatedUser> => {
 
 export const logoutCurrentUser = async (): Promise<void> => {
   try {
-    await apiClient.post<ApiResponse<unknown>>("/v1/auth/logout");
+    const response =
+      await apiClient.post<ApiSchema<"APIResponse_NoneType_">>(
+        "/v1/auth/logout",
+      );
+    assertApiSuccess(response.data);
   } finally {
     clearAccessToken();
   }
 };
 
 export const getCurrentUser = async (): Promise<AuthenticatedUser> => {
-  const response = await apiClient.get<ApiResponse<AuthenticatedUser>>("/v1/me");
+  const response =
+    await apiClient.get<ApiResponse<AuthenticatedUser>>("/v1/me");
   const data = response.data.data;
-  if (response.data.code !== 0 || data === null) {
+  if (response.data.code !== 0 || data === null || data === undefined) {
     throw new Error(response.data.message || "获取当前用户失败");
   }
   return data;
@@ -97,7 +107,11 @@ export const checkUsernameAvailable = async (
   const response = await apiClient.get<
     ApiResponse<{ readonly username: string; readonly available: boolean }>
   >("/v1/auth/check-username", { params: { username } });
-  if (response.data.code !== 0 || response.data.data === null) {
+  if (
+    response.data.code !== 0 ||
+    response.data.data === null ||
+    response.data.data === undefined
+  ) {
     throw new Error(response.data.message || "账号检查失败");
   }
   return response.data.data.available;
@@ -106,11 +120,8 @@ export const checkUsernameAvailable = async (
 export const registerAccount = async (
   payload: RegisterPayload,
 ): Promise<void> => {
-  const response = await apiClient.post<ApiResponse<unknown>>(
-    "/v1/auth/register",
-    payload,
-  );
-  if (response.data.code !== 0) {
-    throw new Error(response.data.message || "注册失败，请重试");
-  }
+  const response = await apiClient.post<
+    ApiSchema<"APIResponse_dict_str__object__">
+  >("/v1/auth/register", payload);
+  assertApiSuccess(response.data, "注册失败，请重试");
 };

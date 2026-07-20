@@ -22,7 +22,7 @@ async def dashboard_endpoint(
     _user: User = Depends(get_current_user),
     _perm: None = Depends(require_permission("admin.dashboard.view")),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[dict[str, object]]:
     """系统概览（管理员权限）
     返回用户、角色等核心指标
     """
@@ -30,7 +30,7 @@ async def dashboard_endpoint(
 
     metrics = await get_dashboard_metrics(db)
 
-    return APIResponse(
+    return APIResponse[dict[str, object]](
         code=0,
         message="success",
         data=metrics.model_dump(),

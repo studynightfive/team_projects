@@ -28,12 +28,12 @@ async def audit_logs_endpoint(
     resource_type: str | None = Query(None),
     resource_id: str | None = Query(None),
     result: str | None = Query(None),
-    created_after: str | None = Query(None),
-    created_before: str | None = Query(None),
+    created_after: datetime | None = Query(None),
+    created_before: datetime | None = Query(None),
     _user: User = Depends(get_current_user),
     _perm: None = Depends(require_permission("admin.audit.view")),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[dict[str, object]]:
     """获取审计日志列表（管理员权限）
     方案第15.5节：审计日志不展示 Secret 和敏感请求体
     """
@@ -48,11 +48,11 @@ async def audit_logs_endpoint(
         resource_type=resource_type,
         resource_id=resource_id,
         result=result,
-        created_after=datetime.fromisoformat(created_after) if created_after else None,
-        created_before=datetime.fromisoformat(created_before) if created_before else None,
+        created_after=created_after,
+        created_before=created_before,
     )
 
-    return APIResponse(
+    return APIResponse[dict[str, object]](
         code=0,
         message="success",
         data={

@@ -120,6 +120,11 @@ const loadRealDocument = async (): Promise<void> => {
 
   try {
     const document = await getDocument(documentId.value, loadController.signal);
+    if (document.knowledge_base_id !== knowledgeBaseId.value) {
+      loadError.value = "文档不属于当前知识库，请从知识库目录重新打开。";
+      loadState.value = "error";
+      return;
+    }
     realDocument.value = document;
     loadState.value = "idle";
 

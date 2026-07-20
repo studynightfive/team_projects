@@ -135,8 +135,8 @@ uv run python scripts/validate_samples.py
 ## 七、样本库版本管理
 
 - 样本库的变更与 Git 提交绑定
-- 每次添加或修改样本，commit message 使用 `samples:` 前缀
-- 如：`samples: 添加 PDF 扫描件样本`
+- 每次添加或修改样本，commit message 使用 `test(samples):` 前缀
+- 如：`test(samples): 添加 PDF 扫描件样本`
 - 样本文件本身进入 Git，大文件（>10MB）使用 Git LFS
 
 ---

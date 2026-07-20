@@ -39,7 +39,7 @@ class ModelBase(BaseModel):
     provider_code: ProviderCode
     model_name: str = Field(min_length=1, max_length=128)
     kind: ModelKind
-    parameters: dict = Field(default_factory=dict)
+    parameters: dict[str, object] = Field(default_factory=dict)
     enabled: bool = True
 
 
@@ -52,7 +52,7 @@ class ModelCreate(ModelBase):
 
 class ModelUpdate(BaseModel):
     model_name: str | None = Field(default=None, max_length=128)
-    parameters: dict | None = None
+    parameters: dict[str, object] | None = None
     api_key: str | None = Field(default=None, description="明文密钥；空字符串表示清空")
     enabled: bool | None = None
     dimensions: int | None = Field(default=None, ge=1, le=4096)
@@ -74,6 +74,6 @@ class ModelResponse(ModelBase):
 class TestModelResponse(BaseModel):
     ok: bool
     latency_ms: int
-    model_info: dict | None = None
+    model_info: dict[str, object] | None = None
     error_code: str | None = None
     error_message: str | None = None

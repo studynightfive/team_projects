@@ -137,10 +137,13 @@ class TestMeEndpoint:
 class TestLogoutContract:
     """POST /api/v1/auth/logout contract tests."""
 
-    async def test_logout_without_auth_returns_401(self, client):
-        """Logout without auth returns 401."""
+    async def test_logout_without_cookie_is_idempotent(self, client):
+        """退出应允许已过期会话清理本地 Cookie。"""
         response = await client.post("/api/v1/auth/logout")
-        assert response.status_code == 401
+        assert response.status_code == 200
+        assert response.json()["code"] == 0
+        assert "refresh_token=" in response.headers["set-cookie"]
+        assert "Max-Age=0" in response.headers["set-cookie"]
 
 
 class TestRefreshContract:
@@ -153,12 +156,8 @@ class TestRefreshContract:
 
     async def test_refresh_with_invalid_token_returns_401(self, client):
         """Invalid refresh token returns error."""
-        try:
-            response = await client.post(
-                "/api/v1/auth/refresh",
-                json={"refresh_token": "not-a-real-token"},
-            )
-            assert response.status_code in (401, 500)
-        except Exception:
-            # ASGI transport may raise on DB connection failure
-            pass
+        response = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": "not-a-real-token"},
+        )
+        assert response.status_code == 401

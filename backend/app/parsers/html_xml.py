@@ -6,9 +6,12 @@ import json
 from pathlib import Path
 
 from bs4 import BeautifulSoup
+from pydantic import JsonValue, TypeAdapter
 
 from app.parsers.base import DocumentParser, ParsedBlock, ParsedDocument
 from app.parsers.text import decode_bytes
+
+_JSON_ADAPTER: TypeAdapter[JsonValue] = TypeAdapter(JsonValue)
 
 
 class HtmlParser(DocumentParser):
@@ -113,11 +116,13 @@ class JsonParser(DocumentParser):
 
     async def parse(self, source_path: str) -> ParsedDocument:
         path = Path(source_path)
-        data = json.loads(decode_bytes(path.read_bytes()))
+        data = _JSON_ADAPTER.validate_json(path.read_bytes())
         pretty = json.dumps(data, ensure_ascii=False, indent=2)
         title = path.stem
-        if isinstance(data, dict) and isinstance(data.get("title"), str):
-            title = data["title"]
+        if isinstance(data, dict):
+            parsed_title = data.get("title")
+            if isinstance(parsed_title, str):
+                title = parsed_title
         return ParsedDocument(
             title=title,
             blocks=[ParsedBlock(text=pretty, block_type="code", page_no=1)],

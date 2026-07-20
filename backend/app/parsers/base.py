@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any
+
+from pydantic import JsonValue
 
 PARSER_VERSION = "1.0.0"
 
@@ -18,7 +19,7 @@ class ParsedBlock:
     sheet_name: str | None = None
     slide_no: int | None = None
     confidence: float | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, JsonValue] = field(default_factory=dict)
 
 
 @dataclass
@@ -39,7 +40,7 @@ class ParsedDocument:
     parser_name: str = ""
     parser_version: str = PARSER_VERSION
     warnings: list[str] = field(default_factory=list)
-    source_metadata: dict[str, Any] = field(default_factory=dict)
+    source_metadata: dict[str, JsonValue] = field(default_factory=dict)
     needs_ocr: bool = False
     manual_review: bool = False
 

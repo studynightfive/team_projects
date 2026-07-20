@@ -42,7 +42,7 @@ class Model(Base):
     )
     model_name: Mapped[str] = mapped_column(String(128), nullable=False)
     kind: Mapped[str] = mapped_column(String(16), nullable=False)
-    parameters: Mapped[dict] = mapped_column(JSONB, default=dict)
+    parameters: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
     api_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     dimensions: Mapped[int | None] = mapped_column(nullable=True)
     distance: Mapped[str | None] = mapped_column(String(16), nullable=True)

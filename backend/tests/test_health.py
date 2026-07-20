@@ -1,7 +1,11 @@
 # 健康检查接口测试
 # 验证存活检查和就绪检查端点
 
+from unittest.mock import AsyncMock
+
 import pytest
+
+from app.api import health as health_module
 
 
 class TestHealthLive:
@@ -53,6 +57,50 @@ class TestHealthReady:
         for check_name in ["database", "redis", "storage"]:
             assert check_name in data["checks"]
 
+    @pytest.mark.asyncio
+    async def test_health_ready_returns_200_when_dependencies_are_available(
+        self, client, monkeypatch
+    ):
+        """真实检查全部成功时才允许服务接收流量。"""
+        monkeypatch.setattr(health_module, "_check_database", AsyncMock())
+        monkeypatch.setattr(health_module, "_check_redis", AsyncMock())
+        monkeypatch.setattr(health_module, "_check_storage", lambda: None)
+
+        response = await client.get("/api/v1/health/ready")
+
+        assert response.status_code == 200
+        assert response.json()["checks"] == {
+            "database": "ok",
+            "redis": "ok",
+            "storage": "ok",
+        }
+
+    @pytest.mark.asyncio
+    async def test_health_ready_returns_503_without_nesting_error_payload(
+        self, client, monkeypatch
+    ):
+        """依赖失败时保持 OpenAPI 约定的顶层响应结构。"""
+        monkeypatch.setattr(
+            health_module,
+            "_check_database",
+            AsyncMock(side_effect=ConnectionError),
+        )
+        monkeypatch.setattr(health_module, "_check_redis", AsyncMock())
+        monkeypatch.setattr(health_module, "_check_storage", lambda: None)
+
+        response = await client.get("/api/v1/health/ready")
+
+        assert response.status_code == 503
+        assert response.json() == {
+            "status": "degraded",
+            "checks": {
+                "database": "unavailable",
+                "redis": "ok",
+                "storage": "ok",
+            },
+            "timestamp": response.json()["timestamp"],
+        }
+
 
 class TestRootEndpoint:
     """根路径测试"""
@@ -82,6 +130,32 @@ class TestRequestID:
         # UUID 格式验证：36 个字符，包含 4 个连字符
         assert len(request_id) == 36
         assert request_id.count("-") == 4
+
+    @pytest.mark.asyncio
+    async def test_invalid_request_id_is_replaced(self, client):
+        """外部请求 ID 不得把任意文本带入响应头和结构化日志。"""
+        response = await client.get(
+            "/api/v1/health/live",
+            headers={"X-Request-ID": "invalid\r\nheader"},
+        )
+
+        request_id = response.headers["X-Request-ID"]
+        assert request_id != "invalid\r\nheader"
+        assert len(request_id) == 36
+
+    @pytest.mark.asyncio
+    async def test_error_body_reuses_response_request_id(self, client):
+        """鉴权失败时响应体与响应头使用同一个可追踪 ID。"""
+        supplied_request_id = "2f5b8541-960a-4b79-90bc-835ecf5321ad"
+
+        response = await client.get(
+            "/api/v1/me",
+            headers={"X-Request-ID": supplied_request_id},
+        )
+
+        assert response.status_code == 401
+        assert response.headers["X-Request-ID"] == supplied_request_id
+        assert response.json()["request_id"] == supplied_request_id
 
 
 class TestCORSMiddleware:
@@ -113,8 +187,12 @@ class TestErrorHandling:
 
         assert response.status_code == 404
         data = response.json()
-        # FastAPI 默认 404 响应格式为 {"detail": "Not Found"}
-        assert "detail" in data
+        assert data == {
+            "code": 10002,
+            "message": "资源不存在",
+            "data": None,
+            "request_id": response.headers["X-Request-ID"],
+        }
 
     @pytest.mark.asyncio
     async def test_global_error_response_format(self, client):

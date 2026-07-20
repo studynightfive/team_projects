@@ -3,8 +3,6 @@
 # 初始化默认权限码和管理员角色
 # ruff: noqa: E501
 
-from typing import cast
-
 import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +19,7 @@ logger = structlog.get_logger()
 # ============================================================
 # 默认权限码（方案第4.3节路由表权限映射）
 # ============================================================
-DEFAULT_PERMISSIONS: list[dict] = [
+DEFAULT_PERMISSIONS: list[dict[str, str]] = [
     # 普通用户权限
     {"code": "chat.use", "name": "使用问答", "module": "chat", "action": "use"},
     {"code": "retrieval.search", "name": "知识检索", "module": "retrieval", "action": "search"},
@@ -40,12 +38,6 @@ DEFAULT_PERMISSIONS: list[dict] = [
     {"code": "export:delete", "name": "删除导出任务", "module": "export", "action": "delete"},
     {"code": "favorite:read", "name": "读取收藏", "module": "favorite", "action": "read"},
     {"code": "favorite:write", "name": "写入收藏", "module": "favorite", "action": "write"},
-    {"code": "model:read", "name": "读取模型配置", "module": "model", "action": "read"},
-    {"code": "model:write", "name": "维护模型配置", "module": "model", "action": "write"},
-    {"code": "model:test", "name": "测试模型连通性", "module": "model", "action": "test"},
-    {"code": "retrieval_test:read", "name": "读取命中率测试", "module": "retrieval_test", "action": "read"},
-    {"code": "retrieval_test:write", "name": "维护命中率测试", "module": "retrieval_test", "action": "write"},
-    {"code": "retrieval_test:run", "name": "运行命中率测试", "module": "retrieval_test", "action": "run"},
     # 管理权限
     {"code": "admin.dashboard.view", "name": "查看系统概览", "module": "admin", "action": "dashboard.view"},
     {"code": "admin.user.view", "name": "查看用户列表", "module": "admin", "action": "user.view"},
@@ -67,151 +59,38 @@ DEFAULT_PERMISSIONS: list[dict] = [
     {"code": "admin.document.upload", "name": "上传文档", "module": "admin", "action": "document.upload"},
     {"code": "admin.document.delete", "name": "删除文档", "module": "admin", "action": "document.delete"},
     {"code": "admin.task.view", "name": "查看转换任务", "module": "admin", "action": "task.view"},
+    {"code": "admin.export.cleanup", "name": "清理过期导出任务", "module": "admin", "action": "export.cleanup"},
     {"code": "admin.retrieval_test.run", "name": "运行命中率测试", "module": "admin", "action": "retrieval_test.run"},
     {"code": "admin.audit.view", "name": "查看审计日志", "module": "admin", "action": "audit.view"},
 ]
 
+SUPER_ADMIN_ROLE_NAME = "超级管理员"
+DEFAULT_USER_ROLE_NAME = "普通用户"
+KNOWLEDGE_EDITOR_ROLE_NAME = "知识库编辑者"
 
-async def seed_permissions(db: AsyncSession) -> list[Permission]:
-    """初始化默认权限码（幂等：已存在则跳过）"""
-    permissions = []
-    for perm_data in DEFAULT_PERMISSIONS:
-        result = await db.execute(
-            select(Permission).where(Permission.code == perm_data["code"])
-        )
-        existing = result.scalar_one_or_none()
-        if existing:
-            permissions.append(existing)
-        else:
-            perm = Permission(**perm_data)
-            db.add(perm)
-            permissions.append(perm)
+DEFAULT_USER_PERMISSION_CODES = frozenset(
+    {
+        "chat.use",
+        "retrieval.search",
+        "knowledge_base.view",
+        "document.view",
+        "conversation.view",
+        "conversation:read",
+        "conversation:write",
+        "conversation:delete",
+        "export.view",
+        "export.create",
+        "export:read",
+        "export:write",
+        "export:download",
+        "export:delete",
+        "favorite:read",
+        "favorite:write",
+    }
+)
 
-    await db.commit()
-    return permissions
-
-
-async def _upsert_role(
-    db: AsyncSession,
-    *,
-    name: str,
-    description: str,
-    permissions: list[Permission],
-) -> Role:
-    result = await db.execute(select(Role).where(Role.name == name))
-    role = cast(Role | None, result.scalar_one_or_none())
-    if role is None:
-        role = Role(name=name, description=description, status="active")
-        db.add(role)
-    role.description = description
-    role.status = "active"
-    role.permissions = list(permissions)
-    await db.flush()
-    return role
-
-
-async def _upsert_user(
-    db: AsyncSession,
-    *,
-    username: str,
-    display_name: str,
-    password: str,
-    roles: list[Role],
-) -> User:
-    result = await db.execute(select(User).where(User.username == username))
-    user = cast(User | None, result.scalar_one_or_none())
-    if user is None:
-        user = User(
-            username=username,
-            display_name=display_name,
-            password_hash=hash_password(password),
-            status="active",
-        )
-        db.add(user)
-    user.display_name = display_name
-    user.status = "active"
-    user.roles = list(roles)
-    await db.flush()
-    return user
-
-
-async def seed_default_admin(
-    db: AsyncSession,
-    username: str = "admin",
-    password: str = "admin123",
-) -> User:
-    """创建默认管理员账号（幂等：已存在则跳过）"""
-    result = await db.execute(
-        select(User).where(User.username == username)
-    )
-    user = result.scalar_one_or_none()
-    if user:
-        return user
-
-    # 获取所有权限
-    result = await db.execute(select(Permission))
-    all_permissions = cast(list[Permission], result.scalars().all())
-
-    # 创建管理员角色
-    result = await db.execute(
-        select(Role).where(Role.name == "超级管理员")
-    )
-    existing_admin = cast(Role | None, result.scalar_one_or_none())
-    if existing_admin is not None:
-        admin_role: Role = existing_admin
-    else:
-        admin_role = Role(
-            name="超级管理员",
-            description="拥有所有权限的超级管理员角色",
-            permissions=list(all_permissions),
-        )
-        db.add(admin_role)
-
-    # 创建用户角色
-    result = await db.execute(
-        select(Role).where(Role.name == "普通用户")
-    )
-    existing_user_role = cast(Role | None, result.scalar_one_or_none())
-    if existing_user_role is not None:
-        user_role: Role = existing_user_role
-    else:
-        basic_permissions = [
-            p for p in all_permissions
-            if not p.code.startswith("admin.")
-        ]
-        user_role = Role(
-            name="普通用户",
-            description="默认普通用户角色，仅有基础功能权限",
-            permissions=basic_permissions,
-        )
-        db.add(user_role)
-
-    # 创建管理员用户
-    user = User(
-        username=username,
-        display_name="系统管理员",
-        password_hash=hash_password(password),
-        status="active",
-        roles=[admin_role],
-    )
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-
-    logger.info("default_admin_created", username=username)
-    return user
-
-
-async def seed_demo_accounts(db: AsyncSession) -> list[User]:
-    """创建交付演示账号和角色（幂等）。"""
-    result = await db.execute(select(Permission))
-    all_permissions = cast(list[Permission], result.scalars().all())
-    basic_permissions = [
-        p
-        for p in all_permissions
-        if not p.code.startswith("admin.") and p.code != "document.upload"
-    ]
-    editor_codes = {
+KNOWLEDGE_EDITOR_PERMISSION_CODES = frozenset(
+    {
         "chat.use",
         "retrieval.search",
         "knowledge_base.view",
@@ -234,47 +113,165 @@ async def seed_demo_accounts(db: AsyncSession) -> list[User]:
         "admin.document.upload",
         "admin.task.view",
     }
-    editor_permissions = [p for p in all_permissions if p.code in editor_codes]
+)
 
-    admin_role = await _upsert_role(
-        db,
-        name="超级管理员",
-        description="拥有全部平台管理与业务权限的演示管理员角色",
-        permissions=all_permissions,
+
+async def seed_permissions(db: AsyncSession) -> list[Permission]:
+    """幂等初始化默认权限码，并纠正遗留字段。"""
+    permissions: list[Permission] = []
+    for perm_data in DEFAULT_PERMISSIONS:
+        result = await db.execute(
+            select(Permission).where(Permission.code == perm_data["code"])
+        )
+        existing = result.scalar_one_or_none()
+        if existing is None:
+            perm = Permission(**perm_data)
+            db.add(perm)
+            permissions.append(perm)
+            continue
+
+        existing.name = perm_data["name"]
+        existing.module = perm_data["module"]
+        existing.action = perm_data["action"]
+        permissions.append(existing)
+
+    await db.commit()
+    return permissions
+
+
+async def _upsert_role(
+    db: AsyncSession,
+    *,
+    name: str,
+    description: str,
+    permissions: list[Permission],
+) -> Role:
+    result = await db.execute(select(Role).where(Role.name == name))
+    role = result.scalar_one_or_none()
+    if role is None:
+        role = Role(name=name, description=description, status="active")
+        db.add(role)
+    role.description = description
+    role.status = "active"
+    role.permissions = list(permissions)
+    await db.flush()
+    return role
+
+
+async def seed_builtin_authorization(db: AsyncSession) -> dict[str, Role]:
+    """幂等初始化内建角色，并以当前白名单纠正遗留授权。"""
+    permissions = await seed_permissions(db)
+    role_specs = (
+        (
+            SUPER_ADMIN_ROLE_NAME,
+            "拥有全部平台管理与业务权限",
+            permissions,
+        ),
+        (
+            DEFAULT_USER_ROLE_NAME,
+            "默认普通用户角色，可使用知识库、检索、问答、收藏和下载功能",
+            [
+                permission
+                for permission in permissions
+                if permission.code in DEFAULT_USER_PERMISSION_CODES
+            ],
+        ),
+        (
+            KNOWLEDGE_EDITOR_ROLE_NAME,
+            "知识库维护角色，可创建知识库、上传文档和查看任务",
+            [
+                permission
+                for permission in permissions
+                if permission.code in KNOWLEDGE_EDITOR_PERMISSION_CODES
+            ],
+        ),
     )
-    user_role = await _upsert_role(
-        db,
-        name="普通用户",
-        description="默认普通用户角色，可使用知识库、检索、问答、收藏和下载功能",
-        permissions=basic_permissions,
+    roles: dict[str, Role] = {}
+    for name, description, role_permissions in role_specs:
+        roles[name] = await _upsert_role(
+            db,
+            name=name,
+            description=description,
+            permissions=role_permissions,
+        )
+    await db.commit()
+    logger.info("builtin_authorization_seeded", roles=list(roles))
+    return roles
+
+
+async def _upsert_user(
+    db: AsyncSession,
+    *,
+    username: str,
+    display_name: str,
+    password: str,
+    roles: list[Role],
+) -> User:
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    if user is None:
+        user = User(
+            username=username,
+            display_name=display_name,
+            password_hash="",
+            status="active",
+        )
+        db.add(user)
+    user.display_name = display_name
+    user.password_hash = hash_password(password)
+    user.status = "active"
+    user.roles = list(roles)
+    await db.flush()
+    return user
+
+
+async def seed_demo_accounts(db: AsyncSession) -> list[User]:
+    """创建或重置交付演示账号，并拒绝绕过配置安全门禁。"""
+    if not settings.auto_seed_demo_data or len(settings.demo_seed_password) < 12:
+        raise RuntimeError(
+            "演示账号播种需要 AUTO_SEED_DEMO_DATA=true "
+            "且 DEMO_SEED_PASSWORD 至少 12 位"
+        )
+
+    result = await db.execute(
+        select(Role).where(
+            Role.name.in_(
+                {
+                    SUPER_ADMIN_ROLE_NAME,
+                    DEFAULT_USER_ROLE_NAME,
+                    KNOWLEDGE_EDITOR_ROLE_NAME,
+                }
+            )
+        )
     )
-    editor_role = await _upsert_role(
-        db,
-        name="知识库编辑者",
-        description="用于交付演示的知识库维护账号，可创建知识库、上传文档和查看任务",
-        permissions=editor_permissions,
-    )
+    roles = {role.name: role for role in result.scalars().all()}
+    if len(roles) != 3:
+        raise RuntimeError("内建角色尚未完成初始化")
+
+    admin_role = roles[SUPER_ADMIN_ROLE_NAME]
+    user_role = roles[DEFAULT_USER_ROLE_NAME]
+    editor_role = roles[KNOWLEDGE_EDITOR_ROLE_NAME]
 
     users = [
         await _upsert_user(
             db,
             username="admin",
             display_name="系统管理员",
-            password="admin123",
+            password=settings.demo_seed_password,
             roles=[admin_role],
         ),
         await _upsert_user(
             db,
             username="liuhaiwang",
             display_name="刘海旺",
-            password="1234567",
+            password=settings.demo_seed_password,
             roles=[user_role],
         ),
         await _upsert_user(
             db,
             username="qmxl",
             display_name="知识库编辑者",
-            password="1234567",
+            password=settings.demo_seed_password,
             roles=[editor_role],
         ),
     ]

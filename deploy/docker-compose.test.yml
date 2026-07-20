@@ -14,6 +14,7 @@ services:
   # Web 服务（测试环境）
   # ============================================================
   web:
+    profiles: ["runtime"]
     build:
       context: ..
       dockerfile: deploy/docker/web.Dockerfile
@@ -32,14 +33,16 @@ services:
   # API Server 服务（测试环境）
   # ============================================================
   api-server:
+    profiles: ["runtime"]
     build:
       context: ..
       dockerfile: deploy/docker/api-server.Dockerfile
+      target: runtime
     container_name: kb-test-api-server
     expose:
       - "8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base_test
+      - DATABASE_URL=postgresql+asyncpg://postgres:${TEST_POSTGRES_PASSWORD:-test-postgres-password}@postgres:5432/knowledge_base_test
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=test-secret-key-not-for-production
       - APP_VERSION=0.1.0
@@ -61,12 +64,13 @@ services:
   # Worker 服务（测试环境）
   # ============================================================
   worker:
+    profiles: ["runtime"]
     build:
       context: ..
       dockerfile: deploy/docker/worker.Dockerfile
     container_name: kb-test-worker
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base_test
+      - DATABASE_URL=postgresql+asyncpg://postgres:${TEST_POSTGRES_PASSWORD:-test-postgres-password}@postgres:5432/knowledge_base_test
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=test-secret-key-not-for-production
       - TESTING=true
@@ -85,11 +89,11 @@ services:
   # PostgreSQL 服务（测试环境）
   # ============================================================
   postgres:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:pg17@sha256:d2ef61f42ef767baa5a1475393303cc235bcd92febd9d7014eddb48b41f3bad0
     container_name: kb-test-postgres
     environment:
       - POSTGRES_DB=knowledge_base_test
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-test-postgres-password}
+      - POSTGRES_PASSWORD=${TEST_POSTGRES_PASSWORD:-test-postgres-password}
     volumes:
       - test_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -126,12 +130,17 @@ services:
     build:
       context: ..
       dockerfile: deploy/docker/api-server.Dockerfile
+      target: test
     container_name: kb-test-runner
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base_test
+      - DATABASE_URL=postgresql+asyncpg://postgres:${TEST_POSTGRES_PASSWORD:-test-postgres-password}@postgres:5432/knowledge_base_test
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=test-secret-key-not-for-production
       - TESTING=true
+      - AUTO_SEED_DEMO_DATA=false
+      - WORKER_INLINE=true
+      - STORAGE_ROOT=/app/storage
+      - EXPORT_STORAGE_ROOT=/app/storage/exports
     depends_on:
       postgres:
         condition: service_healthy
@@ -139,13 +148,23 @@ services:
         condition: service_healthy
     networks:
       - test-network
+    volumes:
+      - test_storage_data:/app/storage
     restart: "no"
     # 运行测试命令
     # 测试完成后容器退出，其他服务也通过 --abort-on-container-exit 退出
     command: >
       sh -c "
-      echo '=== 运行后端测试 ===' &&
-      uv run --project backend pytest backend/tests -v &&
+      cd /app/backend &&
+      echo '=== 迁移测试数据库 ===' &&
+      .venv/bin/alembic -c migrations/alembic.ini upgrade heads &&
+      .venv/bin/alembic -c migrations/alembic.ini check &&
+      echo '=== 运行后端质量门禁 ===' &&
+      .venv/bin/ruff check . &&
+      .venv/bin/mypy app &&
+      .venv/bin/pytest tests &&
+      cd /app &&
+      backend/.venv/bin/python scripts/validate_samples.py &&
       echo '=== 测试完成 ==='
       "
 

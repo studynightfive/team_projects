@@ -19,6 +19,7 @@ import { aiSearchMockData } from "../../mocks/ai-search";
 import {
   deleteConversation,
   listConversations,
+  updateConversationTitle,
   type ConversationRecord,
 } from "../../services/conversations";
 import type {
@@ -130,7 +131,7 @@ const startRename = (item: SearchHistory): void => {
   editTitle.value = getTitle(item);
 };
 
-const saveRename = (): void => {
+const saveRename = async (): Promise<void> => {
   if (!editingId.value) return;
 
   const nextTitle = editTitle.value.trim();
@@ -139,14 +140,23 @@ const saveRename = (): void => {
     return;
   }
 
-  titleOverrides.value = {
-    ...titleOverrides.value,
-    [editingId.value]: nextTitle,
-  };
+  const targetId = editingId.value;
+  if (isRealApiMode) {
+    try {
+      const updated = await updateConversationTitle(targetId, nextTitle);
+      realConversations.value = realConversations.value.map((item) =>
+        item.id === targetId ? updated : item,
+      );
+      editingId.value = undefined;
+      void message.success("搜索名称已保存");
+    } catch (error: unknown) {
+      void message.error(toPublicApiError(error).message);
+    }
+    return;
+  }
+  titleOverrides.value = { ...titleOverrides.value, [targetId]: nextTitle };
   editingId.value = undefined;
-  void message.success(
-    isRealApiMode ? "当前版本暂不支持重命名真实搜索记录" : "搜索名称已在当前页面更新，刷新后恢复模拟数据",
-  );
+  void message.success("搜索名称已在当前页面更新，刷新后恢复模拟数据");
 };
 
 const toggleFavorite = (item: SearchHistory): void => {
@@ -204,14 +214,33 @@ const requestBulkDeleteFiltered = (): void => {
   editingId.value = undefined;
   modal.confirm({
     title: `确认批量删除 ${visibleIds.length} 条筛选结果？`,
-    content:
-      "只删除点击按钮时当前筛选出的记录；其他记录不受影响，刷新后模拟数据会恢复。",
+    content: isRealApiMode
+      ? "将删除点击按钮时当前筛选出的真实历史会话；其他记录不受影响。"
+      : "只删除点击按钮时当前筛选出的记录；其他记录不受影响，刷新后模拟数据会恢复。",
     okText: "确认批量删除",
     okType: "danger",
     cancelText: "取消",
     centered: true,
     autoFocusButton: "cancel",
-    onOk: () => {
+    onOk: async () => {
+      if (isRealApiMode) {
+        const results = await Promise.allSettled(
+          visibleIds.map((id) => deleteConversation(id)),
+        );
+        const deletedIds = new Set(
+          visibleIds.filter((_, index) => results[index]?.status === "fulfilled"),
+        );
+        realConversations.value = realConversations.value.filter(
+          (item) => !deletedIds.has(item.id),
+        );
+        const failed = visibleIds.length - deletedIds.size;
+        if (failed > 0) {
+          void message.warning(`已删除 ${deletedIds.size} 条，${failed} 条删除失败`);
+        } else {
+          void message.success(`已删除 ${deletedIds.size} 条真实搜索记录`);
+        }
+        return;
+      }
       hiddenIds.value = new Set([...hiddenIds.value, ...visibleIds]);
       void message.success(
         `已从当前页面删除 ${visibleIds.length} 条筛选结果，刷新后恢复模拟数据`,

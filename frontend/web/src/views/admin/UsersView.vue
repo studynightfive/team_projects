@@ -10,7 +10,6 @@ import {
   createAdminUser,
   listAdminRoles,
   listAdminUsers,
-  resetAdminUserPassword,
   updateAdminUser,
   type AdminRole,
   type AdminUser,
@@ -28,8 +27,8 @@ const saving = ref(false);
 const editor = reactive({
   username: "",
   displayName: "",
-  password: "1234567",
-  roleId: "",
+  password: "",
+  roleIds: [] as string[],
 });
 
 const selectedUser = computed(() =>
@@ -72,8 +71,8 @@ const loadData = async (): Promise<void> => {
     ]);
     users.value = userPage.items;
     roles.value = rolePage.items;
-    if (editor.roleId === "" && rolePage.items.length > 0) {
-      editor.roleId = rolePage.items[0]?.id ?? "";
+    if (editor.roleIds.length === 0 && rolePage.items.length > 0) {
+      editor.roleIds = rolePage.items[0] === undefined ? [] : [rolePage.items[0].id];
     }
   } catch (err) {
     message.error(toPublicApiError(err).message);
@@ -88,11 +87,12 @@ const startCreate = (): void => {
   Object.assign(editor, {
     username: "",
     displayName: "",
-    password: "1234567",
-    roleId:
+    password: "",
+    roleIds: [
       roles.value.find((role) => role.name === "普通用户")?.id ??
-      roles.value[0]?.id ??
-      "",
+        roles.value[0]?.id ??
+        "",
+    ].filter((roleId) => roleId !== ""),
   });
 };
 
@@ -105,8 +105,8 @@ const startEdit = (id: string): void => {
   Object.assign(editor, {
     username: user.username,
     displayName: user.display_name,
-    password: "1234567",
-    roleId: user.roles[0]?.id ?? roles.value[0]?.id ?? "",
+    password: "",
+    roleIds: user.roles.map((role) => role.id),
   });
 };
 
@@ -116,8 +116,8 @@ const closeEditor = (): void => {
 };
 
 const saveUser = async (): Promise<void> => {
-  if (editor.roleId === "") {
-    message.warning("请选择角色");
+  if (editor.roleIds.length === 0) {
+    message.warning("请至少选择一个角色");
     return;
   }
   if (isCreating.value && editor.displayName.trim() === "") {
@@ -140,12 +140,12 @@ const saveUser = async (): Promise<void> => {
         username: editor.username.trim(),
         display_name: editor.displayName.trim(),
         password: editor.password,
-        role_ids: [editor.roleId],
+        role_ids: editor.roleIds,
       });
       message.success("用户已创建");
     } else if (selectedUser.value !== undefined) {
       await updateAdminUser(selectedUser.value.id, {
-        role_ids: [editor.roleId],
+        role_ids: editor.roleIds,
       });
       message.success("用户角色已保存");
     }
@@ -169,19 +169,6 @@ const confirmStatusChange = (user: AdminUser): void => {
       await updateAdminUser(user.id, { status: nextStatus });
       message.success("账号状态已更新");
       await loadData();
-    },
-  });
-};
-
-const confirmPasswordReset = (user: AdminUser): void => {
-  modal.confirm({
-    title: "重置密码",
-    content: `将 ${user.username} 的密码重置为演示密码 1234567。`,
-    okText: "确认重置",
-    cancelText: "取消",
-    onOk: async () => {
-      await resetAdminUserPassword(user.id, "1234567");
-      message.success("密码已重置");
     },
   });
 };
@@ -279,13 +266,6 @@ onMounted(loadData);
                   <button
                     class="text-button"
                     type="button"
-                    @click="confirmPasswordReset(user)"
-                  >
-                    重置密码
-                  </button>
-                  <button
-                    class="text-button"
-                    type="button"
                     @click="confirmStatusChange(user)"
                   >
                     {{ user.status === "active" ? "停用" : "启用" }}
@@ -340,8 +320,8 @@ onMounted(loadData);
           />
         </label>
         <label>
-          <span>角色</span>
-          <select v-model="editor.roleId" required>
+          <span>角色（可多选）</span>
+          <select v-model="editor.roleIds" multiple required>
             <option v-for="role in roles" :key="role.id" :value="role.id">
               {{ role.name }}
             </option>

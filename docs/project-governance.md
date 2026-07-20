@@ -44,7 +44,7 @@
 
 ### 后端项目出现后
 
-- 使用 Python `3.10.20` 和 uv `0.8.22`。
+- 使用 Python `3.10.20` 和 uv `0.11.26`。
 - 执行 `uv sync --project backend --frozen`。
 - 执行 Ruff、mypy 和 pytest。
 

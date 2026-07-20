@@ -295,6 +295,7 @@ onBeforeUnmount(() => {
             :model-options="homeData.modelOptions"
             :knowledge-base-options="knowledgeBaseOptions"
             :requires-workspace="isRealApiMode"
+            :attachments-enabled="!isRealApiMode"
             @attachments-change="attachmentNames = $event"
             @submit="submitSearch"
             @notice="showNotice"

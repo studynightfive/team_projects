@@ -39,10 +39,6 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# 文档和提示词（不需要进入镜像）
-*.md
-!README.md
-
 # 备份和存储
 storage/
 backups/

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Protocol, runtime_checkable
 
 
@@ -14,7 +14,7 @@ class ProviderBase(Protocol):
         self,
         *,
         model_name: str,
-        messages: list[dict],
+        messages: Sequence[Mapping[str, object]],
         temperature: float = 0.2,
         max_tokens: int | None = None,
         stream: bool = False,
@@ -37,6 +37,8 @@ class ProviderBase(Protocol):
         documents: list[str],
         top_n: int = 10,
         timeout: float = 10.0,
-    ) -> list[dict]: ...
+    ) -> list[dict[str, int | float]]: ...
 
-    async def test(self, *, model_name: str, api_key: str, base_url: str) -> dict: ...
+    async def test(
+        self, *, model_name: str, api_key: str, base_url: str
+    ) -> dict[str, object]: ...

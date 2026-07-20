@@ -12,7 +12,11 @@ from app.common.database import get_db
 from app.common.models import User
 from app.common.schemas import APIResponse, PaginatedData
 from app.knowledge import service
-from app.knowledge.schemas import KnowledgeBaseCreate, KnowledgeBaseUpdate
+from app.knowledge.schemas import (
+    KnowledgeBaseCreate,
+    KnowledgeBaseSummary,
+    KnowledgeBaseUpdate,
+)
 
 router = APIRouter(prefix="/api/v1/knowledge-bases", tags=["knowledge-bases"])
 
@@ -23,7 +27,7 @@ async def list_knowledge_bases(
     page_size: int = Query(20, ge=1, le=100),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[PaginatedData[KnowledgeBaseSummary]]:
     items, total = await service.list_knowledge_bases(
         db,
         user,
@@ -40,7 +44,7 @@ async def list_knowledge_bases(
 async def list_available_knowledge_bases(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[PaginatedData[KnowledgeBaseSummary]]:
     items, total = await service.list_knowledge_bases(
         db,
         user,
@@ -59,7 +63,7 @@ async def create_knowledge_base(
     payload: KnowledgeBaseCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[KnowledgeBaseSummary]:
     data = await service.create_knowledge_base(db, user, payload)
     return APIResponse(data=data, request_id=str(uuid.uuid4()))
 
@@ -70,6 +74,6 @@ async def update_knowledge_base(
     payload: KnowledgeBaseUpdate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[KnowledgeBaseSummary]:
     data = await service.update_knowledge_base(db, user, kb_id, payload)
     return APIResponse(data=data, request_id=str(uuid.uuid4()))

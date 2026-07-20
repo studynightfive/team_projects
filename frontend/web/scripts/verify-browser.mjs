@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { execFile, spawn } from "node:child_process";
-import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
@@ -26,25 +27,74 @@ const baseUrl =
   process.env.M01_BASE_URL ??
   "http://127.0.0.1:5173";
 const execFileAsync = promisify(execFile);
+const retryableWriteCodes = new Set(["EBUSY", "EPERM", "UNKNOWN"]);
+
+const writeFileWithRetry = async (path, data, options) => {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await writeFile(path, data, options);
+      return;
+    } catch (error) {
+      const code =
+        error !== null && typeof error === "object" && "code" in error
+          ? error.code
+          : undefined;
+      if (!retryableWriteCodes.has(code) || attempt === 4) {
+        throw error;
+      }
+      await new Promise((resolvePromise) => {
+        setTimeout(resolvePromise, 200 * (attempt + 1));
+      });
+    }
+  }
+};
 
 const getSourceState = async () => {
-  const [{ stdout: sourceCommit }, { stdout: status }] = await Promise.all([
+  const commandOptions = { cwd: repositoryRoot, maxBuffer: 32 * 1024 * 1024 };
+  const [
+    { stdout: sourceCommit },
+    { stdout: status },
+    { stdout: trackedDiff },
+    { stdout: untrackedOutput },
+  ] = await Promise.all([
     execFileAsync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot }),
     execFileAsync(
       "git",
       ["status", "--porcelain=v1", "--untracked-files=all"],
-      { cwd: repositoryRoot },
+      commandOptions,
     ),
+    execFileAsync(
+      "git",
+      ["diff", "--binary", "HEAD", "--", ".", ":(exclude)docs/verification/**"],
+      commandOptions,
+    ),
+    execFileAsync("git", ["ls-files", "--others", "--exclude-standard", "-z"], {
+      ...commandOptions,
+      encoding: "buffer",
+    }),
   ]);
   const sourceChanges = status
     .split(/\r?\n/u)
     .filter(Boolean)
     .map((line) => line.slice(3))
     .filter((path) => !path.startsWith("docs/verification/"));
+  const fingerprint = createHash("sha256");
+  fingerprint.update(trackedDiff);
+  const untrackedPaths = untrackedOutput
+    .toString("utf8")
+    .split("\0")
+    .filter(Boolean)
+    .filter((path) => !path.replaceAll("\\", "/").startsWith("docs/verification/"))
+    .sort();
+  for (const path of untrackedPaths) {
+    fingerprint.update(`\0${path}\0`);
+    fingerprint.update(await readFile(resolve(repositoryRoot, path)));
+  }
 
   return {
     sourceCommit: sourceCommit.trim(),
     sourceWorktreeDirty: sourceChanges.length > 0,
+    sourceWorktreeFingerprint: fingerprint.digest("hex"),
   };
 };
 
@@ -190,18 +240,6 @@ const localPageRoutes = [
     path: "/search",
     shell: "user",
     title: "搜索结果",
-  },
-  {
-    name: "chat-new",
-    path: "/chat",
-    shell: "user",
-    title: "AI 助手",
-  },
-  {
-    name: "chat-detail",
-    path: "/chat/conv-release-review",
-    shell: "user",
-    title: "会话详情",
   },
   {
     name: "conversations",
@@ -550,7 +588,14 @@ const evaluate = async (client, expression) => {
   });
 
   if (result.exceptionDetails !== undefined) {
-    throw new Error(result.exceptionDetails.text ?? "浏览器表达式执行失败。");
+    const description = result.exceptionDetails.exception?.description;
+    const value = result.exceptionDetails.exception?.value;
+    throw new Error(
+      description ??
+        (typeof value === "string" ? value : undefined) ??
+        result.exceptionDetails.text ??
+        "浏览器表达式执行失败。",
+    );
   }
 
   return result.result?.value;
@@ -817,7 +862,7 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     recordCheck(
       checks,
       "移动完整导航项正确",
-      drawer.navigationCount === (testCase.shell === "user" ? 10 : 11),
+      drawer.navigationCount === (testCase.shell === "user" ? 7 : 11),
       drawer.navigationCount,
     );
     recordCheck(
@@ -850,8 +895,8 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
     recordCheck(
       checks,
-      "高频任务共五项",
-      metrics.quickActionCount === 5,
+      "高频任务共两项",
+      metrics.quickActionCount === 2,
       metrics.quickActionCount,
     );
     recordCheck(
@@ -862,8 +907,8 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
     recordCheck(
       checks,
-      "数据源状态共四项",
-      metrics.dataSourceCardCount === 4,
+      "不再展示已移除的数据源状态板块",
+      metrics.dataSourceCardCount === 0,
       metrics.dataSourceCardCount,
     );
   }
@@ -883,8 +928,8 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
     recordCheck(
       checks,
-      "Sparkline 共 28 个数据点",
-      metrics.sparklinePointCount === 28,
+      "Sparkline 共 24 个数据点",
+      metrics.sparklinePointCount === 24,
       metrics.sparklinePointCount,
     );
     recordCheck(
@@ -895,9 +940,9 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
     recordCheck(
       checks,
-      "分页提供禁用态",
-      metrics.disabledInteractiveCount >= 1,
-      metrics.disabledInteractiveCount,
+      "管理概览提供刷新操作",
+      metrics.adminRefreshButtonCount === 1,
+      metrics.adminRefreshButtonCount,
     );
   }
 
@@ -1247,7 +1292,7 @@ const run = async () => {
             sparklineCount: document.querySelectorAll(".admin-stat-grid .sparkline").length,
             sparklinePointCount: document.querySelectorAll(".admin-stat-grid .sparkline-point").length,
             auditHeaderBackground: style(".audit-table thead th")?.backgroundColor,
-            disabledInteractiveCount: document.querySelectorAll("button:disabled, input:disabled, select:disabled").length,
+            adminRefreshButtonCount: document.querySelectorAll(".admin-heading-actions button").length,
             loginBrandRatio: loginBrandWidth / window.innerWidth,
             loginFormWidth: rect(".login-form-container")?.width ?? 0,
             loginColumnCount: loginGrid.split(/\\s+/u).filter(Boolean).length,
@@ -1306,7 +1351,7 @@ const run = async () => {
           : testCase.group === "local-pages"
             ? localPagesOutputDirectory
             : accountSupportOutputDirectory;
-      await writeFile(
+      await writeFileWithRetry(
         join(outputDirectory, `${testCase.name}.png`),
         screenshotBuffer,
       );
@@ -1516,7 +1561,7 @@ const run = async () => {
     );
     await Promise.all(
       reportTargets.map((target) =>
-        writeFile(
+        writeFileWithRetry(
           join(target.directory, "browser-report.json"),
           `${JSON.stringify(target.report, null, 2)}\n`,
           "utf8",

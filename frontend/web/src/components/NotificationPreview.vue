@@ -141,7 +141,7 @@ watch(
   top: 100%;
   left: 50%;
   display: none;
-  width: min(352px, calc(100vw - 32px));
+  width: min(320px, calc(100vw - 32px));
   padding-top: var(--space-2);
   transform: translateX(-50%);
 }

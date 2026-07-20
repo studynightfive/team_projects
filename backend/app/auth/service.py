@@ -43,7 +43,7 @@ async def login(
     """
     # 查询用户（包含角色和权限）
     result = await db.execute(
-        select(User).where(User.username == username)
+        select(User).where(User.username == username).with_for_update()
     )
     user = result.scalar_one_or_none()
 
@@ -65,7 +65,11 @@ async def login(
     kb_access = await _collect_kb_access(db, user)
 
     # 生成 Token
-    access_token = create_access_token(user.id, permissions)
+    access_token = create_access_token(
+        user.id,
+        permissions,
+        session_version=user.session_version,
+    )
     raw_refresh_token, token_hash = create_refresh_token(user.id)
 
     # 保存 Refresh Token 哈希
@@ -101,7 +105,11 @@ async def login(
 # ============================================================
 # 退出
 # ============================================================
-async def logout(db: AsyncSession, user_id: str, refresh_token: str | None = None) -> None:
+async def logout(
+    db: AsyncSession,
+    user_id: str | None,
+    refresh_token: str | None = None,
+) -> None:
     """用户退出
     撤销指定的 Refresh Token（如果提供），或撤销该用户全部 Refresh Token
     """
@@ -112,12 +120,12 @@ async def logout(db: AsyncSession, user_id: str, refresh_token: str | None = Non
             select(RefreshToken).where(
                 RefreshToken.token_hash == token_hash,
                 RefreshToken.revoked_at.is_(None),
-            )
+            ).with_for_update()
         )
         token_record = result.scalar_one_or_none()
         if token_record:
             token_record.revoked_at = datetime.now(timezone.utc)
-    else:
+    elif user_id is not None:
         # 撤销该用户所有未撤销的 Refresh Token
         result = await db.execute(
             select(RefreshToken).where(
@@ -149,23 +157,16 @@ async def refresh_access_token(
 
     token_hash = hashlib.sha256(raw_refresh_token.encode()).hexdigest()
 
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+    preliminary_result = await db.execute(
+        select(RefreshToken.user_id).where(RefreshToken.token_hash == token_hash)
     )
-    token_record = result.scalar_one_or_none()
-
-    if token_record is None:
+    user_id = preliminary_result.scalar_one_or_none()
+    if user_id is None:
         raise TokenInvalidException()
 
-    if token_record.revoked_at is not None:
-        raise TokenInvalidException()
-
-    if token_record.expires_at < datetime.now(timezone.utc):
-        raise TokenExpiredException()
-
-    # 查询用户
+    # 与用户安全更新保持同一加锁顺序，避免刷新与禁用并发时产生可复活的新令牌。
     user_result = await db.execute(
-        select(User).where(User.id == token_record.user_id)
+        select(User).where(User.id == user_id).with_for_update()
     )
     user = user_result.scalar_one_or_none()
 
@@ -174,6 +175,22 @@ async def refresh_access_token(
 
     if user.status == "disabled":
         raise UserDisabledException()
+
+    result = await db.execute(
+        select(RefreshToken)
+        .where(RefreshToken.token_hash == token_hash)
+        .with_for_update()
+    )
+    token_record = result.scalar_one_or_none()
+
+    if token_record is None or token_record.user_id != user.id:
+        raise TokenInvalidException()
+
+    if token_record.revoked_at is not None:
+        raise TokenInvalidException()
+
+    if token_record.expires_at < datetime.now(timezone.utc):
+        raise TokenExpiredException()
 
     # 撤销旧 Refresh Token
     token_record.revoked_at = datetime.now(timezone.utc)
@@ -188,7 +205,11 @@ async def refresh_access_token(
     kb_access = await _collect_kb_access(db, user)
 
     # 生成新 Token
-    access_token = create_access_token(user.id, permissions)
+    access_token = create_access_token(
+        user.id,
+        permissions,
+        session_version=user.session_version,
+    )
     new_raw_token, new_token_hash = create_refresh_token(user.id)
 
     new_token_record = RefreshToken(

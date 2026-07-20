@@ -5,9 +5,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any
 
 import bleach  # type: ignore[import-untyped]
+from pydantic import JsonValue
 
 from app.parsers.base import ParsedAsset, ParsedDocument
 
@@ -42,7 +42,8 @@ ALLOWED_TAGS = [
 ]
 ALLOWED_ATTRS = {
     "a": ["href", "title", "rel", "target"],
-    "img": ["src", "alt", "title"],
+    # 原始 HTML 图片不保留 src；受控文档资产统一由转换器生成 Markdown 相对路径。
+    "img": ["alt", "title"],
     "td": ["colspan", "rowspan"],
     "th": ["colspan", "rowspan"],
     "*": ["class", "id"],
@@ -56,7 +57,7 @@ class MarkdownPackage:
     content_md: str
     assets: list[tuple[str, bytes, str, int | None]] = field(default_factory=list)
     # filename, data, mime, page_no
-    manifest: dict[str, Any] = field(default_factory=dict)
+    manifest: dict[str, JsonValue] = field(default_factory=dict)
 
 
 def sanitize_markdown_html(text: str) -> str:
@@ -87,7 +88,7 @@ class MarkdownConverter:
     ) -> MarkdownPackage:
         lines: list[str] = [f"# {parsed.title.strip() or 'Untitled'}", ""]
         page_anchors: set[int] = set()
-        assets_meta: list[dict[str, Any]] = []
+        assets_meta: list[JsonValue] = []
         asset_tuples: list[tuple[str, bytes, str, int | None]] = []
 
         for idx, asset in enumerate(parsed.assets, start=1):
@@ -180,7 +181,9 @@ class MarkdownConverter:
         if not content.lstrip().startswith("# "):
             content = f"# {parsed.title}\n\n{content}"
 
-        manifest = {
+        pages: list[JsonValue] = list(sorted(page_anchors))
+        warnings: list[JsonValue] = list(parsed.warnings)
+        manifest: dict[str, JsonValue] = {
             "title": parsed.title,
             "original_filename": original_filename,
             "content_hash": content_hash,
@@ -188,9 +191,9 @@ class MarkdownConverter:
             "parser_version": parsed.parser_version,
             "converted_at": datetime.now(timezone.utc).isoformat(),
             "page_count": parsed.page_count,
-            "pages": sorted(page_anchors),
+            "pages": pages,
             "assets": assets_meta,
-            "warnings": parsed.warnings,
+            "warnings": warnings,
             "source_metadata": parsed.source_metadata,
         }
         return MarkdownPackage(

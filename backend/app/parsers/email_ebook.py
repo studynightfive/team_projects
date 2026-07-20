@@ -6,6 +6,8 @@ import email
 from email import policy
 from pathlib import Path
 
+from pydantic import JsonValue
+
 from app.parsers.base import DocumentParser, ParsedBlock, ParsedDocument
 from app.parsers.text import decode_bytes
 
@@ -53,12 +55,13 @@ class EmlParser(DocumentParser):
                 if para:
                     blocks.append(ParsedBlock(text=para, block_type="paragraph", page_no=1))
         if attachments:
+            attachment_metadata: list[JsonValue] = list(attachments)
             blocks.append(
                 ParsedBlock(
                     text="附件: " + ", ".join(attachments),
                     block_type="paragraph",
                     page_no=1,
-                    metadata={"attachments": attachments},
+                    metadata={"attachments": attachment_metadata},
                 )
             )
         return ParsedDocument(
@@ -78,7 +81,7 @@ class EpubParser(DocumentParser):
 
     async def parse(self, source_path: str) -> ParsedDocument:
         from bs4 import BeautifulSoup
-        from ebooklib import epub  # type: ignore[import-untyped]
+        from ebooklib import epub
 
         path = Path(source_path)
         book = epub.read_epub(str(path))

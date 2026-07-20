@@ -40,14 +40,14 @@ async def list_users_endpoint(
     _user: User = Depends(get_current_user),
     _perm: None = Depends(require_permission("admin.user.view")),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[dict[str, object]]:
     """获取用户列表（管理员权限）"""
     request_id = str(uuid.uuid4())
 
     items, total = await list_users(db, page=page, page_size=page_size,
                                     search=search, status=status)
 
-    return APIResponse(
+    return APIResponse[dict[str, object]](
         code=0,
         message="success",
         data={
@@ -69,13 +69,13 @@ async def create_user_endpoint(
     _user: User = Depends(get_current_user),
     _perm: None = Depends(require_permission("admin.user.create")),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[dict[str, object]]:
     """创建用户（管理员权限）"""
     request_id = str(uuid.uuid4())
 
     user = await create_user(db, body)
 
-    return APIResponse(
+    return APIResponse[dict[str, object]](
         code=0,
         message="创建成功",
         data=user.model_dump(),
@@ -93,13 +93,13 @@ async def update_user_endpoint(
     _current_user: User = Depends(get_current_user),
     _perm: None = Depends(require_permission("admin.user.edit")),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[dict[str, object]]:
     """更新用户（管理员权限）"""
     request_id = str(uuid.uuid4())
 
     user = await update_user(db, user_id, body)
 
-    return APIResponse(
+    return APIResponse[dict[str, object]](
         code=0,
         message="更新成功",
         data=user.model_dump(),
@@ -117,7 +117,7 @@ async def reset_password_endpoint(
     _current_user: User = Depends(get_current_user),
     _perm: None = Depends(require_permission("admin.user.edit")),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[None]:
     """重置用户密码（管理员权限）
     方案第5.3节：密码重置不返回旧密码
     """
@@ -125,7 +125,7 @@ async def reset_password_endpoint(
 
     await reset_user_password(db, user_id, body.new_password)
 
-    return APIResponse(
+    return APIResponse[None](
         code=0,
         message="密码重置成功",
         data=None,

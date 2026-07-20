@@ -25,11 +25,13 @@ const props = withDefaults(
     busy?: boolean;
     disabled?: boolean;
     compact?: boolean;
+    attachmentsEnabled?: boolean;
   }>(),
   {
     busy: false,
     disabled: false,
     compact: false,
+    attachmentsEnabled: true,
     requiresWorkspace: true,
     workspaceId: undefined,
     knowledgeBaseOptions: () => [],
@@ -135,7 +137,9 @@ const submit = (): void => {
       props.workspaceId !== undefined && props.workspaceId !== ""
         ? props.workspaceId
         : undefined,
-    attachmentIds: attachments.value.map((file) => file.name),
+    attachmentIds: props.attachmentsEnabled
+      ? attachments.value.map((file) => file.name)
+      : [],
     modelId: props.modelId,
   });
 };
@@ -249,7 +253,7 @@ defineExpose({
     </div>
 
     <div
-      v-if="attachments.length > 0"
+      v-if="attachmentsEnabled && attachments.length > 0"
       class="attachment-list"
       aria-label="已添加附件"
     >
@@ -273,6 +277,7 @@ defineExpose({
     <div class="search-toolbar">
       <div class="search-toolbar-options">
         <input
+          v-if="attachmentsEnabled"
           ref="fileInputRef"
           class="visually-hidden"
           type="file"
@@ -281,6 +286,7 @@ defineExpose({
           @change="addAttachments"
         />
         <button
+          v-if="attachmentsEnabled"
           class="search-tool-button"
           type="button"
           title="添加附件，最多 5 个且单个不超过 10 MB"
@@ -290,6 +296,9 @@ defineExpose({
           <Paperclip :size="17" aria-hidden="true" />
           添加附件
         </button>
+        <span v-else class="search-tool-button" title="真实接口尚未定义附件上传契约">
+          附件检索暂不可用
+        </span>
 
         <label v-if="compact" class="search-select-label">
           <span class="visually-hidden">选择搜索模式</span>

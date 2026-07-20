@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, JsonValue
 
-from app.documents.models import DuplicatePolicy
+from app.documents.models import DocumentTask, DuplicatePolicy
 
 
 class DocumentSummary(BaseModel):
@@ -34,8 +34,6 @@ class DocumentSummary(BaseModel):
 class DocumentDetail(DocumentSummary):
     language: str
     ocr_enabled: bool
-    markdown_path: str | None = None
-    manifest_path: str | None = None
     is_active_index: bool = False
 
 
@@ -53,7 +51,7 @@ class UploadResponse(BaseModel):
 class MarkdownContent(BaseModel):
     document_id: str
     content: str
-    manifest: dict
+    manifest: dict[str, JsonValue]
 
 
 class ChunkItem(BaseModel):
@@ -86,19 +84,19 @@ class TaskResponse(BaseModel):
     model_config = {"from_attributes": True}
 
     @classmethod
-    def from_orm_task(cls, task: object) -> TaskResponse:
+    def from_orm_task(cls, task: DocumentTask) -> TaskResponse:
         return cls(
-            task_id=task.id,  # type: ignore[attr-defined]
-            task_type=task.task_type,  # type: ignore[attr-defined]
-            status=task.status,  # type: ignore[attr-defined]
-            stage=task.stage,  # type: ignore[attr-defined]
-            progress=task.progress,  # type: ignore[attr-defined]
-            retry_count=task.retry_count,  # type: ignore[attr-defined]
-            error_code=task.error_code,  # type: ignore[attr-defined]
-            error_message=task.error_message,  # type: ignore[attr-defined]
-            request_id=task.request_id,  # type: ignore[attr-defined]
-            created_at=task.created_at,  # type: ignore[attr-defined]
-            finished_at=task.finished_at,  # type: ignore[attr-defined]
+            task_id=task.id,
+            task_type=task.task_type,
+            status=task.status,
+            stage=task.stage,
+            progress=task.progress,
+            retry_count=task.retry_count,
+            error_code=task.error_code,
+            error_message=task.error_message,
+            request_id=task.request_id,
+            created_at=task.created_at,
+            finished_at=task.finished_at,
         )
 
 
@@ -116,15 +114,16 @@ class AdminTaskItem(TaskResponse):
 
 class ReprocessRequest(BaseModel):
     ocr_enabled: bool | None = None
-    language: str | None = None
+    language: str | None = Field(default=None, min_length=1, max_length=64)
     from_stage: str | None = Field(
         default=None,
+        max_length=32,
         description="Optional safe restart stage; default rebuilds derived data",
     )
 
 
 class UploadOptions(BaseModel):
-    folder_path: str = ""
+    folder_path: str = Field(default="", max_length=1000)
     ocr_enabled: bool = True
-    language: str = "chi_sim+eng"
+    language: str = Field(default="chi_sim+eng", min_length=1, max_length=64)
     duplicate_policy: DuplicatePolicy = DuplicatePolicy.NEW_VERSION

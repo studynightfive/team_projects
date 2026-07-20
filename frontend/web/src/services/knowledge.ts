@@ -1,127 +1,120 @@
 import { apiClient } from "../api/client";
+import {
+  assertApiSuccess,
+  unwrapApiData,
+  type ApiResponse,
+  type ApiSchema,
+} from "../api/contracts";
+import type { paths } from "../api/generated/openapi";
 
-interface ApiResponse<T> {
-  readonly code: number;
-  readonly message: string;
-  readonly data: T | null;
-  readonly request_id: string;
-}
+export type KnowledgeBaseRecord = Readonly<
+  Required<ApiSchema<"KnowledgeBaseSummary">>
+>;
 
-interface PaginatedData<T> {
-  readonly items: readonly T[];
-  readonly page: number;
-  readonly page_size: number;
-  readonly total: number;
-}
+export type DocumentRecord = Readonly<Required<ApiSchema<"DocumentSummary">>>;
 
-export interface KnowledgeBaseRecord {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string | null;
-  readonly status: string;
-  readonly chunk_size: number;
-  readonly chunk_overlap: number;
-  readonly document_count: number;
-  readonly ready_document_count: number;
-  readonly chunk_count: number;
-  readonly created_at: string | null;
-  readonly updated_at: string | null;
-}
+export type DocumentDetailRecord = Readonly<
+  Required<ApiSchema<"DocumentDetail">>
+>;
 
-export interface DocumentRecord {
-  readonly id: string;
-  readonly knowledge_base_id: string;
-  readonly title: string;
-  readonly original_filename: string;
-  readonly extension: string;
-  readonly mime_type: string;
-  readonly size_bytes: number;
-  readonly status: string;
-  readonly parser_name: string | null;
-  readonly page_count: number | null;
-  readonly error_message: string | null;
-  readonly created_at: string | null;
-  readonly updated_at: string | null;
-}
+export type MarkdownContent = Readonly<Required<ApiSchema<"MarkdownContent">>>;
 
-export interface DocumentDetailRecord extends DocumentRecord {
-  readonly language: string;
-  readonly ocr_enabled: boolean;
-  readonly markdown_path: string | null;
-  readonly manifest_path: string | null;
-  readonly is_active_index: boolean;
-}
-
-export interface MarkdownContent {
-  readonly document_id: string;
-  readonly content: string;
-  readonly manifest: Record<string, unknown>;
-}
-
-export interface UploadResult {
-  readonly document: DocumentRecord;
-  readonly task_id: string;
-  readonly skipped: boolean;
-  readonly message: string | null;
-}
-
-const unwrap = <T>(response: ApiResponse<T>): T => {
-  if (response.code !== 0 || response.data === null) {
-    throw new Error(response.message || "请求失败，请稍后重试");
+export type UploadResult = Readonly<
+  Omit<Required<ApiSchema<"UploadResultItem">>, "document"> & {
+    readonly document: DocumentRecord;
   }
-  return response.data;
-};
+>;
+
+type KnowledgeBasePage = Readonly<
+  Omit<ApiSchema<"PaginatedData_KnowledgeBaseSummary_">, "items"> & {
+    readonly items: readonly KnowledgeBaseRecord[];
+  }
+>;
+
+type DocumentPage = Readonly<
+  Omit<ApiSchema<"PaginatedData_DocumentSummary_">, "items"> & {
+    readonly items: readonly DocumentRecord[];
+  }
+>;
+
+type UploadResponse = Readonly<
+  Omit<ApiSchema<"UploadResponse">, "items"> & {
+    readonly items: readonly UploadResult[];
+  }
+>;
+
+type KnowledgeBaseCreateRequest =
+  paths["/knowledge-bases"]["post"]["requestBody"]["content"]["application/json"];
+
+type KnowledgeBaseCreatePayload = Readonly<
+  Omit<KnowledgeBaseCreateRequest, "chunk_size" | "chunk_overlap"> &
+    Partial<Pick<KnowledgeBaseCreateRequest, "chunk_size" | "chunk_overlap">>
+>;
+
+type KnowledgeBaseUpdatePayload = Readonly<
+  paths["/knowledge-bases/{kb_id}"]["patch"]["requestBody"]["content"]["application/json"]
+>;
 
 export const listKnowledgeBases = async (
   signal?: AbortSignal,
 ): Promise<readonly KnowledgeBaseRecord[]> => {
-  const response = await apiClient.get<ApiResponse<PaginatedData<KnowledgeBaseRecord>>>(
-    "/v1/knowledge-bases",
-    { signal },
-  );
-  return unwrap(response.data).items;
+  const items: KnowledgeBaseRecord[] = [];
+  let page = 1;
+  let total = 0;
+  do {
+    const response = await apiClient.get<ApiResponse<KnowledgeBasePage>>(
+      "/v1/knowledge-bases",
+      { params: { page, page_size: 100 }, signal },
+    );
+    const data = unwrapApiData(response.data);
+    items.push(...data.items);
+    total = data.total;
+    page += 1;
+    if (data.items.length === 0) break;
+  } while (items.length < total);
+  return items;
 };
 
 export const createKnowledgeBase = async (
-  payload: Pick<KnowledgeBaseRecord, "name"> & {
-    readonly description?: string;
-    readonly chunk_size?: number;
-    readonly chunk_overlap?: number;
-  },
+  payload: KnowledgeBaseCreatePayload,
 ): Promise<KnowledgeBaseRecord> => {
   const response = await apiClient.post<ApiResponse<KnowledgeBaseRecord>>(
     "/v1/knowledge-bases",
     payload,
   );
-  return unwrap(response.data);
+  return unwrapApiData(response.data);
 };
 
 export const updateKnowledgeBase = async (
   kbId: string,
-  payload: {
-    readonly name?: string;
-    readonly description?: string;
-    readonly status?: string;
-    readonly chunk_size?: number;
-    readonly chunk_overlap?: number;
-  },
+  payload: KnowledgeBaseUpdatePayload,
 ): Promise<KnowledgeBaseRecord> => {
   const response = await apiClient.patch<ApiResponse<KnowledgeBaseRecord>>(
     `/v1/knowledge-bases/${kbId}`,
     payload,
   );
-  return unwrap(response.data);
+  return unwrapApiData(response.data);
 };
 
 export const listDocuments = async (
   kbId: string,
   signal?: AbortSignal,
 ): Promise<readonly DocumentRecord[]> => {
-  const response = await apiClient.get<ApiResponse<PaginatedData<DocumentRecord>>>(
-    `/v1/knowledge-bases/${kbId}/documents`,
-    { signal },
-  );
-  return unwrap(response.data).items;
+  const items: DocumentRecord[] = [];
+  let page = 1;
+  let total = 0;
+  do {
+    const response = await apiClient.get<ApiResponse<DocumentPage>>(
+      `/v1/knowledge-bases/${kbId}/documents`,
+      { params: { page, page_size: 100 }, signal },
+    );
+    const data = unwrapApiData(response.data);
+    items.push(...data.items);
+    total = data.total;
+    page += 1;
+    if (data.items.length === 0) break;
+  } while (items.length < total);
+  return items;
 };
 
 export const getDocument = async (
@@ -132,7 +125,7 @@ export const getDocument = async (
     `/v1/documents/${documentId}`,
     { signal },
   );
-  return unwrap(response.data);
+  return unwrapApiData(response.data);
 };
 
 export const getDocumentMarkdown = async (
@@ -143,7 +136,7 @@ export const getDocumentMarkdown = async (
     `/v1/documents/${documentId}/markdown`,
     { signal },
   );
-  return unwrap(response.data);
+  return unwrapApiData(response.data);
 };
 
 export const uploadDocuments = async (
@@ -158,23 +151,23 @@ export const uploadDocuments = async (
   form.append("ocr_enabled", "true");
   form.append("language", "chi_sim+eng");
 
-  const response = await apiClient.post<
-    ApiResponse<{ readonly items: readonly UploadResult[] }>
-  >(`/v1/knowledge-bases/${kbId}/documents`, form);
-  return unwrap(response.data).items;
+  const response = await apiClient.post<ApiResponse<UploadResponse>>(
+    `/v1/knowledge-bases/${kbId}/documents`,
+    form,
+  );
+  return unwrapApiData(response.data).items;
 };
 
 export const reprocessDocument = async (documentId: string): Promise<void> => {
-  const response = await apiClient.post<ApiResponse<unknown>>(
-    `/v1/documents/${documentId}/reprocess`,
-    {},
-  );
-  unwrap(response.data);
+  const response = await apiClient.post<
+    ApiResponse<Readonly<Required<ApiSchema<"TaskResponse">>>>
+  >(`/v1/documents/${documentId}/reprocess`, {});
+  unwrapApiData(response.data);
 };
 
 export const deleteDocument = async (documentId: string): Promise<void> => {
-  const response = await apiClient.delete<ApiResponse<null>>(
+  const response = await apiClient.delete<ApiSchema<"APIResponse_NoneType_">>(
     `/v1/documents/${documentId}`,
   );
-  unwrap(response.data);
+  assertApiSuccess(response.data);
 };

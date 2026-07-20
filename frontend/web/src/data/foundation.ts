@@ -34,11 +34,13 @@ export interface NavigationItem {
   readonly to?: string;
   readonly activePrefixes?: readonly string[];
   readonly children?: readonly NavigationChildItem[];
+  readonly requiredPermissions?: readonly string[];
 }
 
 export interface NavigationChildItem {
   readonly label: string;
   readonly to: string;
+  readonly requiredPermissions?: readonly string[];
 }
 
 export const isNavigationItemActive = (
@@ -310,16 +312,26 @@ export const adminNavigation = [
     shortLabel: "概览",
     icon: Gauge,
     to: "/admin",
+    requiredPermissions: ["admin.dashboard.view"],
   },
   {
     label: "用户与角色",
     shortLabel: "身份",
     icon: UsersRound,
     to: "/admin/users",
+    requiredPermissions: ["admin.user.view", "admin.role.view"],
     activePrefixes: ["/admin/users", "/admin/roles"],
     children: [
-      { label: "用户管理", to: "/admin/users" },
-      { label: "角色管理", to: "/admin/roles" },
+      {
+        label: "用户管理",
+        to: "/admin/users",
+        requiredPermissions: ["admin.user.view"],
+      },
+      {
+        label: "角色管理",
+        to: "/admin/roles",
+        requiredPermissions: ["admin.role.view"],
+      },
     ],
   },
   {
@@ -327,22 +339,33 @@ export const adminNavigation = [
     shortLabel: "模型",
     icon: Bot,
     to: "/admin/models",
+    requiredPermissions: ["admin.model.view"],
   },
   {
     label: "知识库管理",
     shortLabel: "知识库",
     icon: LibraryBig,
     to: "/admin/knowledge-bases",
+    requiredPermissions: ["admin.knowledge_base.view"],
   },
   {
     label: "文档与任务",
     shortLabel: "任务",
     icon: Files,
     to: "/admin/documents",
+    requiredPermissions: ["admin.document.view", "admin.task.view"],
     activePrefixes: ["/admin/documents", "/admin/tasks"],
     children: [
-      { label: "文档管理", to: "/admin/documents" },
-      { label: "任务中心", to: "/admin/tasks" },
+      {
+        label: "文档管理",
+        to: "/admin/documents",
+        requiredPermissions: ["admin.document.view"],
+      },
+      {
+        label: "任务中心",
+        to: "/admin/tasks",
+        requiredPermissions: ["admin.task.view"],
+      },
     ],
   },
   {
@@ -350,12 +373,14 @@ export const adminNavigation = [
     shortLabel: "测试",
     icon: ListChecks,
     to: "/admin/retrieval-tests",
+    requiredPermissions: ["admin.retrieval_test.run"],
   },
   {
     label: "审计日志",
     shortLabel: "审计",
     icon: ScrollText,
     to: "/admin/audit-logs",
+    requiredPermissions: ["admin.audit.view"],
   },
 ] as const satisfies readonly NavigationItem[];
 

@@ -56,7 +56,7 @@
 后续修正：
 
 - 已新增 `0011_qwen_embedding_vector`，在 `document_chunks` 增加 `embedding_vector vector(1024)` 与 HNSW 索引。
-- 已幂等配置 `dashscope / qwen3.7-text-embedding / embedding / 1024 / cosine`。
+- 已幂等配置 `dashscope / text-embedding-v4 / embedding / 1024 / cosine`。
 - 文档处理管线会在 `DASHSCOPE_API_KEY` 存在时调用 OpenAI 兼容 `/embeddings` 接口写入真实向量；无 key 时继续保留 stub 兜底。
 - RAG 向量检索已改为读取 `document_chunks.embedding_vector`。
 

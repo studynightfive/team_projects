@@ -51,7 +51,7 @@ class Chunker:
     async def split(
         self,
         markdown: str,
-        metadata: dict | None = None,
+        metadata: dict[str, int] | None = None,
         *,
         chunk_size: int | None = None,
         overlap: int | None = None,

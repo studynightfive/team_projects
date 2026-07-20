@@ -24,10 +24,14 @@ const permissionSeeds: readonly PermissionSeed[] = [
   ["perm-document-view", "document.view", "查看文档", "document"],
   ["perm-document-upload", "document.upload", "上传文档", "document"],
   ["perm-retrieval", "retrieval.search", "知识检索", "retrieval"],
-  ["perm-model-read", "model:read", "读取模型配置", "model"],
-  ["perm-model-write", "model:write", "维护模型配置", "model"],
-  ["perm-retrieval-test-read", "retrieval_test:read", "读取命中率测试", "retrieval_test"],
-  ["perm-retrieval-test-run", "retrieval_test:run", "运行命中率测试", "retrieval_test"],
+  ["perm-admin-model-view", "admin.model.view", "查看模型列表", "admin"],
+  ["perm-admin-model-edit", "admin.model.edit", "编辑模型", "admin"],
+  [
+    "perm-admin-retrieval-test-run",
+    "admin.retrieval_test.run",
+    "运行命中率测试",
+    "admin",
+  ],
 ];
 
 const permissions = permissionSeeds.map(([id, code, name, module]) => ({
@@ -251,7 +255,7 @@ const models = [
   {
     id: "model-deepseek",
     provider_code: "deepseek",
-    model_name: "deepseek-v4-pro",
+    model_name: "deepseek-chat",
     kind: "chat",
     parameters: { temperature: 0.2, max_tokens: 4096 },
     api_key_set: true,

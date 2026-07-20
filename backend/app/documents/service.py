@@ -49,6 +49,7 @@ from app.models.security import decrypt_api_key
 from app.parsers.mime import detect_file
 from app.parsers.pdf import enrich_pdf_with_ocr
 from app.parsers.registry import get_parser_registry
+from app.worker.queue import enqueue_document_task, enqueue_document_tasks
 
 
 def get_settings() -> Settings:
@@ -107,12 +108,21 @@ class DocumentService:
         if not await user_can_access_kb(self.session, user, str(kb_id)):
             raise ForbiddenException(message="无权访问该知识库")
         await self._get_kb(kb_id)
-        total_stmt = select(Document).where(Document.knowledge_base_id == kb_id)
-        result = await self.session.execute(total_stmt)
-        all_docs = list(result.scalars())
-        total = len(all_docs)
-        start = (page - 1) * page_size
-        items = all_docs[start : start + page_size]
+        condition = Document.knowledge_base_id == kb_id
+        total = (
+            await self.session.execute(
+                select(func.count()).select_from(Document).where(condition)
+            )
+        ).scalar() or 0
+        offset = (page - 1) * page_size
+        result = await self.session.execute(
+            select(Document)
+            .where(condition)
+            .order_by(Document.updated_at.desc(), Document.id.desc())
+            .offset(offset)
+            .limit(page_size)
+        )
+        items = list(result.scalars())
         return [DocumentSummary.model_validate(d) for d in items], total
 
     async def list_admin_documents(
@@ -244,7 +254,14 @@ class DocumentService:
             raise NotFoundException(code=ErrorCode.DOCUMENT_NOT_FOUND, message="文档不存在")
         if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
             raise ForbiddenException(message="无权访问该知识库")
-        require_any_permission(user, "admin.task.view", "admin.document.view", "document.view")
+        require_any_permission(
+            user,
+            "admin.task.view",
+            "admin.document.view",
+            "document.view",
+            "admin.document.upload",
+            "document.upload",
+        )
         return TaskResponse.from_orm_task(task)
 
     async def upload(
@@ -269,9 +286,43 @@ class DocumentService:
             raise AppException(code=ErrorCode.UPLOAD_INVALID, message=f"单次最多上传 {self.settings.max_upload_files} 个文件", status_code=400)
 
         items: list[UploadResultItem] = []
-        for filename, data in files:
-            items.append(await self._upload_one(user, kb_id, filename, data, options))
-        await self.session.commit()
+        created_document_ids: set[str] = set()
+        replacement_backups: dict[str, Path] = {}
+        try:
+            for filename, data in files:
+                items.append(
+                    await self._upload_one(
+                        user,
+                        kb_id,
+                        filename,
+                        data,
+                        options,
+                        created_document_ids=created_document_ids,
+                        replacement_backups=replacement_backups,
+                    )
+                )
+            await self.session.commit()
+        except Exception:
+            try:
+                await self.session.rollback()
+            finally:
+                for document_id in created_document_ids:
+                    self.storage.delete_document(document_id)
+                for document_id, backup in replacement_backups.items():
+                    self.storage.restore_document(document_id, backup)
+            raise
+
+        for document_id, backup in replacement_backups.items():
+            try:
+                self.storage.discard_backup(backup)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "document_backup_cleanup_failed",
+                    document_id=document_id,
+                    error_type=type(exc).__name__,
+                )
+        if not self.settings.worker_inline:
+            await self._enqueue_items(items)
         return UploadResponse(items=items)
 
     async def _upload_one(
@@ -281,6 +332,9 @@ class DocumentService:
         filename: str,
         data: bytes,
         options: UploadOptions,
+        *,
+        created_document_ids: set[str],
+        replacement_backups: dict[str, Path],
     ) -> UploadResultItem:
         if len(data) > self.settings.max_upload_bytes:
             raise AppException(code=ErrorCode.UPLOAD_TOO_LARGE, message="文件超过大小限制", status_code=413)
@@ -306,9 +360,9 @@ class DocumentService:
         if existing and options.duplicate_policy == DuplicatePolicy.NEW_VERSION:
             version = existing.version + 1
         elif existing and options.duplicate_policy == DuplicatePolicy.REPLACE:
+            if existing.id not in replacement_backups:
+                replacement_backups[existing.id] = self.storage.backup_document(existing.id)
             await self._deactivate_index(existing.id)
-            version = existing.version
-            # Soft-replace: create new document row sharing version bump avoidance
             version = existing.version
         elif existing and options.duplicate_policy not in DuplicatePolicy:
             raise AppException(code=ErrorCode.DUPLICATE_POLICY, message="不支持的 duplicate_policy", status_code=400)
@@ -331,8 +385,10 @@ class DocumentService:
             self.storage.clear_derived(document.id)
             self.storage.save_original(document.id, detected.filename, data)
         else:
+            document_id = str(uuid.uuid4())
+            created_document_ids.add(document_id)
             document = Document(
-                id=str(uuid.uuid4()),
+                id=document_id,
                 knowledge_base_id=kb_id,
                 title=Path(detected.filename).stem,
                 original_filename=detected.filename,
@@ -353,6 +409,9 @@ class DocumentService:
             self.storage.save_original(document.id, detected.filename, data)
 
         request_id = new_request_id()
+        idempotency_key = f"{document.id}:{content_hash}:v{document.version}"
+        if existing and options.duplicate_policy == DuplicatePolicy.REPLACE:
+            idempotency_key = f"{document.id}:replace:{request_id}"
         task = DocumentTask(
             id=str(uuid.uuid4()),
             document_id=document.id,
@@ -361,7 +420,7 @@ class DocumentService:
             stage=DocumentStatus.UPLOADED.value,
             progress=STAGE_PROGRESS[DocumentStatus.UPLOADED.value],
             retry_count=0,
-            idempotency_key=f"{document.id}:{content_hash}:v{document.version}",
+            idempotency_key=idempotency_key,
             request_id=request_id,
         )
         self.session.add(task)
@@ -426,6 +485,8 @@ class DocumentService:
         if self.settings.worker_inline:
             await self.process_document(doc.id, task.id)
         await self.session.commit()
+        if not self.settings.worker_inline:
+            await self._enqueue_or_fail(doc.id, task.id)
         await self.session.refresh(task)
         return TaskResponse.from_orm_task(task)
 
@@ -439,6 +500,7 @@ class DocumentService:
         await self._deactivate_index(doc.id)
         await self.session.delete(doc)
         await self.session.commit()
+        self.storage.delete_document(doc.id)
 
     async def process_document(self, document_id: str, task_id: str) -> None:
         doc = await self.session.get(Document, document_id)
@@ -455,7 +517,13 @@ class DocumentService:
         except AppException as exc:
             await self._fail(doc, task, exc.code, exc.message, manual=exc.code == ErrorCode.MANUAL_REVIEW)
         except Exception as exc:  # noqa: BLE001
-            await self._fail(doc, task, ErrorCode.PARSE_FAILED, f"处理失败: {exc}")
+            logger.warning(
+                "document_processing_failed",
+                document_id=document_id,
+                task_id=task_id,
+                error_type=type(exc).__name__,
+            )
+            await self._fail(doc, task, ErrorCode.PARSE_FAILED, "文档处理失败")
 
     async def _run_pipeline(self, doc: Document, task: DocumentTask) -> None:
         original = self.storage.original_dir(doc.id) / doc.stored_filename
@@ -653,6 +721,61 @@ class DocumentService:
         task.progress = 100
         task.finished_at = datetime.now(timezone.utc)
         await self.session.flush()
+
+    async def _enqueue_items(self, items: list[UploadResultItem]) -> None:
+        pending = [
+            (item.document.id, item.task_id)
+            for item in items
+            if not item.skipped
+        ]
+        try:
+            failures = await enqueue_document_tasks(pending, self.settings.redis_url)
+        except Exception as exc:
+            failures = {task_id: type(exc).__name__ for _, task_id in pending}
+        for item in items:
+            error_type = failures.get(item.task_id)
+            if error_type is not None:
+                await self._mark_enqueue_failed(item.document.id, item.task_id)
+                logger.warning(
+                    "document_enqueue_failed",
+                    task_id=item.task_id,
+                    error_type=error_type,
+                )
+        if failures:
+            await self.session.commit()
+            raise AppException(
+                code=ErrorCode.CONVERSION_FAILED,
+                message="任务队列暂不可用，请稍后重试",
+                status_code=503,
+            )
+
+    async def _enqueue_or_fail(self, document_id: str, task_id: str) -> None:
+        try:
+            await enqueue_document_task(document_id, task_id, self.settings.redis_url)
+        except Exception as exc:
+            await self._mark_enqueue_failed(document_id, task_id)
+            await self.session.commit()
+            logger.warning(
+                "document_enqueue_failed",
+                task_id=task_id,
+                error_type=type(exc).__name__,
+            )
+            raise AppException(
+                code=ErrorCode.CONVERSION_FAILED,
+                message="任务队列暂不可用，请稍后重试",
+                status_code=503,
+            ) from exc
+
+    async def _mark_enqueue_failed(self, document_id: str, task_id: str) -> None:
+        document = await self.session.get(Document, document_id)
+        task = await self.session.get(DocumentTask, task_id)
+        if document is not None and task is not None:
+            await self._fail(
+                document,
+                task,
+                ErrorCode.CONVERSION_FAILED,
+                "任务未能加入处理队列",
+            )
 
     async def _find_by_hash(self, kb_id: str, content_hash: str) -> Document | None:
         stmt = (

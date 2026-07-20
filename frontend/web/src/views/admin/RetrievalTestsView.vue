@@ -9,6 +9,7 @@ import ResourcePanel from "../../components/ResourcePanel.vue";
 import {
   createRetrievalDataset,
   getRetrievalRun,
+  isRetrievalTestResult,
   listRetrievalDatasets,
   listRetrievalRuns,
   runRetrievalTest,
@@ -200,8 +201,7 @@ const loadData = async (): Promise<void> => {
 };
 
 watch(selectedKbId, () => {
-  selectedDatasetId.value =
-    filteredDatasets.value[0]?.id ?? datasets.value[0]?.id ?? "";
+  selectedDatasetId.value = filteredDatasets.value[0]?.id ?? "";
 });
 
 const startCreate = (): void => {
@@ -350,7 +350,17 @@ const runTest = async (): Promise<void> => {
 const viewRun = async (run: RetrievalRun): Promise<void> => {
   loadingResultId.value = run.id;
   try {
-    selectedResult.value = await getRetrievalRun(run.id);
+    const detail = await getRetrievalRun(run.id);
+    if (!isRetrievalTestResult(detail)) {
+      selectedResult.value = null;
+      message.info(
+        detail.status === "failed"
+          ? (detail.error_message ?? "该评测运行失败。")
+          : `该评测仍为 ${detail.status} 状态，当前进度 ${detail.progress}%。`,
+      );
+      return;
+    }
+    selectedResult.value = detail;
   } catch (err) {
     message.error(toPublicApiError(err).message);
   } finally {

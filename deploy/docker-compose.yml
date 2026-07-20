@@ -14,6 +14,7 @@ services:
   # 对外暴露 80 端口，处理前端路由和 API 反向代理
   # ============================================================
   web:
+    image: knowledge-base-platform-web:${APP_IMAGE_TAG:-local}
     build:
       # 构建上下文：项目根目录
       context: ..
@@ -26,7 +27,8 @@ services:
       - "80:80"
     # 依赖：api-server 先启动，web 后启动
     depends_on:
-      - api-server
+      api-server:
+        condition: service_healthy
     # 网络：加入应用网络
     networks:
       - app-network
@@ -38,9 +40,11 @@ services:
   # 仅内部网络访问，由 Nginx 反向代理
   # ============================================================
   api-server:
+    image: knowledge-base-platform-api-server:${APP_IMAGE_TAG:-local}
     build:
       context: ..
       dockerfile: deploy/docker/api-server.Dockerfile
+      target: runtime
     container_name: kb-api-server
     # 仅暴露端口给内部网络，不映射到宿主机
     # Nginx 通过 Docker 内部网络访问 api-server:8000
@@ -51,13 +55,22 @@ services:
     environment:
       # 数据库连接 URL（异步驱动 asyncpg）
       # 格式：postgresql+asyncpg://用户名:密码@主机:端口/数据库名
-      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/knowledge_base
       # Redis 连接 URL
       - REDIS_URL=redis://redis:6379/0
       # JWT 签名密钥
-      - SECRET_KEY=${SECRET_KEY}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - MODEL_KEY_FERNET_KEY=${MODEL_KEY_FERNET_KEY:-}
+      - EXPORT_DOWNLOAD_SIGNING_KEY=${EXPORT_DOWNLOAD_SIGNING_KEY:-}
       # 应用版本
-      - APP_VERSION=0.1.0
+      - APP_VERSION=${APP_VERSION:-0.1.0}
+      # 本文件用于本地开发/联调；生产环境必须显式设为 false。
+      - APP_ENVIRONMENT=${APP_ENVIRONMENT:-development}
+      - AUTO_SEED_DEMO_DATA=${AUTO_SEED_DEMO_DATA:-false}
+      - DEMO_SEED_PASSWORD=${DEMO_SEED_PASSWORD:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
       # 调试模式（开发环境可以开启）
       - DEBUG=${DEBUG:-false}
       # DeepSeek RAG 问答模型配置
@@ -66,10 +79,18 @@ services:
       - DEEPSEEK_CHAT_MODEL=${DEEPSEEK_CHAT_MODEL:-deepseek-chat}
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
       - DASHSCOPE_BASE_URL=${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
-      - QWEN_EMBEDDING_MODEL=${QWEN_EMBEDDING_MODEL:-qwen3.7-text-embedding}
+      - QWEN_EMBEDDING_MODEL=${QWEN_EMBEDDING_MODEL:-text-embedding-v4}
       - QWEN_EMBEDDING_DIMENSIONS=${QWEN_EMBEDDING_DIMENSIONS:-1024}
+      - PDF_PARSE_TIMEOUT_SECONDS=${PDF_PARSE_TIMEOUT_SECONDS:-120}
+      - PDF_MAX_PAGES=${PDF_MAX_PAGES:-500}
+      - PDF_PARSE_MEMORY_LIMIT_MB=${PDF_PARSE_MEMORY_LIMIT_MB:-512}
+      - EXPORT_STORAGE_ROOT=/app/storage/exports
+      # Compose 始终配套独立 Worker，API 只负责可靠入队。
+      - WORKER_INLINE=false
     # 依赖：等数据库和 Redis 健康检查通过后再启动
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy  # 等待 PostgreSQL 健康检查通过
       redis:
@@ -86,6 +107,7 @@ services:
   # 不对外暴露端口，通过 Redis 队列接收任务
   # ============================================================
   worker:
+    image: knowledge-base-platform-worker:${APP_IMAGE_TAG:-local}
     build:
       context: ..
       dockerfile: deploy/docker/worker.Dockerfile
@@ -93,26 +115,69 @@ services:
     # Worker 不暴露端口
     # 通过 Redis 队列接收任务，不处理 HTTP 请求
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/knowledge_base
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/knowledge_base
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - MODEL_KEY_FERNET_KEY=${MODEL_KEY_FERNET_KEY:-}
+      - EXPORT_DOWNLOAD_SIGNING_KEY=${EXPORT_DOWNLOAD_SIGNING_KEY:-}
+      - APP_ENVIRONMENT=${APP_ENVIRONMENT:-development}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       - DEEPSEEK_CHAT_MODEL=${DEEPSEEK_CHAT_MODEL:-deepseek-chat}
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
       - DASHSCOPE_BASE_URL=${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
-      - QWEN_EMBEDDING_MODEL=${QWEN_EMBEDDING_MODEL:-qwen3.7-text-embedding}
+      - QWEN_EMBEDDING_MODEL=${QWEN_EMBEDDING_MODEL:-text-embedding-v4}
       - QWEN_EMBEDDING_DIMENSIONS=${QWEN_EMBEDDING_DIMENSIONS:-1024}
+      - PDF_PARSE_TIMEOUT_SECONDS=${PDF_PARSE_TIMEOUT_SECONDS:-120}
+      - PDF_MAX_PAGES=${PDF_MAX_PAGES:-500}
+      - PDF_PARSE_MEMORY_LIMIT_MB=${PDF_PARSE_MEMORY_LIMIT_MB:-512}
+      - EXPORT_STORAGE_ROOT=/app/storage/exports
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
       - storage_data:/app/storage
+    mem_limit: 2g
+    cpus: 2.0
+    pids_limit: 512
     networks:
       - app-network
     restart: unless-stopped
+
+  # ============================================================
+  # 数据库迁移：应用启动前执行全部 Alembic heads
+  # 这是一次性启动任务，不增加长期运行的部署单元。
+  # ============================================================
+  migrate:
+    image: knowledge-base-platform-api-server:${APP_IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: deploy/docker/api-server.Dockerfile
+      target: runtime
+    container_name: kb-migrate
+    working_dir: /app/backend
+    command:
+      - /app/backend/.venv/bin/alembic
+      - -c
+      - migrations/alembic.ini
+      - upgrade
+      - heads
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/knowledge_base
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - MODEL_KEY_FERNET_KEY=${MODEL_KEY_FERNET_KEY:-}
+      - EXPORT_DOWNLOAD_SIGNING_KEY=${EXPORT_DOWNLOAD_SIGNING_KEY:-}
+      - APP_ENVIRONMENT=${APP_ENVIRONMENT:-development}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: "no"
 
   # ============================================================
   # 4. PostgreSQL 服务：业务数据 + 全文检索 + 向量检索
@@ -121,13 +186,13 @@ services:
   # ============================================================
   postgres:
     # 使用 pgvector 官方镜像（PostgreSQL 17 + pgvector 0.8.0）
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:pg17@sha256:d2ef61f42ef767baa5a1475393303cc235bcd92febd9d7014eddb48b41f3bad0
     container_name: kb-postgres
     environment:
       # 数据库名称
       - POSTGRES_DB=knowledge_base
       # 数据库密码（从环境变量传入）
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     # 挂载卷：持久化数据库数据
     volumes:
       - postgres_data:/var/lib/postgresql/data

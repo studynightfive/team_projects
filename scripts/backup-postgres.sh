@@ -2,7 +2,7 @@
 # ============================================================
 # 智能知识库平台 - PostgreSQL 备份脚本
 # 用途：执行数据库全量逻辑备份，验证完整性，清理过期备份
-# 用法：bash scripts/backup-postgres.sh [backup_dir]
+# 用法：bash scripts/backup-postgres.sh [backup_dir] [backup_id]
 # 退出码：0 = 成功, 1 = 失败
 # ============================================================
 
@@ -11,11 +11,14 @@ set -euo pipefail
 # 备份目录（默认 ./backups/postgres）
 BACKUP_DIR="${1:-./backups/postgres}"
 # 时间戳（UTC）
-TIMESTAMP=$(date -u +"%Y%m%d_%H%M%S")
+TIMESTAMP="${2:-$(date -u +%Y%m%d_%H%M%S)}"
 # 备份文件名
 BACKUP_FILE="${BACKUP_DIR}/knowledge_base_${TIMESTAMP}.sql.gz"
+TEMP_FILE="${BACKUP_FILE}.tmp"
 # Docker Compose 文件路径
 COMPOSE_FILE="deploy/docker-compose.yml"
+ENV_FILE="deploy/env/.env"
+COMPOSE=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
 
 echo "============================================================"
 echo "  PostgreSQL 备份"
@@ -26,10 +29,19 @@ echo ""
 # 创建备份目录
 mkdir -p "${BACKUP_DIR}"
 
+if [ ! -f "$ENV_FILE" ]; then
+    echo "错误: 缺少本地配置文件 $ENV_FILE"
+    exit 1
+fi
+
 # 执行备份
 echo "执行 pg_dump..."
-docker compose -f "${COMPOSE_FILE}" exec -T postgres \
-  pg_dump -U postgres knowledge_base | gzip > "${BACKUP_FILE}"
+trap 'rm -f "$TEMP_FILE"' EXIT
+"${COMPOSE[@]}" exec -T postgres \
+  pg_dump --clean --if-exists -U postgres knowledge_base | gzip > "${TEMP_FILE}"
+gzip -t "${TEMP_FILE}"
+mv "${TEMP_FILE}" "${BACKUP_FILE}"
+trap - EXIT
 
 # 验证备份文件完整性
 echo "验证备份文件..."

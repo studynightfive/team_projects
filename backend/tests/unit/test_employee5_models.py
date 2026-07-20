@@ -9,9 +9,10 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.config import get_model_key_fernet
 from app.models import service as model_service
@@ -82,8 +83,8 @@ class TestProviderTest:
         assert result["model_info"]["status_code"] == 200
 
     @pytest.mark.asyncio
-    async def test_returns_401_as_ok_with_flag(self):
-        """401 表示鉴权失败但服务可达，不算网络错误"""
+    async def test_returns_authentication_failure_on_401(self):
+        """认证失败不能被误报为模型可用。"""
         p = OpenAICompatibleProvider("openai", "https://api.openai.com/v1", "sk-x")
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
             mock_resp = AsyncMock()
@@ -92,8 +93,8 @@ class TestProviderTest:
             result = await p.test(
                 model_name="x", api_key="sk-x", base_url="https://api.openai.com/v1"
             )
-        assert result["ok"] is True
-        assert result["model_info"]["status_code"] == 401
+        assert result["ok"] is False
+        assert result["error_code"] == "authentication_failed"
 
     @pytest.mark.asyncio
     async def test_returns_error_on_500(self):
@@ -118,7 +119,7 @@ class TestProviderTest:
             )
         assert result["ok"] is False
         assert result["error_code"] == "network_error"
-        assert "refused" in result["error_message"]
+        assert "refused" not in result["error_message"]
 
 
 # ============================================================
@@ -129,7 +130,7 @@ class TestModelService:
 
     @pytest.mark.asyncio
     async def test_create_model_encrypts_api_key(self):
-        db = AsyncMock()
+        db = MagicMock(spec=AsyncSession)
         # get_provider 存在
         provider_obj = AsyncMock()
         provider_obj.code = "openai"
@@ -153,7 +154,7 @@ class TestModelService:
 
     @pytest.mark.asyncio
     async def test_create_model_no_api_key_stays_empty(self):
-        db = AsyncMock()
+        db = MagicMock(spec=AsyncSession)
         provider_obj = AsyncMock()
         provider_obj.code = "openai"
         db.get.return_value = provider_obj
@@ -166,7 +167,7 @@ class TestModelService:
 
     @pytest.mark.asyncio
     async def test_create_model_unknown_provider_raises(self):
-        db = AsyncMock()
+        db = MagicMock(spec=AsyncSession)
         db.get.return_value = None  # provider 不存在（schema 已限定为合法枚举）
 
         from app.common.exceptions import ValidationException
@@ -178,7 +179,7 @@ class TestModelService:
 
     @pytest.mark.asyncio
     async def test_update_model_replaces_key(self):
-        db = AsyncMock()
+        db = MagicMock(spec=AsyncSession)
         existing = AsyncMock()
         existing.api_key_encrypted = encrypt_api_key("old-key")
         existing.model_name = "gpt-4o-mini"
@@ -197,12 +198,12 @@ class TestModelService:
 
     @pytest.mark.asyncio
     async def test_delete_provider_with_models_raises_conflict(self):
-        db = AsyncMock()
+        db = MagicMock(spec=AsyncSession)
         provider_obj = AsyncMock()
         provider_obj.code = "openai"
         db.get.return_value = provider_obj
         # 存在关联 model
-        scalar_result = AsyncMock()
+        scalar_result = MagicMock()
         scalar_result.scalar_one_or_none.return_value = AsyncMock()  # 存在
         db.execute.return_value = scalar_result
 

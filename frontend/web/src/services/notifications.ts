@@ -1,15 +1,9 @@
 import { apiClient } from "../api/client";
+import type { ApiResponse } from "../api/contracts";
 import type {
   NotificationAudience,
   NotificationItem,
 } from "../data/account-support";
-
-interface ApiResponse<T> {
-  readonly code: number;
-  readonly message: string;
-  readonly data: T | null;
-  readonly request_id: string;
-}
 
 interface NotificationActionResponse {
   readonly label: string;
@@ -34,7 +28,11 @@ interface NotificationListResponse {
 }
 
 const unwrap = <T>(response: ApiResponse<T>): T => {
-  if (response.code !== 0 || response.data === null) {
+  if (
+    response.code !== 0 ||
+    response.data === null ||
+    response.data === undefined
+  ) {
     throw new Error(response.message || "通知接口请求失败");
   }
   return response.data;

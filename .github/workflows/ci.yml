@@ -18,6 +18,36 @@ jobs:
     name: quality
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:test-postgres-password@127.0.0.1:5432/knowledge_base_test
+      REDIS_URL: redis://127.0.0.1:6379/0
+      SECRET_KEY: test-secret-key-not-for-production
+      TESTING: "true"
+      AUTO_SEED_DEMO_DATA: "false"
+      WORKER_INLINE: "true"
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17@sha256:d2ef61f42ef767baa5a1475393303cc235bcd92febd9d7014eddb48b41f3bad0
+        env:
+          POSTGRES_DB: knowledge_base_test
+          POSTGRES_PASSWORD: test-postgres-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d knowledge_base_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7.4.9-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: 检出代码
@@ -71,6 +101,10 @@ jobs:
         if: steps.projects.outputs.frontend == 'true'
         run: pnpm run typecheck:web
 
+      - name: OpenAPI 前端类型一致性
+        if: steps.projects.outputs.frontend == 'true'
+        run: pnpm run check:api-types
+
       - name: Web Lint
         if: steps.projects.outputs.frontend == 'true'
         run: pnpm run lint:web
@@ -99,15 +133,22 @@ jobs:
 
       - name: 后端 Ruff
         if: steps.projects.outputs.backend == 'true'
-        run: uv run --project backend ruff check backend
+        run: cd backend && uv run ruff check .
 
       - name: 后端 mypy
         if: steps.projects.outputs.backend == 'true'
-        run: uv run --project backend mypy backend/app
+        run: cd backend && uv run mypy app
+
+      - name: 数据库迁移一致性
+        if: steps.projects.outputs.backend == 'true'
+        run: |
+          cd backend
+          uv run alembic -c migrations/alembic.ini upgrade heads
+          uv run alembic -c migrations/alembic.ini check
 
       - name: 后端测试
         if: steps.projects.outputs.backend == 'true'
-        run: uv run --project backend pytest backend/tests
+        run: cd backend && uv run pytest tests
 
       - name: 样本库验证
         if: steps.projects.outputs.backend == 'true'

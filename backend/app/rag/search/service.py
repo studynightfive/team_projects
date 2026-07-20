@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import time
+from typing import TypeAlias
 
 import structlog
 from sqlalchemy import text
@@ -16,7 +17,7 @@ from app.common.config import settings
 from app.common.exceptions import ValidationException
 from app.common.models import User
 from app.models import service as model_service
-from app.models.providers.openai import build_provider
+from app.models.providers.openai import OpenAICompatibleProvider, build_provider
 from app.models.security import decrypt_api_key
 from app.rag._shared.permissions import (
     get_user_accessible_kb_ids,
@@ -36,21 +37,34 @@ logger = structlog.get_logger()
 
 # RRF 常数（提示词 02 §4.2）
 RRF_K = 60
+SearchRow: TypeAlias = dict[str, object]
 
 
 # ============================================================
 # 工具：把 chunks 行映射成 SearchHit
 # ============================================================
-def _row_to_hit(row: dict, *, kb_id: str | None = None) -> SearchHit:
-    return SearchHit(
-        doc_id=row["doc_id"],
-        chunk_id=row["chunk_id"],
-        doc_title=row.get("doc_title"),
-        page=row.get("page"),
-        score=float(row.get("score") or 0.0),
-        text=row.get("content") or "",
-        kb_id=kb_id or row.get("kb_id"),
-    )
+def _row_to_hit(row: SearchRow, *, kb_id: str | None = None) -> SearchHit:
+    payload = dict(row)
+    payload["score"] = row.get("score") or 0.0
+    payload["text"] = row.get("content") or ""
+    if kb_id is not None:
+        payload["kb_id"] = kb_id
+    return SearchHit.model_validate(payload)
+
+
+def _text_from_hit(hit: SearchRow) -> str:
+    text_value = hit.get("text")
+    if isinstance(text_value, str):
+        return text_value
+    content_value = hit.get("content")
+    return content_value if isinstance(content_value, str) else ""
+
+
+def _score_from_hit(hit: SearchRow) -> float:
+    value = hit.get("score")
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return 0.0
+    return float(value)
 
 
 # ============================================================
@@ -62,7 +76,7 @@ async def _keyword_search(
     query: str,
     accessible_kb_ids: set[str],
     top_k: int,
-) -> tuple[list[dict], int]:
+) -> tuple[list[SearchRow], int]:
     if not accessible_kb_ids:
         return [], 0
     kb_list = list(accessible_kb_ids)
@@ -96,7 +110,7 @@ async def _keyword_search(
         sql,
         {"q": query, "like_q": f"%{query}%", "kb_ids": kb_list, "limit": top_k * 2},
     )
-    rows = [dict(r._mapping) for r in res.fetchall()]
+    rows: list[SearchRow] = [dict(r._mapping) for r in res.fetchall()]
     return rows, len(rows)
 
 
@@ -113,7 +127,7 @@ async def _embed_query(db: AsyncSession, *, query: str, embedding_model_id: str)
     if not model.api_key_encrypted:
         raise ValueError("embedding model api key not configured")
     api_key = decrypt_api_key(model.api_key_encrypted) if model.api_key_encrypted else ""
-    p = build_provider(provider.code, provider.base_url, api_key)
+    p: OpenAICompatibleProvider = build_provider(provider.code, provider.base_url, api_key)
     out = await p.embed(model_name=model.model_name, inputs=[query])
     return out[0]
 
@@ -151,7 +165,7 @@ async def _vector_search(
     embedding: list[float],
     accessible_kb_ids: set[str],
     top_k: int,
-) -> tuple[list[dict], int]:
+) -> tuple[list[SearchRow], int]:
     if not accessible_kb_ids:
         return [], 0
     kb_list = list(accessible_kb_ids)
@@ -177,7 +191,7 @@ async def _vector_search(
         sql,
         {"emb": _to_vector_literal(embedding), "kb_ids": kb_list, "limit": top_k * 2},
     )
-    rows = [dict(r._mapping) for r in res.fetchall()]
+    rows: list[SearchRow] = [dict(r._mapping) for r in res.fetchall()]
     for row in rows:
         row.setdefault("kb_id", None)
     return rows, len(rows)
@@ -188,24 +202,28 @@ async def _vector_search(
 # ============================================================
 def rrf_fuse(
     *,
-    keyword_hits: list[dict],
-    vector_hits: list[dict],
+    keyword_hits: list[SearchRow],
+    vector_hits: list[SearchRow],
     k: int = RRF_K,
-) -> list[dict]:
+) -> list[SearchRow]:
     """Reciprocal Rank Fusion：rrf(d) = Σ 1 / (k + rank_i(d))"""
     scores: dict[str, float] = {}
-    by_chunk: dict[str, dict] = {}
+    by_chunk: dict[str, SearchRow] = {}
     for rank, hit in enumerate(keyword_hits, start=1):
-        cid = hit["chunk_id"]
+        cid = hit.get("chunk_id")
+        if not isinstance(cid, str):
+            raise ValidationException(message="检索结果缺少有效的 chunk_id")
         scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank)
         by_chunk.setdefault(cid, hit)
         by_chunk[cid]["keyword_score"] = hit.get("score")
     for rank, hit in enumerate(vector_hits, start=1):
-        cid = hit["chunk_id"]
+        cid = hit.get("chunk_id")
+        if not isinstance(cid, str):
+            raise ValidationException(message="检索结果缺少有效的 chunk_id")
         scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank)
         by_chunk.setdefault(cid, hit)
         by_chunk[cid]["vector_score"] = hit.get("score")
-    fused = []
+    fused: list[SearchRow] = []
     for cid, score in sorted(scores.items(), key=lambda x: -x[1]):
         hit = dict(by_chunk[cid])
         hit["score"] = score
@@ -220,38 +238,46 @@ async def _rerank(
     db: AsyncSession,
     *,
     query: str,
-    candidates: list[dict],
+    candidates: list[SearchRow],
     rerank_model_id: str | None,
     top_k: int,
-) -> list[dict]:
+) -> tuple[list[SearchRow], bool]:
     if not rerank_model_id or not candidates:
-        return candidates[:top_k]
+        return candidates[:top_k], False
     model = await model_service.get_model(db, rerank_model_id)
-    if model is None or model.kind != "rerank":
-        return candidates[:top_k]
+    if model is None or model.kind != "rerank" or not model.enabled:
+        return candidates[:top_k], False
     provider = await model_service.get_provider(db, model.provider_code)
-    if provider is None:
-        return candidates[:top_k]
+    if provider is None or not provider.enabled:
+        return candidates[:top_k], False
     api_key = decrypt_api_key(model.api_key_encrypted) if model.api_key_encrypted else ""
-    p = build_provider(provider.code, provider.base_url, api_key)
-    docs = [c.get("text") or c.get("content") or "" for c in candidates]
+    p: OpenAICompatibleProvider = build_provider(provider.code, provider.base_url, api_key)
+    docs = [_text_from_hit(candidate) for candidate in candidates]
     try:
         results = await p.rerank(
             model_name=model.model_name, query=query, documents=docs, top_n=top_k
         )
     except Exception as exc:
-        logger.warning("rerank_failed_fallback_to_rrf", error=str(exc))
-        return candidates[:top_k]
-    out = []
+        logger.warning(
+            "rerank_failed_fallback_to_rrf",
+            error_type=type(exc).__name__,
+        )
+        return candidates[:top_k], False
+    out: list[SearchRow] = []
     for item in results:
         idx = item.get("index")
-        if idx is None or idx >= len(candidates):
+        if isinstance(idx, bool) or not isinstance(idx, int) or not 0 <= idx < len(candidates):
             continue
         hit = dict(candidates[idx])
-        hit["rerank_score"] = float(item.get("relevance_score") or 0.0)
+        relevance_score = item.get("relevance_score")
+        hit["rerank_score"] = (
+            float(relevance_score)
+            if isinstance(relevance_score, int | float) and not isinstance(relevance_score, bool)
+            else 0.0
+        )
         hit["score"] = hit["rerank_score"]
         out.append(hit)
-    return out
+    return out, True
 
 
 # ============================================================
@@ -264,6 +290,8 @@ async def search(
     req: SearchRequest,
 ) -> SearchResponse:
     start = time.time()
+    if req.metadata_filter:
+        raise ValidationException(message="metadata_filter 尚未接入，不能静默忽略筛选条件")
     accessible = await get_user_accessible_kb_ids(db, user)
     if req.kb_id and req.kb_id not in accessible:
         # 用户显式指定了无权 kb：直接空响应，不暴露存在性
@@ -329,7 +357,7 @@ async def search(
 
     # 阈值过滤
     if req.threshold > 0:
-        fused = [h for h in fused if (h.get("score") or 0.0) >= req.threshold]
+        fused = [hit for hit in fused if _score_from_hit(hit) >= req.threshold]
 
     # 重排（仅当 top_k > settings.rag_max_top_k 强制启用）
     forced_rerank = req.top_k > settings.rag_max_top_k
@@ -337,7 +365,7 @@ async def search(
     reranked = False
     if do_rerank:
         ts = time.time()
-        fused = await _rerank(
+        fused, reranked = await _rerank(
             db,
             query=req.query,
             candidates=fused,
@@ -345,17 +373,16 @@ async def search(
             top_k=req.top_k,
         )
         debug_rt = int((time.time() - ts) * 1000)
-        reranked = True
     else:
         fused = fused[: req.top_k]
 
     # 结果后置权限过滤
     safe = post_filter_hits(hits=fused, accessible_kb_ids=accessible_kbs)
-    hits = [_row_to_hit(h).model_dump() for h in safe]
+    hits = [_row_to_hit(hit) for hit in safe]
 
     took_ms = int((time.time() - start) * 1000)
     return SearchResponse(
-        hits=[SearchHit(**h) for h in hits],
+        hits=hits,
         mode=actual_mode,
         reranked=reranked,
         took_ms=took_ms,
@@ -408,10 +435,10 @@ async def _resolve_chat_model(
 ) -> tuple[str, str, str, str]:
     if chat_model_id:
         model = await model_service.get_model(db, chat_model_id)
-        if model is None or model.kind != "chat":
+        if model is None or model.kind != "chat" or not model.enabled:
             raise ValidationException(message="chat_model_id 不存在或不是聊天模型")
         provider = await model_service.get_provider(db, model.provider_code)
-        if provider is None:
+        if provider is None or not provider.enabled:
             raise ValidationException(message="模型 Provider 不存在")
         api_key = decrypt_api_key(model.api_key_encrypted) if model.api_key_encrypted else ""
         return provider.code, provider.base_url, model.model_name, api_key
@@ -452,7 +479,7 @@ async def answer(
     provider_code, base_url, model_name, api_key = await _resolve_chat_model(
         db, chat_model_id=req.chat_model_id
     )
-    provider = build_provider(
+    provider: OpenAICompatibleProvider = build_provider(
         provider_code,
         base_url,
         api_key,

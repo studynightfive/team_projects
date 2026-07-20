@@ -37,7 +37,6 @@ const authMode = ref<"login" | "register">("login");
 const registerAccountId = ref("");
 const registerName = ref("");
 const registerPassword = ref("");
-const rememberMe = ref(false);
 const showPassword = ref(false);
 const accountError = ref("");
 const registerAccountError = ref("");
@@ -74,16 +73,16 @@ const redirectTarget = (): string => {
 };
 
 const metrics = [
-  { value: "1,000+", label: "头部企业客户", icon: UsersRound },
-  { value: "10万+", label: "知识文档沉淀", icon: Database },
-  { value: "99.9%", label: "服务可用性", icon: ShieldCheck },
-  { value: "8 大", label: "行业解决方案", icon: Network },
+  { value: "检索", label: "关键词与向量", icon: UsersRound },
+  { value: "问答", label: "带引用回答", icon: Database },
+  { value: "审计", label: "访问留痕", icon: ShieldCheck },
+  { value: "导出", label: "多格式任务", icon: Network },
 ] as const;
 
 const complianceBadges = [
-  { label: "ISO 27001", icon: ShieldCheck },
-  { label: "等保三级", icon: Award },
-  { label: "256 位加密", icon: Lock },
+  { label: "HttpOnly 会话", icon: ShieldCheck },
+  { label: "细粒度权限", icon: Award },
+  { label: "审计日志", icon: Lock },
 ] as const;
 
 const productValues = [
@@ -211,7 +210,7 @@ const submitRegister = async (): Promise<void> => {
 
       <header class="login-brand-top">
         <PlatformLogo inverse />
-        <ul class="login-compliance" aria-label="安全合规认证">
+        <ul class="login-compliance" aria-label="已实现的安全能力">
           <li v-for="badge in complianceBadges" :key="badge.label">
             <component :is="badge.icon" :size="13" :stroke-width="2" />
             <span>{{ badge.label }}</span>
@@ -226,7 +225,7 @@ const submitRegister = async (): Promise<void> => {
           <span>活在每一次决策里</span>
         </h1>
 
-        <ul class="login-metric-strip" aria-label="平台核心指标">
+        <ul class="login-metric-strip" aria-label="平台核心能力">
           <li v-for="metric in metrics" :key="metric.label">
             <span class="login-metric-icon" aria-hidden="true">
               <component :is="metric.icon" :size="16" :stroke-width="1.8" />
@@ -250,9 +249,9 @@ const submitRegister = async (): Promise<void> => {
       </div>
 
       <footer class="login-brand-footer">
-        <span>2026 © 企业名称</span>
-        <span>ICP备案号占位</span>
-        <span>界面模板 v2.0.0</span>
+        <span>2026 © 智能知识库平台</span>
+        <span>本地与私有化部署</span>
+        <span>应用版本 0.1.0</span>
       </footer>
     </section>
 
@@ -359,10 +358,7 @@ const submitRegister = async (): Promise<void> => {
           </div>
 
           <div class="login-assist-row">
-            <label class="checkbox-label">
-              <input v-model="rememberMe" type="checkbox" />
-              <span>记住我</span>
-            </label>
+            <span>会话时长由服务端安全策略统一管理</span>
             <button
               class="text-button"
               type="button"

@@ -2,7 +2,7 @@
 # 员工3 负责
 # 提供 get_current_user、require_permission 等 FastAPI 依赖
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
 import jwt
 from fastapi import Depends, Header, Request
@@ -24,7 +24,7 @@ from app.common.models import User
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    authorization: str | None = Header(None),
+    authorization: str | None = Header(None, include_in_schema=False),
 ) -> User:
     """从 Authorization 头提取当前用户
 
@@ -45,7 +45,7 @@ async def get_current_user(
         raise TokenInvalidException()
 
     user_id = payload.get("sub")
-    if not user_id:
+    if not isinstance(user_id, str) or not user_id:
         raise TokenInvalidException()
 
     result = await db.execute(select(User).where(User.id == user_id))
@@ -57,38 +57,28 @@ async def get_current_user(
     if user.status == "disabled":
         raise UserDisabledException()
 
+    token_session_version = payload.get("session_version", 0)
+    if (
+        not isinstance(token_session_version, int)
+        or isinstance(token_session_version, bool)
+        or token_session_version != user.session_version
+    ):
+        raise TokenInvalidException()
+
     return user
 
 
 async def get_current_user_id(
-    authorization: str | None = Header(None),
+    user: User = Depends(get_current_user),
 ) -> str:
-    """仅提取当前用户 ID（不查询数据库）
-
-    用于轻量级场景，确保请求携带有效 Token
-    """
-    token = _extract_token(authorization)
-    if token is None:
-        raise UnauthorizedException()
-
-    try:
-        payload = decode_access_token(token)
-    except jwt.ExpiredSignatureError:
-        raise TokenExpiredException()
-    except jwt.PyJWTError:
-        raise TokenInvalidException()
-
-    if payload.get("type") != "access":
-        raise TokenInvalidException()
-
-    user_id = payload.get("sub")
-    if not user_id:
-        raise TokenInvalidException()
-
-    return user_id
+    """返回已完成用户状态与会话版本校验的当前用户 ID。"""
+    return user.id
 
 
-def require_permission(permission_code: str) -> Callable:
+PermissionDependency = Callable[[User], Awaitable[None]]
+
+
+def require_permission(permission_code: str) -> PermissionDependency:
     """权限校验依赖工厂
 
     用法：
@@ -118,7 +108,7 @@ def require_permission(permission_code: str) -> Callable:
     return permission_checker
 
 
-def require_any_permission(*permission_codes: str) -> Callable:
+def require_any_permission(*permission_codes: str) -> PermissionDependency:
     """任一权限校验依赖工厂
 
     用户只需拥有其中之一即可通过

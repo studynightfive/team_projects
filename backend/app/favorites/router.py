@@ -37,7 +37,7 @@ async def list_favorites_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("favorite:read", "chat.use")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     base = select(Favorite).where(Favorite.user_id == user.id)
     total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar() or 0
     result = await db.execute(
@@ -58,7 +58,7 @@ async def create_favorite_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("favorite:write", "chat.use")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     favorite = Favorite(
         user_id=user.id,
         type=payload.type,
@@ -91,7 +91,7 @@ async def update_favorite_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("favorite:write", "chat.use")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     favorite = await db.get(Favorite, favorite_id)
     if favorite is None:
         raise NotFoundException()
@@ -114,7 +114,7 @@ async def delete_favorite_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("favorite:write", "chat.use")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     favorite = await db.get(Favorite, favorite_id)
     if favorite is None:
         raise NotFoundException()

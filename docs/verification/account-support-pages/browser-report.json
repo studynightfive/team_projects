@@ -1,9 +1,10 @@
 {
-  "generatedAt": "2026-07-17T05:33:20.626Z",
-  "sourceCommit": "38a8444e23644c601d3cd49bc5258d5d35e072e9",
+  "generatedAt": "2026-07-20T12:43:47.927Z",
+  "sourceCommit": "ef373f11118042a7c14519943225b97362610319",
   "sourceWorktreeDirty": true,
+  "sourceWorktreeFingerprint": "59455c09922b12f8fa417a2d77884294346598437fa613979c4988a5af551699",
   "baseUrl": "http://127.0.0.1:5173",
-  "browser": "Chrome/150.0.7871.115",
+  "browser": "Chrome/150.0.7871.125",
   "results": [
     {
       "group": "account-support",
@@ -30,7 +31,7 @@
         "topbarTitle": "通知中心",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 24,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -47,12 +48,12 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
-        "minimumInteractiveHeight": 20,
+        "minimumInteractiveHeight": 24,
         "notificationPreviewDisplay": "block",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -99,7 +100,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -189,7 +190,7 @@
         "topbarTitle": "通知中心",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 24,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -206,12 +207,12 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
-        "minimumInteractiveHeight": 20,
+        "minimumInteractiveHeight": 24,
         "notificationPreviewDisplay": "block",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -258,7 +259,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -334,7 +335,7 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 1912,
+        "scrollHeight": 1915,
         "h1Count": 1,
         "businessPageCount": 1,
         "rootTheme": "light",
@@ -348,7 +349,7 @@
         "topbarTitle": "通知中心",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 24,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -365,7 +366,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -385,7 +386,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 10,
+        "navigationCount": 7,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -421,7 +422,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -471,7 +472,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 10
+          "actual": 7
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -521,7 +522,7 @@
         "topbarTitle": "帮助中心",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 37,
+        "svgIconCount": 33,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -538,16 +539,16 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
-        "minimumInteractiveHeight": 20,
+        "minimumInteractiveHeight": 24,
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1215,
+        "notificationPreviewCenterOffset": 1279,
         "profilePreviewVisible": false,
         "profilePreviewWithinViewport": false,
         "profileDetailCount": 0,
@@ -588,7 +589,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 37
+          "actual": 33
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -648,7 +649,7 @@
         "topbarTitle": "帮助中心",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 37,
+        "svgIconCount": 33,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -665,16 +666,16 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
-        "minimumInteractiveHeight": 20,
+        "minimumInteractiveHeight": 24,
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1055,
+        "notificationPreviewCenterOffset": 1119,
         "profilePreviewVisible": false,
         "profilePreviewWithinViewport": false,
         "profileDetailCount": 0,
@@ -715,7 +716,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 37
+          "actual": 33
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -775,7 +776,7 @@
         "topbarTitle": "帮助中心",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 37,
+        "svgIconCount": 33,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -792,7 +793,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -812,7 +813,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 10,
+        "navigationCount": 7,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -848,7 +849,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 37
+          "actual": 33
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -888,7 +889,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 10
+          "actual": 7
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -939,7 +940,7 @@
         "topbarTitle": "偏好设置",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 24,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -956,7 +957,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 2,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -965,7 +966,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1215,
+        "notificationPreviewCenterOffset": 1279,
         "profilePreviewVisible": false,
         "profilePreviewWithinViewport": false,
         "profileDetailCount": 0,
@@ -1006,7 +1007,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1067,7 +1068,7 @@
         "topbarTitle": "偏好设置",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 24,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1084,7 +1085,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 2,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1093,7 +1094,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1055,
+        "notificationPreviewCenterOffset": 1119,
         "profilePreviewVisible": false,
         "profilePreviewWithinViewport": false,
         "profileDetailCount": 0,
@@ -1134,7 +1135,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1195,7 +1196,7 @@
         "topbarTitle": "偏好设置",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 24,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -1212,7 +1213,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 2,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1232,7 +1233,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 10,
+        "navigationCount": 7,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -1268,7 +1269,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -1308,7 +1309,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 10
+          "actual": 7
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -1375,7 +1376,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1534,7 +1535,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1693,7 +1694,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1850,7 +1851,7 @@
         "topbarTitle": "偏好设置",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 24,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1867,7 +1868,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 2,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1876,7 +1877,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1215,
+        "notificationPreviewCenterOffset": 1279,
         "profilePreviewVisible": false,
         "profilePreviewWithinViewport": false,
         "profileDetailCount": 0,
@@ -1917,7 +1918,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2003,7 +2004,7 @@
         "topbarTitle": "偏好设置",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 24,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -2020,7 +2021,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 2,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -2029,7 +2030,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1055,
+        "notificationPreviewCenterOffset": 1119,
         "profilePreviewVisible": false,
         "profilePreviewWithinViewport": false,
         "profileDetailCount": 0,
@@ -2070,7 +2071,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2156,7 +2157,7 @@
         "topbarTitle": "偏好设置",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 28,
+        "svgIconCount": 24,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -2173,7 +2174,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 2,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -2193,7 +2194,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 10,
+        "navigationCount": 7,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -2229,7 +2230,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "业务页使用统一 business-page 根节点",
@@ -2294,7 +2295,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 10
+          "actual": 7
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",

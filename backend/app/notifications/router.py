@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select
 
 from app.auth.dependencies import get_current_user
 from app.common.database import get_db
@@ -18,6 +19,7 @@ from app.notifications.models import Notification
 from app.notifications.schemas import (
     NotificationAction,
     NotificationAudience,
+    NotificationCategory,
     NotificationListResponse,
     NotificationResponse,
 )
@@ -42,14 +44,34 @@ def _serialize(item: Notification) -> NotificationResponse:
         action = NotificationAction(label=item.action_label, to=item.action_to)
     return NotificationResponse(
         id=item.id,
-        audience=item.audience,  # type: ignore[arg-type]
-        category=item.category,  # type: ignore[arg-type]
+        audience=_parse_audience(item.audience),
+        category=_parse_category(item.category),
         title=item.title,
         description=item.description,
         read=item.is_read,
         created_at=item.created_at,
         action=action,
     )
+
+
+def _parse_audience(value: str) -> NotificationAudience:
+    if value == "user":
+        return "user"
+    if value == "admin":
+        return "admin"
+    raise ValueError("notification audience is invalid")
+
+
+def _parse_category(value: str) -> NotificationCategory:
+    if value == "任务":
+        return "任务"
+    if value == "知识":
+        return "知识"
+    if value == "系统":
+        return "系统"
+    if value == "安全":
+        return "安全"
+    raise ValueError("notification category is invalid")
 
 
 async def _ensure_default_notifications(
@@ -165,7 +187,9 @@ def _seed_row(
     }
 
 
-def _base_query(audience: NotificationAudience, user: User):
+def _base_query(
+    audience: NotificationAudience, user: User
+) -> Select[tuple[Notification]]:
     if audience == "admin":
         return select(Notification).where(
             Notification.audience == "admin",
@@ -183,7 +207,7 @@ async def list_notifications_endpoint(
     page_size: int = Query(50, ge=1, le=100),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     await _ensure_default_notifications(db, user=user, audience=audience)
     base = _base_query(audience, user)
     total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar() or 0
@@ -209,7 +233,7 @@ async def mark_notification_read_endpoint(
     notification_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     notification = await db.get(Notification, notification_id)
     if notification is None:
         raise NotFoundException(message="通知不存在")
@@ -232,7 +256,7 @@ async def mark_all_notifications_read_endpoint(
     audience: NotificationAudience = Query("user"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     await _ensure_default_notifications(db, user=user, audience=audience)
     result = await db.execute(_base_query(audience, user))
     for notification in result.scalars():

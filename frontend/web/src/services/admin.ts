@@ -1,12 +1,12 @@
 import { apiClient } from "../api/client";
+import {
+  assertApiSuccess,
+  unwrapApiData as unwrap,
+  type ApiResponse,
+  type ApiSchema,
+} from "../api/contracts";
+import type { paths } from "../api/generated/openapi";
 import type { KnowledgeBaseRecord } from "./knowledge";
-
-interface ApiResponse<T> {
-  readonly code: number;
-  readonly message: string;
-  readonly data: T | null;
-  readonly request_id: string;
-}
 
 interface PageData<T> {
   readonly items: readonly T[];
@@ -15,12 +15,49 @@ interface PageData<T> {
   readonly total: number;
 }
 
-const unwrap = <T>(response: ApiResponse<T>): T => {
-  if (response.code !== 0 || response.data === null) {
-    throw new Error(response.message || "请求失败，请稍后重试");
+type CreateUserRequest =
+  paths["/users"]["post"]["requestBody"]["content"]["application/json"];
+type UpdateUserRequest =
+  paths["/users/{user_id}"]["patch"]["requestBody"]["content"]["application/json"];
+type ResetPasswordRequest =
+  paths["/users/{user_id}/reset-password"]["post"]["requestBody"]["content"]["application/json"];
+type CreateRoleRequest =
+  paths["/roles"]["post"]["requestBody"]["content"]["application/json"];
+type UpdateRoleRequest =
+  paths["/roles/{role_id}"]["patch"]["requestBody"]["content"]["application/json"];
+type SetRolePermissionsRequest =
+  paths["/roles/{role_id}/permissions"]["put"]["requestBody"]["content"]["application/json"];
+
+type CreateAdminUserPayload = Readonly<
+  Omit<CreateUserRequest, "role_ids"> & {
+    readonly role_ids: readonly string[];
   }
-  return response.data;
-};
+>;
+
+type UpdateAdminUserPayload = Readonly<
+  Omit<UpdateUserRequest, "role_ids"> & {
+    readonly role_ids?: readonly string[];
+  }
+>;
+
+type CreateAdminRolePayload = Readonly<
+  Omit<CreateRoleRequest, "description" | "permission_ids"> & {
+    readonly description: string;
+    readonly permission_ids: readonly string[];
+  }
+>;
+
+type AdminDocumentPage = Readonly<
+  Omit<ApiSchema<"PaginatedData_AdminDocumentItem_">, "items"> & {
+    readonly items: readonly AdminDocument[];
+  }
+>;
+
+type AdminTaskPage = Readonly<
+  Omit<ApiSchema<"PaginatedData_AdminTaskItem_">, "items"> & {
+    readonly items: readonly AdminTask[];
+  }
+>;
 
 export interface RoleBrief {
   readonly id: string;
@@ -93,40 +130,9 @@ export interface AuditLogItem {
   readonly created_at: string | null;
 }
 
-export interface AdminDocument {
-  readonly id: string;
-  readonly knowledge_base_id: string;
-  readonly knowledge_base_name: string;
-  readonly title: string;
-  readonly original_filename: string;
-  readonly extension: string;
-  readonly mime_type: string;
-  readonly size_bytes: number;
-  readonly status: string;
-  readonly parser_name: string | null;
-  readonly page_count: number | null;
-  readonly error_message: string | null;
-  readonly created_at: string | null;
-  readonly updated_at: string | null;
-}
+export type AdminDocument = Readonly<Required<ApiSchema<"AdminDocumentItem">>>;
 
-export interface AdminTask {
-  readonly task_id: string;
-  readonly task_type: string;
-  readonly status: string;
-  readonly stage: string;
-  readonly progress: number;
-  readonly retry_count: number;
-  readonly error_message: string | null;
-  readonly request_id: string;
-  readonly created_at: string | null;
-  readonly finished_at: string | null;
-  readonly started_at: string | null;
-  readonly document_id: string;
-  readonly document_title: string;
-  readonly knowledge_base_id: string;
-  readonly knowledge_base_name: string;
-}
+export type AdminTask = Readonly<Required<ApiSchema<"AdminTaskItem">>>;
 
 export interface ModelProvider {
   readonly code: string;
@@ -161,13 +167,13 @@ export interface RetrievalDataset {
   readonly updated_at: string | null;
 }
 
-export interface RetrievalDatasetQuery {
-  readonly query: string;
-  readonly relevant_chunk_ids: readonly string[];
-  readonly notes?: string | null;
-}
+export type RetrievalDatasetQuery = Readonly<
+  Omit<ApiSchema<"RetrievalTestQuery">, "relevant_chunk_ids"> & {
+    readonly relevant_chunk_ids: readonly string[];
+  }
+>;
 
-export type RetrievalTestMode = "keyword" | "vector" | "hybrid";
+export type RetrievalTestMode = ApiSchema<"RetrievalTestConfig">["mode"];
 
 export interface RetrievalRun {
   readonly id: string;
@@ -204,15 +210,7 @@ export interface RetrievalPerQueryResult {
 export interface RetrievalTestResult {
   readonly id: string;
   readonly dataset_id: string;
-  readonly config: {
-    readonly mode: RetrievalTestMode;
-    readonly top_k: number;
-    readonly rerank: boolean;
-    readonly threshold: number;
-    readonly embedding_model_id: string | null;
-    readonly rerank_model_id: string | null;
-    readonly metadata_filter: Record<string, unknown> | null;
-  };
+  readonly config: Readonly<Required<ApiSchema<"RetrievalTestConfig">>>;
   readonly config_hash: string;
   readonly total: number;
   readonly metrics: RetrievalTestMetrics;
@@ -234,10 +232,12 @@ export interface RetrievalSearchHit {
   readonly kb_id: string | null;
 }
 
-export const listAdminUsers = async (params: {
-  readonly search?: string;
-  readonly status?: string;
-} = {}): Promise<PageData<AdminUser>> => {
+export const listAdminUsers = async (
+  params: {
+    readonly search?: string;
+    readonly status?: string;
+  } = {},
+): Promise<PageData<AdminUser>> => {
   const response = await apiClient.get<ApiResponse<PageData<AdminUser>>>(
     "/v1/users",
     { params: { page_size: 100, ...params } },
@@ -245,12 +245,9 @@ export const listAdminUsers = async (params: {
   return unwrap(response.data);
 };
 
-export const createAdminUser = async (payload: {
-  readonly username: string;
-  readonly display_name: string;
-  readonly password: string;
-  readonly role_ids: readonly string[];
-}): Promise<AdminUser> => {
+export const createAdminUser = async (
+  payload: CreateAdminUserPayload,
+): Promise<AdminUser> => {
   const response = await apiClient.post<ApiResponse<AdminUser>>("/v1/users", {
     ...payload,
     role_ids: [...payload.role_ids],
@@ -260,11 +257,7 @@ export const createAdminUser = async (payload: {
 
 export const updateAdminUser = async (
   userId: string,
-  payload: {
-    readonly display_name?: string;
-    readonly status?: string;
-    readonly role_ids?: readonly string[];
-  },
+  payload: UpdateAdminUserPayload,
 ): Promise<AdminUser> => {
   const response = await apiClient.patch<ApiResponse<AdminUser>>(
     `/v1/users/${userId}`,
@@ -281,11 +274,12 @@ export const resetAdminUserPassword = async (
   userId: string,
   newPassword: string,
 ): Promise<void> => {
-  const response = await apiClient.post<ApiResponse<null>>(
+  const request: ResetPasswordRequest = { new_password: newPassword };
+  const response = await apiClient.post<ApiSchema<"APIResponse_NoneType_">>(
     `/v1/users/${userId}/reset-password`,
-    { new_password: newPassword },
+    request,
   );
-  unwrap(response.data);
+  assertApiSuccess(response.data);
 };
 
 export const listAdminRoles = async (): Promise<PageData<AdminRole>> => {
@@ -311,11 +305,9 @@ export const listPermissions = async (): Promise<readonly PermissionItem[]> => {
   return unwrap(response.data);
 };
 
-export const createAdminRole = async (payload: {
-  readonly name: string;
-  readonly description: string;
-  readonly permission_ids: readonly string[];
-}): Promise<RoleDetail> => {
+export const createAdminRole = async (
+  payload: CreateAdminRolePayload,
+): Promise<RoleDetail> => {
   const response = await apiClient.post<ApiResponse<RoleDetail>>("/v1/roles", {
     ...payload,
     permission_ids: [...payload.permission_ids],
@@ -325,11 +317,7 @@ export const createAdminRole = async (payload: {
 
 export const updateAdminRole = async (
   roleId: string,
-  payload: {
-    readonly name?: string;
-    readonly description?: string;
-    readonly status?: string;
-  },
+  payload: Readonly<UpdateRoleRequest>,
 ): Promise<RoleDetail> => {
   const response = await apiClient.patch<ApiResponse<RoleDetail>>(
     `/v1/roles/${roleId}`,
@@ -342,9 +330,12 @@ export const setAdminRolePermissions = async (
   roleId: string,
   permissionIds: readonly string[],
 ): Promise<RoleDetail> => {
+  const request: SetRolePermissionsRequest = {
+    permission_ids: [...permissionIds],
+  };
   const response = await apiClient.put<ApiResponse<RoleDetail>>(
     `/v1/roles/${roleId}/permissions`,
-    { permission_ids: [...permissionIds] },
+    request,
   );
   return unwrap(response.data);
 };
@@ -356,9 +347,11 @@ export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
   return unwrap(response.data);
 };
 
-export const listAuditLogs = async (params: {
-  readonly result?: string;
-} = {}): Promise<PageData<AuditLogItem>> => {
+export const listAuditLogs = async (
+  params: {
+    readonly result?: string;
+  } = {},
+): Promise<PageData<AuditLogItem>> => {
   const response = await apiClient.get<ApiResponse<PageData<AuditLogItem>>>(
     "/v1/audit-logs",
     { params: { page_size: 100, ...params } },
@@ -366,22 +359,26 @@ export const listAuditLogs = async (params: {
   return unwrap(response.data);
 };
 
-export const listAdminDocuments = async (params: {
-  readonly search?: string;
-  readonly status?: string;
-} = {}): Promise<PageData<AdminDocument>> => {
-  const response = await apiClient.get<ApiResponse<PageData<AdminDocument>>>(
+export const listAdminDocuments = async (
+  params: {
+    readonly search?: string;
+    readonly status?: string;
+  } = {},
+): Promise<PageData<AdminDocument>> => {
+  const response = await apiClient.get<ApiResponse<AdminDocumentPage>>(
     "/v1/admin/documents",
     { params: { page_size: 100, ...params } },
   );
   return unwrap(response.data);
 };
 
-export const listAdminTasks = async (params: {
-  readonly search?: string;
-  readonly status?: string;
-} = {}): Promise<PageData<AdminTask>> => {
-  const response = await apiClient.get<ApiResponse<PageData<AdminTask>>>(
+export const listAdminTasks = async (
+  params: {
+    readonly search?: string;
+    readonly status?: string;
+  } = {},
+): Promise<PageData<AdminTask>> => {
+  const response = await apiClient.get<ApiResponse<AdminTaskPage>>(
     "/v1/admin/tasks",
     { params: { page_size: 100, ...params } },
   );
@@ -391,19 +388,17 @@ export const listAdminTasks = async (params: {
 export const listModelProviders = async (): Promise<
   readonly ModelProvider[]
 > => {
-  const response =
-    await apiClient.get<ApiResponse<readonly ModelProvider[]>>(
-      "/v1/models/providers",
-    );
+  const response = await apiClient.get<ApiResponse<readonly ModelProvider[]>>(
+    "/v1/models/providers",
+  );
   return unwrap(response.data);
 };
 
-export const upsertModelProvider = async (payload: {
-  readonly code: string;
-  readonly display_name: string;
-  readonly base_url: string;
-  readonly enabled: boolean;
-}): Promise<ModelProvider> => {
+export const upsertModelProvider = async (
+  payload: Readonly<
+    paths["/models/providers"]["post"]["requestBody"]["content"]["application/json"]
+  >,
+): Promise<ModelProvider> => {
   const response = await apiClient.post<ApiResponse<ModelProvider>>(
     "/v1/models/providers",
     payload,
@@ -455,17 +450,39 @@ export const updateModel = async (
 };
 
 export const deleteModel = async (modelId: string): Promise<void> => {
-  const response = await apiClient.delete<ApiResponse<null>>(
+  const response = await apiClient.delete<ApiSchema<"APIResponse_NoneType_">>(
     `/v1/models/${modelId}`,
   );
-  unwrap(response.data);
+  assertApiSuccess(response.data);
 };
 
-export const testModel = async (modelId: string): Promise<void> => {
-  const response = await apiClient.post<ApiResponse<unknown>>(
+export interface TestModelResult {
+  readonly ok: boolean;
+  readonly latency_ms: number;
+  readonly model_info: Readonly<Record<string, unknown>> | null;
+  readonly error_code: string | null;
+  readonly error_message: string | null;
+}
+
+export interface RetrievalRunSummary {
+  readonly id: string;
+  readonly status: "pending" | "running" | "done" | "failed";
+  readonly progress: number;
+  readonly result: RetrievalTestResult | null;
+  readonly error_message: string | null;
+}
+
+export type RetrievalRunDetail = RetrievalTestResult | RetrievalRunSummary;
+
+export const isRetrievalTestResult = (
+  value: RetrievalRunDetail,
+): value is RetrievalTestResult => "metrics" in value && "per_query" in value;
+
+export const testModel = async (modelId: string): Promise<TestModelResult> => {
+  const response = await apiClient.post<ApiResponse<TestModelResult>>(
     `/v1/models/${modelId}/test`,
   );
-  unwrap(response.data);
+  return unwrap(response.data);
 };
 
 export const listRetrievalDatasets = async (): Promise<
@@ -484,16 +501,17 @@ export const createRetrievalDataset = async (payload: {
   readonly kb_id: string;
   readonly queries: readonly RetrievalDatasetQuery[];
 }): Promise<RetrievalDataset> => {
+  const request: ApiSchema<"RetrievalTestDatasetCreate"> = {
+    ...payload,
+    queries: payload.queries.map((query) => ({
+      query: query.query,
+      relevant_chunk_ids: [...query.relevant_chunk_ids],
+      notes: query.notes ?? null,
+    })),
+  };
   const response = await apiClient.post<ApiResponse<RetrievalDataset>>(
     "/v1/retrieval-tests/datasets",
-    {
-      ...payload,
-      queries: payload.queries.map((query) => ({
-        query: query.query,
-        relevant_chunk_ids: [...query.relevant_chunk_ids],
-        notes: query.notes ?? null,
-      })),
-    },
+    request,
   );
   return unwrap(response.data);
 };
@@ -506,17 +524,18 @@ export const updateRetrievalDataset = async (
     readonly queries: readonly RetrievalDatasetQuery[];
   },
 ): Promise<RetrievalDataset> => {
+  const request: ApiSchema<"RetrievalTestDatasetUpdate"> = {
+    name: payload.name,
+    description: payload.description,
+    queries: payload.queries.map((query) => ({
+      query: query.query,
+      relevant_chunk_ids: [...query.relevant_chunk_ids],
+      notes: query.notes ?? null,
+    })),
+  };
   const response = await apiClient.patch<ApiResponse<RetrievalDataset>>(
     `/v1/retrieval-tests/datasets/${datasetId}`,
-    {
-      name: payload.name,
-      description: payload.description,
-      queries: payload.queries.map((query) => ({
-        query: query.query,
-        relevant_chunk_ids: [...query.relevant_chunk_ids],
-        notes: query.notes ?? null,
-      })),
-    },
+    request,
   );
   return unwrap(response.data);
 };
@@ -531,8 +550,8 @@ export const listRetrievalRuns = async (): Promise<PageData<RetrievalRun>> => {
 
 export const getRetrievalRun = async (
   runId: string,
-): Promise<RetrievalTestResult> => {
-  const response = await apiClient.get<ApiResponse<RetrievalTestResult>>(
+): Promise<RetrievalRunDetail> => {
+  const response = await apiClient.get<ApiResponse<RetrievalRunDetail>>(
     `/v1/retrieval-tests/runs/${runId}`,
   );
   return unwrap(response.data);
@@ -547,21 +566,22 @@ export const runRetrievalTest = async (payload: {
   readonly embedding_model_id?: string | null;
   readonly rerank_model_id?: string | null;
 }): Promise<RetrievalTestResult> => {
+  const request: ApiSchema<"RetrievalTestRequest"> = {
+    dataset_id: payload.dataset_id,
+    async_run: false,
+    config: {
+      mode: payload.mode,
+      top_k: payload.top_k,
+      threshold: payload.threshold,
+      metadata_filter: {},
+      rerank: payload.rerank,
+      rerank_model_id: payload.rerank_model_id ?? null,
+      embedding_model_id: payload.embedding_model_id ?? null,
+    },
+  };
   const response = await apiClient.post<ApiResponse<RetrievalTestResult>>(
     "/v1/retrieval-tests/run",
-    {
-      dataset_id: payload.dataset_id,
-      async_run: false,
-      config: {
-        mode: payload.mode,
-        top_k: payload.top_k,
-        threshold: payload.threshold,
-        metadata_filter: {},
-        rerank: payload.rerank,
-        rerank_model_id: payload.rerank_model_id ?? null,
-        embedding_model_id: payload.embedding_model_id ?? null,
-      },
-    },
+    request,
   );
   return unwrap(response.data);
 };
@@ -574,9 +594,7 @@ export const searchRetrievalCandidates = async (payload: {
   readonly threshold: number;
   readonly rerank: boolean;
 }): Promise<readonly RetrievalSearchHit[]> => {
-  const response = await apiClient.post<
-    ApiResponse<{ readonly hits: readonly RetrievalSearchHit[] }>
-  >("/v1/retrieval/search", {
+  const request: ApiSchema<"SearchRequest"> = {
     query: payload.query,
     mode: payload.mode,
     kb_id: payload.kb_id,
@@ -586,7 +604,10 @@ export const searchRetrievalCandidates = async (payload: {
     rerank: payload.rerank,
     rerank_model_id: null,
     embedding_model_id: null,
-  });
+  };
+  const response = await apiClient.post<
+    ApiResponse<{ readonly hits: readonly RetrievalSearchHit[] }>
+  >("/v1/retrieval/search", request);
   return unwrap(response.data).hits;
 };
 

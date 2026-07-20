@@ -10,6 +10,7 @@ from app.common.database import get_db
 from app.common.models import User
 from app.common.schemas import APIResponse
 from app.models import service
+from app.models.repository import Model, ModelProvider
 from app.models.schemas import (
     ModelCreate,
     ModelProviderCreate,
@@ -21,7 +22,7 @@ from app.rag._shared.audit_helper import audit
 router = APIRouter(prefix="/api/v1/models", tags=["models"])
 
 
-def _to_provider_response(p) -> dict:
+def _to_provider_response(p: ModelProvider) -> dict[str, object]:
     return {
         "code": p.code,
         "display_name": p.display_name,
@@ -32,7 +33,7 @@ def _to_provider_response(p) -> dict:
     }
 
 
-def _to_model_response(m) -> dict:
+def _to_model_response(m: Model) -> dict[str, object]:
     return {
         "id": m.id,
         "provider_code": m.provider_code,
@@ -54,9 +55,9 @@ def _to_model_response(m) -> dict:
 async def list_providers_endpoint(
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("model:read")),
+    _perm: None = Depends(require_permission("admin.model.view")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     providers = await service.list_providers(db)
     return APIResponse(data=[_to_provider_response(p) for p in providers]).model_dump()
 
@@ -66,9 +67,9 @@ async def upsert_provider_endpoint(
     request: Request,
     payload: ModelProviderCreate,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("model:write")),
+    _perm: None = Depends(require_permission("admin.model.create")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     provider = await service.upsert_provider(db, payload)
     await db.commit()
     await audit(
@@ -89,9 +90,9 @@ async def patch_provider_endpoint(
     request: Request,
     payload: ModelProviderUpdate,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("model:write")),
+    _perm: None = Depends(require_permission("admin.model.edit")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     provider = await service.patch_provider(db, code, payload)
     await db.commit()
     await audit(
@@ -106,9 +107,9 @@ async def delete_provider_endpoint(
     code: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("model:write")),
+    _perm: None = Depends(require_permission("admin.model.delete")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     await service.delete_provider(db, code)
     await db.commit()
     await audit(
@@ -125,9 +126,9 @@ async def list_models_endpoint(
     provider_code: str | None = None,
     kind: str | None = None,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("model:read")),
+    _perm: None = Depends(require_permission("admin.model.view")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     models = await service.list_models(db, provider_code=provider_code, kind=kind)
     return APIResponse(data=[_to_model_response(m) for m in models]).model_dump()
 
@@ -137,9 +138,9 @@ async def create_model_endpoint(
     request: Request,
     payload: ModelCreate,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("model:write")),
+    _perm: None = Depends(require_permission("admin.model.create")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     model = await service.create_model(db, payload)
     await db.commit()
     await audit(
@@ -160,9 +161,9 @@ async def patch_model_endpoint(
     request: Request,
     payload: ModelUpdate,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("model:write")),
+    _perm: None = Depends(require_permission("admin.model.edit")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     model = await service.update_model(db, model_id, payload)
     await db.commit()
     await audit(db, action="model_patch", user_id=user.id, resource_id=model_id, request=request)
@@ -175,9 +176,9 @@ async def delete_model_endpoint(
     model_id: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("model:write")),
+    _perm: None = Depends(require_permission("admin.model.delete")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     await service.delete_model(db, model_id)
     await db.commit()
     await audit(db, action="model_delete", user_id=user.id, resource_id=model_id, request=request)
@@ -190,9 +191,9 @@ async def test_model_endpoint(
     model_id: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("model:test")),
+    _perm: None = Depends(require_permission("admin.model.edit")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     result = await service.test_model(db, model_id)
     await audit(
         db,

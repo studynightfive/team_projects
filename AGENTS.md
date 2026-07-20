@@ -56,7 +56,7 @@ git switch -c feature/<issue>-<name>
 ## 5. 固定版本
 
 - Node.js `22.23.1`，pnpm `11.13.0`。
-- Python `3.10.20`，uv `0.8.22`。
+- Python `3.10.20`，uv `0.11.26`。
 - Vue `3.5.39`、Vue Router `4.6.3`、Pinia `3.0.4`、Ant Design Vue `4.2.6`、Lucide Vue `1.24.0`。
 - Axios `1.18.1`、Markdown-It `14.1.0`、DOMPurify `3.3.0`、FileSaver `2.0.5`。
 - Vite `7.3.6`、TypeScript `5.9.3`、Vue TSC `3.3.7`、ESLint `9.39.1`、Prettier `3.6.2`、Vitest `4.1.10`。

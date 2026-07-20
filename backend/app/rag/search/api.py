@@ -23,7 +23,7 @@ async def search_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("retrieval.search", "retrieval:read")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     response = await service.search(db, user=user, req=payload)
     await audit(
         db,
@@ -45,7 +45,7 @@ async def answer_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("retrieval.search", "chat.use", "chat:write")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     response = await service.answer(db, user=user, req=payload)
     await audit(
         db,

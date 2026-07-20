@@ -1868,7 +1868,7 @@ p {
 }
 
 .auth-mode-switch button {
-  min-height: 36px;
+  min-height: 44px;
   border-radius: 8px;
   color: var(--color-text-secondary);
   background: transparent;

@@ -302,7 +302,7 @@ onBeforeUnmount(() => {
             isRealApiMode ? "真实记录" : "本地记录"
           }}
         </span>
-        <span>第 1 / 1 页</span>
+        <span>已加载全部记录</span>
       </template>
     </ResourcePanel>
   </div>

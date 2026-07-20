@@ -64,8 +64,10 @@ def setup_logging(
 
 
 def _filter_sensitive_fields(
-    logger: logging.Logger, method_name: str, event_dict: dict
-) -> dict:
+    _logger: logging.Logger,
+    _method_name: str,
+    event_dict: dict[str, Any],
+) -> dict[str, Any]:
     """
     过滤敏感字段，防止 Secret 泄露
 

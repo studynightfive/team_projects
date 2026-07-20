@@ -7,11 +7,14 @@ import json
 import math
 import re
 
+from pydantic import TypeAdapter
+
 from app.common.config import Settings
 from app.common.config import settings as app_settings
 from app.documents.chunking import Chunk
 
 _TOKEN_RE = re.compile(r"[\w\u4e00-\u9fff]+", re.UNICODE)
+_EMBEDDING_ADAPTER = TypeAdapter(list[float])
 
 
 def tokenize(text: str) -> list[str]:
@@ -39,7 +42,9 @@ class DocumentIndexingService:
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings if settings is not None else app_settings
 
-    def build_search_document(self, chunk: Chunk, *, document_id: str, title: str) -> dict:
+    def build_search_document(
+        self, chunk: Chunk, *, document_id: str, title: str
+    ) -> dict[str, object]:
         tokens = tokenize(chunk.content)
         return {
             "document_id": document_id,
@@ -61,4 +66,4 @@ class DocumentIndexingService:
     def deserialize_embedding(self, payload: str | None) -> list[float] | None:
         if not payload:
             return None
-        return list(json.loads(payload))
+        return _EMBEDDING_ADAPTER.validate_json(payload)

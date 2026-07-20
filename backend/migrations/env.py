@@ -22,12 +22,39 @@ from app.common.config import settings  # noqa: E402
 
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
-# 导入所有模型元数据（用于自动检测 schema 变更）
-# 导入模型确保它们注册到 Base.metadata
-import app.common.models  # noqa: E402, F401
 from app.common.database import Base  # noqa: E402
+from app.common.model_registry import load_all_models  # noqa: E402
+
+# Alembic 只会比较已注册到 Base.metadata 的模型；必须显式加载全部业务模块。
+load_all_models()
 
 target_metadata = Base.metadata
+
+_MIGRATION_MANAGED_INDEXES = frozenset(
+    {
+        "ix_chunks_tsv",
+        "ix_chunks_metadata",
+        "ix_chunks_embedding",
+        "uq_knowledge_bases_name_normalized",
+        "ix_document_chunks_embedding_vector",
+    }
+)
+
+
+def include_object(
+    _object: object,
+    _name: str | None,
+    object_type: str,
+    reflected: bool,
+    compare_to: object | None,
+) -> bool:
+    """仅忽略由手写迁移管理且无法完整映射到 ORM 的特殊索引。"""
+    return not (
+        object_type == "index"
+        and reflected
+        and compare_to is None
+        and _name in _MIGRATION_MANAGED_INDEXES
+    )
 
 
 def run_migrations_offline() -> None:
@@ -41,6 +68,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -49,7 +77,11 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     """执行迁移"""
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_object=include_object,
+    )
 
     with context.begin_transaction():
         context.run_migrations()

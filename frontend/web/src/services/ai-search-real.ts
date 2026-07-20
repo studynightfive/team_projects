@@ -9,6 +9,11 @@
  */
 
 import { apiClient } from "../api/client";
+import {
+  unwrapApiData as unwrap,
+  type ApiResponse,
+  type ApiSchema,
+} from "../api/contracts";
 import { aiSearchMockData } from "../mocks/ai-search";
 import type {
   AiAnswer,
@@ -23,20 +28,8 @@ import type {
 // ============================================================
 // 后端请求/响应类型（与 backend/app/rag/search/schemas.py 对齐）
 // ============================================================
-type BackendSearchMode = "keyword" | "vector" | "hybrid";
-
-interface BackendSearchRequest {
-  query: string;
-  mode: BackendSearchMode;
-  kb_id?: string | null;
-  top_k: number;
-  threshold: number;
-  metadata_filter?: Record<string, unknown> | null;
-  rerank: boolean;
-  rerank_model_id?: string | null;
-  embedding_model_id?: string | null;
-  chat_model_id?: string | null;
-}
+type BackendSearchMode = ApiSchema<"RagAnswerRequest">["mode"];
+type BackendSearchRequest = ApiSchema<"RagAnswerRequest">;
 
 interface BackendModelItem {
   readonly id: string;
@@ -71,15 +64,8 @@ interface BackendRagAnswerResponse {
   mode: BackendSearchMode;
   took_ms: number;
   model: string | null;
+  conversation_id: string | null;
   generated: boolean;
-}
-
-// 后端统一响应包裹
-interface APIResponse<T> {
-  code: number;
-  message: string;
-  data: T;
-  request_id: string;
 }
 
 // ============================================================
@@ -93,13 +79,6 @@ const FRONTEND_TO_BACKEND_MODE: Record<string, BackendSearchMode> = {
 
 const toBackendMode = (mode: string): BackendSearchMode =>
   FRONTEND_TO_BACKEND_MODE[mode] ?? "hybrid";
-
-const unwrap = <T>(response: APIResponse<T>): T => {
-  if (response.code !== 0 || response.data === null) {
-    throw new Error(response.message || "请求失败，请稍后重试");
-  }
-  return response.data;
-};
 
 const providerLabel = (code: string): string =>
   ({ deepseek: "DeepSeek", dashscope: "阿里云 DashScope", openai: "OpenAI" })[
@@ -117,10 +96,9 @@ const toModelOption = (model: BackendModelItem): ModelOption => ({
 export const listRealChatModelOptions = async (
   signal?: AbortSignal,
 ): Promise<readonly ModelOption[]> => {
-  const response = await apiClient.get<APIResponse<readonly BackendModelItem[]>>(
-    "/v1/models",
-    { params: { kind: "chat" }, signal },
-  );
+  const response = await apiClient.get<
+    ApiResponse<readonly BackendModelItem[]>
+  >("/v1/models", { params: { kind: "chat" }, signal });
   const models = unwrap(response.data).filter((model) => model.enabled);
   const options = models.map(toModelOption);
   return options.length > 0
@@ -137,9 +115,6 @@ export const listRealChatModelOptions = async (
 // ============================================================
 // 将后端 SearchHit 转为前端 SearchResult
 // ============================================================
-const normalizeRelevance = (score: number): number =>
-  Math.max(0, Math.min(100, Math.round(score * 100)));
-
 const extractKeywords = (query: string): readonly string[] => {
   const keywords = query
     .split(/\s+/u)
@@ -157,18 +132,22 @@ const toFrontendHit = (
   id: hit.chunk_id || `hit-${index}`,
   title: hit.doc_title ?? "未知文档",
   snippet: hit.text?.slice(0, 300) ?? "",
-  sourceName: "企业知识库",
+  sourceName: "知识库文档",
   sourceType: "knowledge" as const,
   fileType: "文档片段",
   spaceName: hit.kb_id ?? "已授权知识库",
-  department: "知识库",
-  owner: "知识库平台",
-  updatedAt: new Date().toISOString(),
-  relevance: normalizeRelevance(hit.score ?? 0),
+  department: "未提供",
+  owner: "未提供",
+  updatedAt: "",
+  relevance: hit.score ?? 0,
+  scoreLabel: (hit.score ?? 0).toFixed(4),
+  scoreDescription: "RRF 排序分",
   permissionStatus: "available",
-  verifiedStatus: hit.score > 0.7 ? "verified" : "pending",
+  verifiedStatus: "pending",
   matchedKeywords: extractKeywords(query),
   documentContent: hit.text ? [hit.text] : [],
+  documentId: hit.doc_id,
+  knowledgeBaseId: hit.kb_id ?? undefined,
 });
 
 const toCitation = (hit: SearchResultItem): CitationSource => ({
@@ -185,6 +164,8 @@ const toCitation = (hit: SearchResultItem): CitationSource => ({
   verifiedStatus: hit.verifiedStatus,
   permissionStatus: hit.permissionStatus,
   documentContent: hit.documentContent,
+  documentId: hit.documentId,
+  knowledgeBaseId: hit.knowledgeBaseId,
 });
 
 // ============================================================
@@ -213,14 +194,13 @@ export const runRealSearch = async (
         : null,
   };
 
-  const response = await apiClient.post<APIResponse<BackendRagAnswerResponse>>(
+  const response = await apiClient.post<ApiResponse<BackendRagAnswerResponse>>(
     "/v1/retrieval/answer",
     backendReq,
     { signal },
   );
 
-  const payload: APIResponse<BackendRagAnswerResponse> = response.data;
-  const searchData = payload.data;
+  const searchData = unwrap(response.data);
 
   const hits = (searchData.hits ?? []).map((hit, index) =>
     toFrontendHit(hit, index, query),
@@ -228,7 +208,7 @@ export const runRealSearch = async (
   const citations = hits.map(toCitation);
 
   const answer: AiAnswer = {
-    id: `answer-${Date.now()}`,
+    id: searchData.conversation_id ?? `answer-${Date.now()}`,
     query,
     title: `关于"${query}"的知识库回答`,
     summary:

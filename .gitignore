@@ -16,6 +16,11 @@ build/
 .ruff_cache/
 htmlcov/
 .coverage
+storage/
+exports/
+backups/
+logs/
+storage_backup_*/
 
 # Node.js
 node_modules/
