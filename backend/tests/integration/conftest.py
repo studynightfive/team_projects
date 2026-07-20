@@ -59,6 +59,8 @@ async def pg_session() -> AsyncIterator[AsyncSession]:
     factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with factory() as session:
+        # 显式设 search_path,确保所有表操作都进临时 schema (避免与 public 同名表冲突)
+        await session.execute(text(f"""SET search_path TO "{schema}", public"""))
         yield session
         await session.rollback()
 
