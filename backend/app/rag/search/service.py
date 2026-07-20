@@ -41,7 +41,7 @@ logger = structlog.get_logger()
 RRF_K = 60
 SearchRow: TypeAlias = dict[str, object]
 
-def _embedding_literal(value):
+def _embedding_literal(value: object) -> str:
     """序列化 embedding 为 pgvector 字面量"""
     if isinstance(value, str):
         return value
@@ -51,21 +51,10 @@ def _embedding_literal(value):
         return "[" + ",".join(str(float(x)) for x in value) + "]"
     return str(value)
 
-def _row_to_hit(row):
-    """chunks 表行映射成 SearchHit dict"""
-    return {
-        "doc_id": row.get("doc_id"),
-        "chunk_id": row.get("chunk_id"),
-        "page": row.get("page"),
-        "score": float(row.get("score") or 0.0),
-        "text": row.get("content") or "",
-        "kb_id": row.get("kb_id"),
-    }
-
-def rrf_fuse_many(*lists, k=RRF_K):
+def rrf_fuse_many(*lists: list[dict], k: int = RRF_K) -> list[dict]:
     """多列表 RRF 融合"""
-    scores = {}
-    by_chunk = {}
+    scores: dict[str, float] = {}
+    by_chunk: dict[str, dict] = {}
     for hits in lists:
         for rank, hit in enumerate(hits, start=1):
             cid = hit.get("chunk_id")
