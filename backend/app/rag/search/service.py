@@ -51,7 +51,7 @@ def _embedding_literal(value: object) -> str:
         return "[" + ",".join(str(float(x)) for x in value) + "]"
     return str(value)
 
-def rrf_fuse_many(*lists: list[dict[str, object]], k: int = RRF_K) -> list[dict[str, object]]:
+def rrf_fuse_many(lists: list[list[dict[str, object]]], k: int = RRF_K) -> list[dict[str, object]]:
     """多列表 RRF 融合"""
     scores: dict[str, float] = {}
     by_chunk: dict[str, dict[str, object]] = {}
@@ -141,6 +141,11 @@ def _row_to_hit(row: SearchRow, *, kb_id: str | None = None) -> SearchHit:
     payload = dict(row)
     payload["score"] = row.get("score") or 0.0
     payload["text"] = row.get("content") or ""
+    metadata = row.get("metadata") or {}
+    if isinstance(metadata, dict):
+        doc_title = metadata.get("doc_title")
+        if doc_title and "doc_title" not in payload:
+            payload["doc_title"] = doc_title
     if kb_id is not None:
         payload["kb_id"] = kb_id
     return SearchHit.model_validate(payload)

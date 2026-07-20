@@ -38,14 +38,14 @@ def _make_settings(tmp_path) -> Settings:
 async def _seed_user_and_kb(session, *, kb_name: str = "e2e-kb") -> tuple[User, KnowledgeBase]:
     upload_perm = Permission(
         id=str(uuid.uuid4()),
-        code=f"e2e.upload.{uuid.uuid4().hex[:6]}",
+        code="admin.document.upload",
         name="上传文档",
         module="admin",
         action="document.upload",
     )
     view_perm = Permission(
         id=str(uuid.uuid4()),
-        code=f"e2e.view.{uuid.uuid4().hex[:6]}",
+        code="admin.document.view",
         name="查看文档",
         module="admin",
         action="document.view",
