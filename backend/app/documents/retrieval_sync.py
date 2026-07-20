@@ -7,7 +7,8 @@
 """
 
 from __future__ import annotations
-from typing import Any, Dict
+
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,7 +32,7 @@ def build_retrieval_metadata(
     chunk: DocumentChunk,
     *,
     doc_title: str | None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return {
         "heading": chunk.heading,
         "chunk_no": chunk.chunk_no,
