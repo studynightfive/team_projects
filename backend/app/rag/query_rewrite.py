@@ -72,7 +72,9 @@ async def rewrite_query(
     base = rewrite_query_rules(query)
     on = settings.rag_query_rewrite_enabled if enabled is None else enabled
     if not on:
-        return RewriteResult(original=query.strip(), primary=query.strip(), variants=[], source="off")
+        return RewriteResult(
+        original=query.strip(), primary=query.strip(), variants=[], source="off"
+    )
 
     mid = model_id or settings.rag_query_rewrite_model_id
     if not mid:

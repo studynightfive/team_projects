@@ -48,7 +48,7 @@ class MilvusVectorStore:
         self.dim = settings.milvus_embedding_dim
 
     def _connect(self) -> Any:
-        connections, utility, Collection, CollectionSchema, FieldSchema, DataType = _import_milvus()
+        connections, utility, Collection, CollectionSchema, FieldSchema, DataType = _import_milvus()  # noqa: N806
         uri = settings.milvus_uri
         token = settings.milvus_token or None
         connections.connect(alias="default", uri=uri, token=token)
@@ -56,7 +56,7 @@ class MilvusVectorStore:
 
     def _ensure_collection(self) -> Any:
         global _collection_ready
-        connections, utility, Collection, CollectionSchema, FieldSchema, DataType = self._connect()
+        connections, utility, Collection, CollectionSchema, FieldSchema, DataType = self._connect()  # noqa: N806
         with _lock:
             if utility.has_collection(self.collection_name):
                 col = Collection(self.collection_name)
@@ -64,7 +64,7 @@ class MilvusVectorStore:
                 _collection_ready = True
                 return col
             fields = [
-                FieldSchema(name="chunk_id", dtype=DataType.VARCHAR, is_primary=True, max_length=64),
+                FieldSchema(name="chunk_id", dtype=DataType.VARCHAR, is_primary=True, max_length=64),  # noqa: E501
                 FieldSchema(name="doc_id", dtype=DataType.VARCHAR, max_length=36),
                 FieldSchema(name="kb_id", dtype=DataType.VARCHAR, max_length=36),
                 FieldSchema(name="page", dtype=DataType.INT64),
@@ -79,7 +79,7 @@ class MilvusVectorStore:
                 {
                     "index_type": "HNSW",
                     "metric_type": "COSINE",
-                    "params": {"M": settings.milvus_hnsw_m, "efConstruction": settings.milvus_hnsw_ef_construction},
+                    "params": {"M": settings.milvus_hnsw_m, "efConstruction": settings.milvus_hnsw_ef_construction},  # noqa: E501
                 },
             )
             col.load()

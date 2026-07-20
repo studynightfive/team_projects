@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 from httpx import AsyncClient
 
@@ -25,7 +24,7 @@ async def main() -> None:
                 headers=headers,
                 json={},
             )
-            print("reprocess", doc_id, resp.status_code, resp.json().get("code"), resp.json().get("message"))
+            print("reprocess", doc_id, resp.status_code, resp.json().get("code"), resp.json().get("message"))  # noqa: E501
 
         for round_idx in range(24):
             await asyncio.sleep(5)

@@ -27,7 +27,7 @@ def test_intent_clarification_short() -> None:
 
 
 def test_rewrite_strips_filler() -> None:
-    original = "\u8bf7\u95ee\u5e2e\u6211\u67e5\u4e00\u4e0b\u8bf7\u5047\u6d41\u7a0b"  # 请问帮我查一下请假流程
+    original = "\u8bf7\u95ee\u5e2e\u6211\u67e5\u4e00\u4e0b\u8bf7\u5047\u6d41\u7a0b"  # noqa: E501  # 请问帮我查一下请假流程
     r = rewrite_query_rules(original)
     assert "\u8bf7\u95ee" not in r.primary  # 请问
     assert "\u5e2e\u6211" not in r.primary  # 帮我

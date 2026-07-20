@@ -32,7 +32,7 @@ def _strip_think_blocks(text: str) -> str:
 
 def _cache_key(*, user_id: str, kb_id: str | None, query: str) -> str:
     digest = hashlib.sha256(
-        f"{user_id}|{kb_id or ''}|{normalize_query(query)}".encode("utf-8")
+        f"{user_id}|{kb_id or ''}|{normalize_query(query)}".encode()
     ).hexdigest()
     return f"rag:answer_cache:{digest}"
 

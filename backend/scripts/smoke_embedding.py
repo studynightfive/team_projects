@@ -3,6 +3,7 @@ import os
 
 from app.models.providers.openai import build_provider
 
+
 async def main() -> None:
     key = os.environ.get("DASHSCOPE_API_KEY", "")
     base = os.environ.get("DASHSCOPE_BASE_URL", "")

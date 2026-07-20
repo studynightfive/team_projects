@@ -100,7 +100,7 @@ async def test_upload_markdown_then_keyword_vector_hybrid(pg_session, tmp_path) 
         f"# Product Manual\n\n"
         f"This paragraph contains {UNIQUE_TOKEN} for keyword retrieval.\n\n"
         f"Secondary sentence about widget configuration.\n"
-    ).encode("utf-8")
+    ).encode()
 
     result = await service.upload(
         user,

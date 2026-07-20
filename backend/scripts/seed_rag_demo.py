@@ -13,16 +13,15 @@ import uuid
 
 from sqlalchemy import select, text
 
+# 触发 ORM 表注册
+import app.documents.models  # noqa: F401
+import app.rag.search.repository  # noqa: F401
 from app.common.database import async_session_factory, engine
 from app.common.models import KnowledgeBasePermission
 from app.common.seed import seed_default_admin, seed_permissions
 from app.knowledge.models import KnowledgeBase
 from app.models.repository import Model, ModelProvider
 from app.models.security import encrypt_api_key
-
-# 触发 ORM 表注册
-import app.documents.models  # noqa: F401
-import app.rag.search.repository  # noqa: F401
 
 
 async def ensure_schema() -> None:
@@ -48,7 +47,9 @@ async def seed(
         await seed_permissions(db)
         admin = await seed_default_admin(db, username="admin", password="admin123")
 
-        kb_result = await db.execute(select(KnowledgeBase).where(KnowledgeBase.name == "RAG演示知识库"))
+        kb_result = await db.execute(
+        select(KnowledgeBase).where(KnowledgeBase.name == "RAG演示知识库")
+    )
         kb = kb_result.scalar_one_or_none()
         if kb is None:
             kb = KnowledgeBase(
