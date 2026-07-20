@@ -11,6 +11,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
     Table,
     Text,
@@ -68,6 +69,7 @@ class User(Base):
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="active", index=True
     )  # active, disabled
+    session_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -166,16 +168,17 @@ class KnowledgeBasePermission(Base):
         UniqueConstraint(
             "subject_type", "subject_id", "kb_id", name="uq_kb_permission_subject_kb"
         ),
+        Index("ix_kb_permissions_subject_type", "subject_type"),
+        Index("ix_kb_permissions_subject_id", "subject_id"),
+        Index("ix_kb_permissions_kb_id", "kb_id"),
     )
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    subject_type: Mapped[str] = mapped_column(
-        String(20), nullable=False, index=True
-    )  # user, role
-    subject_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
-    kb_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    subject_type: Mapped[str] = mapped_column(String(20), nullable=False)  # user, role
+    subject_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    kb_id: Mapped[str] = mapped_column(String(36), nullable=False)
     access_level: Mapped[str] = mapped_column(
         String(20), nullable=False, default="read"
     )  # read, write, admin
@@ -204,6 +207,7 @@ class RefreshToken(Base):
     __table_args__ = (
         Index("ix_refresh_tokens_user_id", "user_id"),
         Index("ix_refresh_tokens_expires_at", "expires_at"),
+        Index("ix_refresh_tokens_token_hash", "token_hash", unique=True),
     )
 
     id: Mapped[str] = mapped_column(
@@ -212,7 +216,7 @@ class RefreshToken(Base):
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    token_hash: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(

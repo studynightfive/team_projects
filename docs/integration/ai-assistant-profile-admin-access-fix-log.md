@@ -30,7 +30,7 @@
 - `pnpm.cmd run build:web` 通过。
 - Docker 前端镜像重新构建并重启 `kb-web`。
 - `http://127.0.0.1/login` 返回 200。
-- 真实登录接口验证：`admin/admin123` 带管理员权限，`liuhaiwang/1234567` 不带管理员权限。
+- 真实登录接口验证：使用本地配置的演示口令后，`admin` 带管理员权限，`liuhaiwang` 不带管理员权限；口令值不记录在文档中。
 
 ## 剩余限制
 

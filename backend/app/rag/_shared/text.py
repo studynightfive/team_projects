@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import TypeVar
+
 # 经验值：1 token ≈ 1 字符（CJK 与英文混合样本，保守估计）
 CHARS_PER_TOKEN = 1.0
 
@@ -21,12 +24,16 @@ def truncate_to_tokens(text: str, max_tokens: int) -> str:
     return text[:max_chars]
 
 
-def fit_messages_to_budget(messages: list[dict], max_tokens: int) -> list[dict]:
+MessageT = TypeVar("MessageT", bound=Mapping[str, object])
+
+
+def fit_messages_to_budget(messages: list[MessageT], max_tokens: int) -> list[MessageT]:
     """从最新到最旧贪心填充，直到 token 预算耗尽。"""
-    kept: list[dict] = []
+    kept: list[MessageT] = []
     used = 0
     for msg in reversed(messages):
-        cost = estimate_tokens(msg.get("content", ""))
+        content = msg.get("content", "")
+        cost = estimate_tokens(content if isinstance(content, str) else "")
         if used + cost > max_tokens and kept:
             break
         kept.append(msg)

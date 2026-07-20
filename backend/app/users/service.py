@@ -2,10 +2,12 @@
 # 员工3 负责
 # 用户的 CRUD 操作和密码重置
 
+from datetime import datetime, timezone
 from typing import cast
 
 import structlog
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.security import hash_password
@@ -14,7 +16,7 @@ from app.common.exceptions import (
     NotFoundException,
     ValidationException,
 )
-from app.common.models import Role, User
+from app.common.models import RefreshToken, Role, User
 from app.common.schemas import ErrorCode
 from app.users.schemas import (
     CreateUserRequest,
@@ -119,7 +121,17 @@ async def create_user(db: AsyncSession, data: CreateUserRequest) -> UserResponse
         user.roles = list(roles)
 
     db.add(user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        duplicate = await db.execute(select(User.id).where(User.username == username))
+        if duplicate.scalar_one_or_none() is not None:
+            raise ConflictException(
+                code=ErrorCode.USER_ALREADY_EXISTS,
+                message="用户名已存在",
+            ) from exc
+        raise
     await db.refresh(user)
 
     return _to_user_response(user)
@@ -135,14 +147,15 @@ async def update_user(
     db: AsyncSession, user_id: str, data: UpdateUserRequest
 ) -> UserResponse:
     """更新用户"""
-    user = await _get_user_or_404(db, user_id)
+    user = await _get_user_or_404(db, user_id, for_update=True)
+    invalidate_sessions = False
 
-    if data.display_name is not None:
-        user.display_name = data.display_name
     if data.status is not None:
         if data.status not in ("active", "disabled"):
             raise ValidationException(message="用户状态必须为 active 或 disabled")
-        user.status = data.status
+        if user.status != data.status:
+            user.status = data.status
+            invalidate_sessions = True
     if data.role_ids is not None:
         result = await db.execute(
             select(Role).where(Role.id.in_(data.role_ids))
@@ -153,7 +166,12 @@ async def update_user(
                 code=ErrorCode.ROLE_NOT_FOUND,
                 message="部分角色不存在",
             )
-        user.roles = list(roles)
+        if {role.id for role in user.roles} != {role.id for role in roles}:
+            user.roles = list(roles)
+            invalidate_sessions = True
+
+    if invalidate_sessions:
+        await _invalidate_user_sessions(db, user)
 
     await db.commit()
     await db.refresh(user)
@@ -164,21 +182,30 @@ async def reset_user_password(
     db: AsyncSession, user_id: str, new_password: str
 ) -> None:
     """重置用户密码"""
-    user = await _get_user_or_404(db, user_id)
+    user = await _get_user_or_404(db, user_id, for_update=True)
 
     if len(new_password) < 7:
         raise ValidationException(message="密码长度至少 7 位")
 
     user.password_hash = hash_password(new_password)
+    await _invalidate_user_sessions(db, user)
     await db.commit()
 
 
 # ============================================================
 # 辅助函数
 # ============================================================
-async def _get_user_or_404(db: AsyncSession, user_id: str) -> User:
+async def _get_user_or_404(
+    db: AsyncSession,
+    user_id: str,
+    *,
+    for_update: bool = False,
+) -> User:
     """获取用户或抛出 404"""
-    result = await db.execute(select(User).where(User.id == user_id))
+    query = select(User).where(User.id == user_id)
+    if for_update:
+        query = query.with_for_update()
+    result = await db.execute(query)
     user = result.scalar_one_or_none()
     if user is None:
         raise NotFoundException(
@@ -186,6 +213,19 @@ async def _get_user_or_404(db: AsyncSession, user_id: str) -> User:
             message="用户不存在",
         )
     return user
+
+
+async def _invalidate_user_sessions(db: AsyncSession, user: User) -> None:
+    """递增会话版本并撤销刷新令牌；调用方负责在同一事务提交。"""
+    user.session_version += 1
+    await db.execute(
+        update(RefreshToken)
+        .where(
+            RefreshToken.user_id == user.id,
+            RefreshToken.revoked_at.is_(None),
+        )
+        .values(revoked_at=datetime.now(timezone.utc))
+    )
 
 
 def _to_user_response(user: User) -> UserResponse:

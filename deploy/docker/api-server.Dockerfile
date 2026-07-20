@@ -54,52 +54,17 @@ LABEL app="knowledge-base-platform-api-server" \
 # 设置工作目录
 WORKDIR /app
 
-# 安装运行时系统依赖（方案第13.2节 - 文档处理工具）
-# 固定 Debian 发行版，安装该发行版中的兼容系统包
+# API 只接收上传并入队；LibreOffice、OCR、Poppler 等转换工具只放在 Worker。
+# 这里保留数据库、MIME 识别、健康检查和 WeasyPrint 导入所需的最小运行库。
 RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
     && apt-get -o Acquire::Retries=5 update \
     && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
-    # ----------------------------------------------------------
-    # PostgreSQL 客户端库：运行时数据库连接需要
-    # ----------------------------------------------------------
-    libpq-dev \
-    # ----------------------------------------------------------
-    # LibreOffice：旧 Office 格式和开放文档转换
-    # 用于 .doc、.ppt、.xls 和 .odt/.ods/.odp 等格式
-    # ----------------------------------------------------------
-    libreoffice \
-    # ----------------------------------------------------------
-    # Tesseract OCR：图片和扫描 PDF 文字识别
-    # 安装中英文语言包
-    # ----------------------------------------------------------
-    tesseract-ocr \
-    tesseract-ocr-eng \
-    tesseract-ocr-chi-sim \
-    tesseract-ocr-chi-tra \
-    # ----------------------------------------------------------
-    # Poppler：PDF 页面和文本提取工具
-    # 提供 pdftotext、pdfinfo 等命令行工具
-    # ----------------------------------------------------------
-    poppler-utils \
-    # ----------------------------------------------------------
-    # Ghostscript：PostScript 和 PDF 兼容处理
-    # ----------------------------------------------------------
-    ghostscript \
-    # ----------------------------------------------------------
-    # libmagic：MIME 类型识别（python-magic 的底层依赖）
-    # 用于判断上传文件的实际类型，防止扩展名伪装
-    # ----------------------------------------------------------
+    libpq5 \
     libmagic1 \
-    # ----------------------------------------------------------
-    # Noto CJK 字体：中文、日文、韩文导出字体
-    # 确保 PDF 和图片导出时中文正常显示
-    # ----------------------------------------------------------
-    fonts-noto-cjk \
-    # ----------------------------------------------------------
-    # 其他工具
-    # ----------------------------------------------------------
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libharfbuzz-subset0 \
     curl \
-    # 清理 apt 缓存，减小镜像体积
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -141,3 +106,22 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
 # --log-level info：日志级别
 CMD ["/app/backend/.venv/bin/uvicorn", "app.main:app", \
      "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--log-level", "info"]
+
+# ----------------------------------------------------------
+# 阶段 3：测试镜像 - 在运行时环境上补充开发依赖
+# 测试依赖在构建期锁定，运行测试时不再访问包仓库。
+# ----------------------------------------------------------
+FROM runtime AS test
+
+USER root
+
+RUN cd /app && uv sync --project backend --frozen \
+    && chown -R appuser:appuser /app/backend
+
+COPY docs/ /app/docs/
+COPY samples/ /app/samples/
+COPY scripts/ /app/scripts/
+
+USER appuser
+
+HEALTHCHECK NONE

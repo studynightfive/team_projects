@@ -94,10 +94,14 @@ export interface CitationSource {
   readonly owner: string;
   readonly updatedAt: string;
   readonly relevance: number;
+  readonly scoreLabel?: string;
+  readonly scoreDescription?: string;
   readonly verifiedStatus: VerifiedStatus;
   readonly permissionStatus: PermissionStatus;
   readonly documentContent: readonly string[];
   readonly url?: string;
+  readonly documentId?: string;
+  readonly knowledgeBaseId?: string;
 }
 
 export type Citation = CitationSource;
@@ -142,10 +146,14 @@ export interface SearchResultItem {
   readonly owner: string;
   readonly updatedAt: string;
   readonly relevance: number;
+  readonly scoreLabel?: string;
+  readonly scoreDescription?: string;
   readonly permissionStatus: PermissionStatus;
   readonly verifiedStatus: VerifiedStatus;
   readonly matchedKeywords: readonly string[];
   readonly documentContent: readonly string[];
+  readonly documentId?: string;
+  readonly knowledgeBaseId?: string;
 }
 
 export type SearchResult = SearchResultItem;

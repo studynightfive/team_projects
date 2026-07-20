@@ -1,5 +1,7 @@
 # 前后端联通修正记录
 
+> 状态：2026-07-18 的历史联调快照。文中“当前”“剩余限制”和测试数量仅描述当时状态；2026-07-20 之后的真实范围、接口、权限和验证结果以 `README.md`、`docs/api/openapi.yaml`、`docs/project-audit-2026-07-20.md` 与运行时代码为准。
+
 ## 目标
 
 将统一前端的登录、知识库、文档上传处理和 AI 搜索主链路接入 FastAPI 后端，形成明天可演示、可验证的最小交付闭环：用户登录后进入用户工作区，可以创建或查看知识库，上传文档触发后端处理并写入文档分块，随后通过 RAG 关键词检索命中同一批文档分块。
@@ -56,7 +58,7 @@
 - `http://127.0.0.1/api/v1/health/live`：返回 200；`/api/v1/openapi.json` 已包含 `/api/v1/knowledge-bases`、`/api/v1/knowledge-bases/available` 和 `/api/v1/knowledge-bases/{kb_id}`；未登录访问 `/api/v1/knowledge-bases` 返回 401，鉴权生效。
 - `docker compose -f deploy/docker-compose.yml build web` 与 `docker compose -f deploy/docker-compose.yml up -d --no-build --force-recreate web`：通过，`kb-web` 已切换到最新生产构建镜像。
 - Headless Chrome 打开 `http://127.0.0.1/knowledge`：真实 API 模式下未登录访问会先进入登录页，避免演示时暴露未登录工作区外壳；登录成功后会按 `redirect` 返回原业务路径。
-- `docker exec kb-api-server sh -lc "cd /app/backend && .venv/bin/python scripts/seed_db.py"`：通过，已补齐权限种子和默认知识库，便于今晚演示。
+- 历史警示：当时曾在 API 容器内直接运行 `backend/scripts/seed_db.py`。该脚本会创建或重置演示账号，现已增加 `AUTO_SEED_DEMO_DATA=true` 和至少 12 位 `DEMO_SEED_PASSWORD` 的双重门禁；不得将该历史命令用于生产初始化，生产首管理员必须使用 `backend/scripts/bootstrap_admin.py` 交互创建。
 
 ## 剩余限制
 

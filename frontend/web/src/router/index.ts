@@ -122,13 +122,21 @@ export const createAppRouter = (history: RouterHistory): Router => {
             path: "",
             name: "admin-home",
             component: AdminHomeView,
-            meta: { title: "平台总览", parentTitle: "管理中心" },
+            meta: {
+              title: "平台总览",
+              parentTitle: "管理中心",
+              requiredPermissions: ["admin.dashboard.view"],
+            },
           },
           {
             path: "users",
             name: "admin-users",
             component: () => import("../views/admin/UsersView.vue"),
-            meta: { title: "用户管理", parentTitle: "管理中心" },
+            meta: {
+              title: "用户管理",
+              parentTitle: "管理中心",
+              requiredPermissions: ["admin.user.view"],
+            },
           },
           {
             path: "notifications",
@@ -141,43 +149,71 @@ export const createAppRouter = (history: RouterHistory): Router => {
             path: "roles",
             name: "admin-roles",
             component: () => import("../views/admin/RolesView.vue"),
-            meta: { title: "角色管理", parentTitle: "管理中心" },
+            meta: {
+              title: "角色管理",
+              parentTitle: "管理中心",
+              requiredPermissions: ["admin.role.view"],
+            },
           },
           {
             path: "models",
             name: "admin-models",
             component: () => import("../views/admin/ModelsView.vue"),
-            meta: { title: "模型管理", parentTitle: "管理中心" },
+            meta: {
+              title: "模型管理",
+              parentTitle: "管理中心",
+              requiredPermissions: ["admin.model.view"],
+            },
           },
           {
             path: "knowledge-bases",
             name: "admin-knowledge-bases",
             component: () => import("../views/admin/KnowledgeBasesView.vue"),
-            meta: { title: "知识库管理", parentTitle: "管理中心" },
+            meta: {
+              title: "知识库管理",
+              parentTitle: "管理中心",
+              requiredPermissions: ["admin.knowledge_base.view"],
+            },
           },
           {
             path: "documents",
             name: "admin-documents",
             component: () => import("../views/admin/DocumentsView.vue"),
-            meta: { title: "文档管理", parentTitle: "管理中心" },
+            meta: {
+              title: "文档管理",
+              parentTitle: "管理中心",
+              requiredPermissions: ["admin.document.view"],
+            },
           },
           {
             path: "tasks",
             name: "admin-tasks",
             component: () => import("../views/admin/TasksView.vue"),
-            meta: { title: "任务中心", parentTitle: "管理中心" },
+            meta: {
+              title: "任务中心",
+              parentTitle: "管理中心",
+              requiredPermissions: ["admin.task.view"],
+            },
           },
           {
             path: "retrieval-tests",
             name: "admin-retrieval-tests",
             component: () => import("../views/admin/RetrievalTestsView.vue"),
-            meta: { title: "命中率测试", parentTitle: "管理中心" },
+            meta: {
+              title: "命中率测试",
+              parentTitle: "管理中心",
+              requiredPermissions: ["admin.retrieval_test.run"],
+            },
           },
           {
             path: "audit-logs",
             name: "admin-audit-logs",
             component: () => import("../views/admin/AuditLogsView.vue"),
-            meta: { title: "审计日志", parentTitle: "管理中心" },
+            meta: {
+              title: "审计日志",
+              parentTitle: "管理中心",
+              requiredPermissions: ["admin.audit.view"],
+            },
           },
         ],
       },
@@ -220,6 +256,14 @@ export const createAppRouter = (history: RouterHistory): Router => {
     }
 
     if (to.path.startsWith("/admin") && !sessionStore.isAdmin) {
+      return { name: "forbidden" };
+    }
+    const requiredPermissions = to.meta.requiredPermissions;
+    if (
+      Array.isArray(requiredPermissions) &&
+      requiredPermissions.length > 0 &&
+      !sessionStore.hasAnyPermission(requiredPermissions as string[])
+    ) {
       return { name: "forbidden" };
     }
 

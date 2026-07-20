@@ -31,7 +31,7 @@ const loading = ref(false);
 const saving = ref(false);
 const editor = reactive({
   providerCode: "deepseek",
-  modelName: "deepseek-v4-pro",
+  modelName: "deepseek-chat",
   kind: "chat",
   enabled: true,
   temperature: 0.2,
@@ -132,7 +132,7 @@ const startDeepSeekCreate = (): void => {
   startCreate();
   Object.assign(editor, {
     providerCode: "deepseek",
-    modelName: "deepseek-v4-pro",
+    modelName: "deepseek-chat",
     kind: "chat",
     temperature: 0.2,
     maxTokens: 1200,
@@ -146,7 +146,7 @@ const startEmbeddingCreate = (): void => {
     providerCode: providers.value.some((item) => item.code === "dashscope")
       ? "dashscope"
       : providers.value[0]?.code ?? "deepseek",
-    modelName: "qwen3.7-text-embedding",
+    modelName: "text-embedding-v4",
     kind: "embedding",
     dimensions: 1024,
     distance: "cosine",
@@ -160,7 +160,7 @@ const startCreate = (): void => {
   clearSensitiveState();
   Object.assign(editor, {
     providerCode: providers.value[0]?.code ?? "deepseek",
-    modelName: "deepseek-v4-pro",
+    modelName: "deepseek-chat",
     kind: "chat",
     enabled: true,
     temperature: 0.2,
@@ -206,8 +206,13 @@ const testConnection = async (): Promise<void> => {
     return;
   }
   try {
-    await testModel(selectedModel.value.id);
-    connectionResult.value = "连通性测试成功。";
+    const result = await testModel(selectedModel.value.id);
+    if (!result.ok) {
+      connectionResult.value = result.error_message ?? "模型连通性测试失败。";
+      message.error(connectionResult.value);
+      return;
+    }
+    connectionResult.value = `连通性测试成功，耗时 ${result.latency_ms}ms。`;
     message.success("连通性测试成功");
   } catch (err) {
     connectionResult.value = toPublicApiError(err).message;
@@ -222,12 +227,17 @@ const saveModel = async (): Promise<void> => {
 
   saving.value = true;
   try {
+    const parameters =
+      editor.kind === "chat"
+        ? {
+            ...(selectedModel.value?.parameters ?? {}),
+            temperature: editor.temperature,
+            max_tokens: editor.maxTokens,
+          }
+        : { ...(selectedModel.value?.parameters ?? {}) };
     const payload = {
       model_name: editor.modelName.trim(),
-      parameters: {
-        temperature: editor.temperature,
-        max_tokens: editor.maxTokens,
-      },
+      parameters,
       enabled: editor.enabled,
       api_key: credential.value === "" ? undefined : credential.value,
       dimensions: editor.kind === "embedding" ? editor.dimensions : undefined,

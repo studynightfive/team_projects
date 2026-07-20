@@ -1,100 +1,90 @@
 # 智能知识库平台
 
-面向团队知识资产的统一检索、问答、引用溯源、文档处理和导出平台。首期采用前后端分离的 Git Monorepo，由五人团队协作交付，并将普通用户功能和管理员管理中心合并为一个 Vue 应用。
+面向团队知识资产的统一检索、问答、引用溯源、文档处理和导出平台。仓库采用 Git Monorepo：Vue 3 统一承载普通用户工作区和 `/admin` 管理中心，FastAPI 模块化单体提供业务 API，PostgreSQL + pgvector 保存业务与向量数据，Redis + ARQ Worker 执行异步任务。
 
-## 当前状态
+## 当前实现边界
 
-统一前端 M01 `web-foundation` V2 已由项目负责人批准并冻结为正式视觉与交互基线。M02–M14、AI 搜索工作台以及通知中心、帮助中心、偏好设置也已按该基线形成本地可交互页面和浏览器验证；它们尚未接入真实认证、权限、OpenAPI 类型或业务接口，因此当前结论是“本地页面已开发”，不是业务联调或统一前端 P0 最终交付完成。
+- 前端同时支持 `mock` 和真实 API 两种模式；真实模式包含登录、权限路由、知识库、文档、检索、会话、收藏、通知、导出和管理页面。
+- Mock 模式只用于确定性 UI 回归，不会回退到真实业务网络；仍未接入的交互会在界面中明确标为本地预览。
+- 后端 OpenAPI 运行时契约同步保存于 `docs/api/openapi.yaml`，由 `scripts/export_openapi.py` 生成并由契约测试校验。
+- Docker Compose 提供 Web、API Server、Worker、PostgreSQL、Redis 五个长期服务，并在应用启动前运行一次性 Alembic 迁移。
 
-## 总体架构
-
-```text
-          统一 Web 应用
-  普通用户工作区 + /admin 管理中心
-                 |
-               Nginx
-                 |
-          FastAPI API Server
-                 |
-   +-------------+-------------+
-   |             |             |
-认证权限模块   知识文档模块   RAG 与导出模块
-                 |
-          PostgreSQL + pgvector
-                 |
-          Redis + Worker
-```
-
-## 计划目录
+## 目录
 
 ```text
-frontend/
-└─ web/             普通用户与管理中心的统一 Vue 3 应用
-backend/
-├─ app/             FastAPI 业务模块
-├─ migrations/      Alembic 迁移
-└─ tests/           后端测试
-deploy/             Docker、Nginx 和环境模板
-docs/
-├─ api/             OpenAPI 与接口协作
-├─ design/          产品和视觉事实来源
-└─ operations/      部署、监控、备份和回滚
-scripts/            可重复执行的工程脚本
+frontend/web/       Vue 3 普通用户工作区与管理中心
+backend/app/        FastAPI 业务模块与 ARQ Worker
+backend/migrations/ Alembic 迁移
+backend/tests/      后端自动化测试
+deploy/             Docker、Nginx、环境模板和可选监控配置
+docs/               API、设计、集成、验证和运维文档
+samples/            文档解析测试样本及完整性清单
+scripts/            契约导出、健康检查、备份、恢复和发布脚本
 ```
 
 ## 固定环境
 
-| 工具           |    版本 |
-| -------------- | ------: |
-| Node.js        | 22.23.1 |
-| pnpm           | 11.13.0 |
-| Python         | 3.10.20 |
-| uv             |  0.8.22 |
-| Docker Engine  |  27.5.1 |
-| Docker Compose |  2.32.4 |
-| PostgreSQL     |   17.10 |
-| Redis          |   7.4.9 |
+| 工具 | 版本 |
+|---|---:|
+| Node.js | 22.23.1 |
+| pnpm | 11.13.0 |
+| Python | 3.10.20 |
+| uv | 0.11.26 |
+| PostgreSQL | 17（pgvector 镜像固定摘要） |
+| Redis | 7.4.9 |
 
-所有直接依赖精确锁定，禁止 `^`、`~` 和 `latest`。统一前端使用 Ant Design Vue `4.2.6` 与 `@lucide/vue` `1.24.0`。完整依赖基线见《知识库平台\_5人团队分工协作方案.md》。
+所有直接依赖使用精确版本；前后端锁文件必须随依赖变更一起提交。
 
-## 开发工作流
+## 本地启动
 
-1. 阅读 [AGENTS.md](AGENTS.md) 和 [MEMORY.md](MEMORY.md)。
-2. 从 GitHub Issue 确认目标、范围、依赖、验收和失败场景。
-3. 从最新 `main` 创建 `feature/<issue>-<name>` 或 `fix/<issue>-<name>`。
-4. 实现并运行相关类型检查、Lint、测试和构建。
-5. 推送分支并创建关联 Issue 的 Pull Request。
-6. 至少一名非作者评审和 Pull Request `quality` CI 通过后合并。
+先复制环境模板并填写本地值。不要读取、打印或提交真实 `.env` 内容。
 
-员工 1 的统一前端 P0 使用经批准的整体交付流程：一个总 Issue、一个长期功能分支、15 个里程碑和一个持续更新的 Draft PR；每个里程碑先本地通过再推送，全部门禁通过后才转 Ready。详见 [员工 1 统一前端完整实施计划](员工1_统一前端完整实施计划.md)。
+```powershell
+Copy-Item deploy/env/.env.example deploy/env/.env
+docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml up -d --build
+bash scripts/health-check.sh
+```
 
-治理细节见 [docs/project-governance.md](docs/project-governance.md)。
+入口：
 
-## 统一前端命令
+- Web：`http://127.0.0.1/`
+- API 文档：`http://127.0.0.1/api/v1/docs`
+- 存活检查：`http://127.0.0.1/api/v1/health/live`
+- 就绪检查：`http://127.0.0.1/api/v1/health/ready`
 
-前端工程进入仓库后，在根目录使用：
+`/api/v1/metrics` 只允许容器内部监控网络访问，Nginx 外网入口固定返回 404。
+
+应用启动会幂等补齐内建权限码与“超级管理员”“普通用户”“知识库编辑者”角色，但默认不创建任何账号。新环境首次启动后，在交互式终端创建首管理员：
+
+```powershell
+docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml exec api-server /app/backend/.venv/bin/python scripts/bootstrap_admin.py
+```
+
+脚本使用不回显的口令输入，口令至少 12 位，并且只在数据库中尚无管理员时创建。演示账号播种只允许在隔离环境显式启用，不是生产初始化方式。
+
+## 质量门禁
+
+前端：
 
 ```powershell
 pnpm.cmd install --frozen-lockfile
-pnpm.cmd run dev:web
-pnpm.cmd run dev:web:api
 pnpm.cmd run typecheck:web
 pnpm.cmd run lint:web
 pnpm.cmd run test:web
-pnpm.cmd run test:web:watch
 pnpm.cmd run build:web
-pnpm.cmd run verify:web:browser
 ```
 
-- `dev:web` 使用 design-only 固定数据，Mock Adapter 默认拒绝所有未注册请求，不访问真实业务网络。
-- `dev:web:api` 通过 Vite 代理访问 `http://127.0.0.1:8000/api`。
-- 普通用户入口为 `http://127.0.0.1:5173`，管理中心为 `http://127.0.0.1:5173/admin`。
+后端与样本验证使用隔离的测试数据库和测试卷，测试依赖在镜像构建期安装：
 
-## 安全
+```powershell
+docker compose -f deploy/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner
+```
+
+更详细的部署、监控、备份和回滚说明见 [运维文档](docs/operations/README.md)。协作和分支规则见 [AGENTS.md](AGENTS.md) 与 [项目治理](docs/project-governance.md)。
+
+## 安全边界
 
 - 不提交 `.env`、凭据、Token、API Key、密码或私钥。
-- OpenAPI 是接口单一事实来源，权限由后端最终校验。
-- Markdown 使用服务端清洗和前端 DOMPurify 二次过滤。
-- 原始文件和导出文件只通过鉴权接口或短期地址访问。
-
-发现安全问题时不要创建公开 Issue，请直接联系仓库所有者处理。
+- 权限由后端校验，前端隐藏按钮不是授权机制。
+- Markdown 在服务端清洗并由前端 DOMPurify 二次过滤。
+- 原始文件和导出文件只通过鉴权接口下载；存储卷不映射为公开静态目录。

@@ -6,32 +6,41 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
 import zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Literal, Protocol, cast
+from urllib.parse import unquote, urlsplit
 from uuid import uuid4
 
 import structlog
 from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, JsonValue
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, func, select
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.auth.dependencies import get_current_user, require_any_permission
+from app.auth.dependencies import get_current_user, require_any_permission, require_permission
 from app.common.config import settings
 from app.common.database import Base, get_db
-from app.common.exceptions import ForbiddenException, NotFoundException, ValidationException
+from app.common.exceptions import (
+    AppException,
+    ForbiddenException,
+    NotFoundException,
+    ValidationException,
+)
 from app.common.models import User
-from app.common.schemas import APIResponse, PaginatedData
+from app.common.schemas import APIResponse, ErrorCode, PaginatedData
+from app.documents.models import Document, DocumentStatus
+from app.documents.permissions import user_can_access_kb
+from app.documents.storage import DocumentStorage
 from app.exports._shared.signing import is_expired, sign_download_token, verify_download_token
-from app.exports._shared.storage import root, task_file_path
+from app.exports._shared.storage import delete_task_dir, root, task_file_path
 from app.rag._shared.audit_helper import audit
+from app.worker.queue import enqueue_export_task
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v1/exports", tags=["exports"])
@@ -42,6 +51,7 @@ router = APIRouter(prefix="/api/v1/exports", tags=["exports"])
 # ============================================================
 ExportFormat = Literal["pdf", "docx", "markdown", "csv", "txt"]
 ExportStatus = Literal["pending", "running", "done", "failed", "expired", "cancelled"]
+_CLEANUP_ELIGIBLE_STATUSES = ("done", "failed", "cancelled")
 
 
 class ExportTask(Base):
@@ -63,7 +73,7 @@ class ExportTask(Base):
     document_ids: Mapped[list[str]] = mapped_column(
         ARRAY(UUID(as_uuid=False).with_variant(String(36), "sqlite")), nullable=False
     )
-    options: Mapped[dict] = mapped_column(JSONB, default=dict)
+    options: Mapped[dict[str, JsonValue]] = mapped_column(JSONB, default=dict)
     status: Mapped[str] = mapped_column(String(16), default="pending")
     progress: Mapped[int] = mapped_column(Integer, default=0)
     file_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
@@ -102,7 +112,6 @@ class ExportTaskResponse(BaseModel):
     options: ExportOptions
     status: ExportStatus
     progress: int
-    file_path: str | None = None
     file_size: int | None = None
     download_url: str | None = None
     expires_at: datetime
@@ -123,9 +132,9 @@ class ExportContent:
         title: str,
         markdown: str,
         assets: list[Path] | None = None,
-        citations: list[dict] | None = None,
-        metadata: dict | None = None,
-    ):
+        citations: list[dict[str, JsonValue]] | None = None,
+        metadata: dict[str, JsonValue] | None = None,
+    ) -> None:
         self.document_id = document_id
         self.title = title
         self.markdown = markdown
@@ -160,10 +169,12 @@ class TxtExporter:
     format_name = "txt"
 
     async def export(self, content: ExportContent, output_path: str, options: ExportOptions) -> str:
+        from bs4 import BeautifulSoup
         from markdown_it import MarkdownIt
 
-        md = MarkdownIt().render(content.markdown)
-        Path(output_path).write_text(f"{content.title}\n\n{md}", encoding="utf-8")
+        html = MarkdownIt().render(content.markdown)
+        text = BeautifulSoup(html, "lxml").get_text("\n", strip=True)
+        Path(output_path).write_text(f"{content.title}\n\n{text}", encoding="utf-8")
         return output_path
 
 
@@ -176,9 +187,9 @@ class CsvExporter:
         with open(output_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["section", "content"])
-            writer.writerow(["title", content.title])
+            writer.writerow(["title", _safe_csv_cell(content.title)])
             for line in content.markdown.split("\n"):
-                writer.writerow(["body", line])
+                writer.writerow(["body", _safe_csv_cell(line)])
         return output_path
 
 
@@ -187,7 +198,7 @@ class DocxExporter:
 
     async def export(self, content: ExportContent, output_path: str, options: ExportOptions) -> str:
         try:
-            from docx import Document  # type: ignore[import-not-found]  # python-docx
+            from docx import Document
         except ImportError as exc:
             raise RuntimeError("python-docx 未安装") from exc
         doc = Document()
@@ -215,7 +226,7 @@ class PdfExporter:
 
     async def export(self, content: ExportContent, output_path: str, options: ExportOptions) -> str:
         try:
-            from weasyprint import HTML  # type: ignore[import-untyped]
+            from weasyprint import HTML
         except ImportError as exc:
             raise RuntimeError("weasyprint 未安装") from exc
         body_html = _markdown_to_html(content.markdown)
@@ -232,8 +243,39 @@ class PdfExporter:
         <h1>{_escape(content.title)}</h1>
         {body_html}
         </body></html>"""
-        HTML(string=html, base_url=str(root())).write_pdf(output_path)
+        HTML(
+            string=html,
+            base_url=str(root()),
+            url_fetcher=_local_asset_url_fetcher,
+        ).write_pdf(output_path)
         return output_path
+
+
+def _safe_csv_cell(value: str) -> str:
+    """阻止电子表格把文档正文解释为公式。"""
+    if value.startswith(("=", "+", "-", "@", "\t", "\r")):
+        return f"'{value}"
+    return value
+
+
+def _local_asset_url_fetcher(
+    url: str,
+    timeout: int = 10,
+    ssl_context: object | None = None,
+) -> dict[str, object]:
+    """PDF 渲染只可读取导出存储根目录内的本地文件。"""
+    parsed = urlsplit(url)
+    if parsed.scheme != "file":
+        raise ValueError("PDF 导出禁止访问网络资源")
+    candidate = Path(unquote(parsed.path)).resolve()
+    storage_root = root().resolve()
+    if not candidate.is_relative_to(storage_root) or not candidate.is_file():
+        raise ValueError("PDF 导出资源不在受控存储目录")
+
+    from weasyprint import default_url_fetcher
+
+    result = default_url_fetcher(url, timeout=timeout, ssl_context=ssl_context)
+    return cast(dict[str, object], result)
 
 
 def _markdown_to_html(md_text: str) -> str:
@@ -241,7 +283,10 @@ def _markdown_to_html(md_text: str) -> str:
         from markdown_it import MarkdownIt
     except ImportError:
         return f"<pre>{_escape(md_text)}</pre>"
-    return MarkdownIt().render(md_text)
+    rendered: object = MarkdownIt().render(md_text)
+    if not isinstance(rendered, str):
+        raise TypeError("Markdown renderer returned a non-string value")
+    return rendered
 
 
 def _escape(s: str) -> str:
@@ -271,17 +316,28 @@ def zip_documents(*, task_id: str, files: list[str]) -> str:
 
 
 # ============================================================
-# 文档内容获取（占位 - 员工4 文档服务就绪后接真实数据）
+# 文档内容获取
 # ============================================================
-async def _fetch_document_content(document_id: str) -> ExportContent:
-    """从员工4 documents 模块获取内容。本期占位：返回 fixture Markdown。
-
-    TODO 员工4 就绪后：调用 documents.service.get_markdown(document_id)
-    """
+async def _fetch_document_content(
+    db: AsyncSession,
+    document_id: str,
+    *,
+    user: User | None = None,
+) -> ExportContent:
+    """从已处理文档的受控存储读取真实 Markdown。"""
+    document = await db.get(Document, document_id)
+    if document is None:
+        raise NotFoundException(message="导出文档不存在")
+    if document.status != DocumentStatus.READY.value:
+        raise ValidationException(message=f"文档 {document_id} 尚未处理完成")
+    if user is not None and not await user_can_access_kb(db, user, document.knowledge_base_id):
+        raise ForbiddenException(message="导出权限已被撤销")
+    storage = DocumentStorage()
     return ExportContent(
         document_id=document_id,
-        title=f"文档 {document_id[:8]}",
-        markdown=f"# {document_id[:8]}\n\n这是占位内容，员工4 文档服务就绪后会自动接入真实数据。",
+        title=document.title,
+        markdown=storage.read_markdown(document_id),
+        metadata=storage.read_manifest(document_id),
     )
 
 
@@ -293,6 +349,9 @@ async def _run_export(db: AsyncSession, task_id: str) -> None:
     task = await db.get(ExportTask, task_id)
     if task is None:
         return
+    if task.status in {"done", "expired", "cancelled"}:
+        return
+    delete_task_dir(task_id)
     task.status = "running"
     task.progress = 0
     await db.commit()
@@ -300,7 +359,15 @@ async def _run_export(db: AsyncSession, task_id: str) -> None:
     files: list[str] = []
     try:
         for i, doc_id in enumerate(task.document_ids):
-            content = await _fetch_document_content(doc_id)
+            user_result = await db.execute(
+                select(User)
+                .where(User.id == task.user_id)
+                .execution_options(populate_existing=True)
+            )
+            task_user = user_result.scalar_one_or_none()
+            if task_user is None or task_user.status != "active":
+                raise ForbiddenException(message="导出用户已失效")
+            content = await _fetch_document_content(db, doc_id, user=task_user)
             exporter = EXPORTERS.get(task.format)
             if exporter is None:
                 raise ValidationException(message=f"unsupported format: {task.format}")
@@ -324,10 +391,10 @@ async def _run_export(db: AsyncSession, task_id: str) -> None:
         task.status = "done"
         task.finished_at = datetime.now(timezone.utc)
     except Exception as exc:
-        logger.exception("export_failed", task_id=task_id)
+        logger.exception("export_failed", task_id=task_id, error_type=type(exc).__name__)
         task.status = "failed"
         task.error_code = "export_failed"
-        task.error_message = str(exc)[:512]
+        task.error_message = "导出任务执行失败"
         task.finished_at = datetime.now(timezone.utc)
     await db.commit()
 
@@ -336,29 +403,55 @@ async def _run_export(db: AsyncSession, task_id: str) -> None:
 # 过期清理（提示词 05 §4.7）
 # ============================================================
 async def cleanup_expired(db: AsyncSession) -> int:
-    """把过期的 task 标记 expired 并删除文件。返回清理数。"""
+    """锁定并清理已过期的终态任务，避免与仍在执行的任务竞争。"""
     now = datetime.now(timezone.utc)
     res = await db.execute(
-        select(ExportTask).where(ExportTask.expires_at < now, ExportTask.status != "expired")
+        select(ExportTask)
+        .where(
+            ExportTask.expires_at < now,
+            ExportTask.status.in_(_CLEANUP_ELIGIBLE_STATUSES),
+        )
+        .with_for_update(skip_locked=True)
     )
     tasks = res.scalars().all()
     count = 0
     for task in tasks:
-        if task.file_path and os.path.exists(task.file_path):
-            try:
-                os.remove(task.file_path)
-            except OSError:
-                pass
+        if task.status not in _CLEANUP_ELIGIBLE_STATUSES:
+            continue
+        try:
+            delete_task_dir(task.id)
+        except (OSError, ValueError) as exc:
+            logger.warning(
+                "export_cleanup_failed",
+                task_id=task.id,
+                error_type=type(exc).__name__,
+            )
+            continue
         task.status = "expired"
         count += 1
     await db.commit()
     return count
 
 
+def _resolve_download_path(task: ExportTask) -> Path:
+    """只返回当前导出任务目录内实际存在的普通文件。"""
+    storage_root = root().resolve()
+    task_root = (storage_root / task.id).resolve()
+    if task_root.parent != storage_root or not task.file_path:
+        raise NotFoundException()
+    try:
+        candidate = Path(task.file_path).resolve(strict=True)
+    except OSError as exc:
+        raise NotFoundException() from exc
+    if not candidate.is_relative_to(task_root) or not candidate.is_file():
+        raise NotFoundException()
+    return candidate
+
+
 # ============================================================
 # 路由
 # ============================================================
-def _task_to_response(task: ExportTask) -> dict:
+def _task_to_response(task: ExportTask) -> ExportTaskResponse:
     download_url = None
     if task.status == "done" and task.file_path:
         expires = int(task.expires_at.timestamp())
@@ -366,33 +459,45 @@ def _task_to_response(task: ExportTask) -> dict:
             export_id=task.id, user_id=task.user_id, expires_at_unix=expires
         )
         download_url = f"/api/v1/exports/{task.id}/download?token={token}&expires={expires}"
-    return {
-        "id": task.id,
-        "user_id": task.user_id,
-        "format": task.format,
-        "document_ids": task.document_ids,
-        "options": task.options or {},
-        "status": task.status,
-        "progress": task.progress,
-        "file_path": task.file_path,
-        "file_size": task.file_size,
-        "download_url": download_url,
-        "expires_at": task.expires_at,
-        "error_code": task.error_code,
-        "error_message": task.error_message,
-        "created_at": task.created_at,
-        "finished_at": task.finished_at,
-    }
+    return ExportTaskResponse.model_validate(
+        {
+            "id": task.id,
+            "user_id": task.user_id,
+            "format": task.format,
+            "document_ids": task.document_ids,
+            "options": task.options or {},
+            "status": task.status,
+            "progress": task.progress,
+            "file_size": task.file_size,
+            "download_url": download_url,
+            "expires_at": task.expires_at,
+            "error_code": task.error_code,
+            "error_message": task.error_message,
+            "created_at": task.created_at,
+            "finished_at": task.finished_at,
+        }
+    )
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_202_ACCEPTED)
 async def create_export_endpoint(
     request: Request,
     payload: CreateExportRequest,
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("export:write", "export.create")),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[ExportTaskResponse]:
+    if len(set(payload.document_ids)) != len(payload.document_ids):
+        raise ValidationException(message="document_ids 不能包含重复项")
+    for document_id in payload.document_ids:
+        document = await db.get(Document, document_id)
+        if document is None:
+            raise NotFoundException(message="导出文档不存在")
+        if not await user_can_access_kb(db, user, document.knowledge_base_id):
+            raise ForbiddenException(message="无权导出所选文档")
+        if document.status != DocumentStatus.READY.value:
+            raise ValidationException(message=f"文档 {document_id} 尚未处理完成")
+
     task = ExportTask(
         user_id=user.id,
         format=payload.format,
@@ -414,14 +519,28 @@ async def create_export_endpoint(
     )
     await db.commit()
 
-    # 同步执行（生产用 arq 异步队列）
-    try:
-        await asyncio.wait_for(
-            _run_export(db, task.id), timeout=settings.export_task_timeout_seconds
-        )
-    except asyncio.TimeoutError:
-        logger.warning("export_timeout", task_id=task.id)
-    return APIResponse(data=_task_to_response(task)).model_dump()
+    if settings.worker_inline:
+        await _run_export(db, task.id)
+    else:
+        try:
+            await enqueue_export_task(task.id, settings.redis_url)
+        except Exception as exc:
+            task.status = "failed"
+            task.error_code = "queue_unavailable"
+            task.error_message = "导出任务未能加入处理队列"
+            task.finished_at = datetime.now(timezone.utc)
+            await db.commit()
+            logger.warning(
+                "export_enqueue_failed",
+                task_id=task.id,
+                error_type=type(exc).__name__,
+            )
+            raise AppException(
+                code=ErrorCode.EXPORT_FAILED,
+                message="任务队列暂不可用，请稍后重试",
+                status_code=503,
+            ) from exc
+    return APIResponse[ExportTaskResponse](data=_task_to_response(task))
 
 
 @router.get("")
@@ -433,7 +552,7 @@ async def list_exports_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("export:read", "export.view")),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[PaginatedData[ExportTaskResponse]]:
     q = select(ExportTask).where(ExportTask.user_id == user.id)
     if status_filter:
         q = q.where(ExportTask.status == status_filter)
@@ -441,9 +560,14 @@ async def list_exports_endpoint(
     offset = (page - 1) * page_size
     res = await db.execute(q.order_by(ExportTask.created_at.desc()).offset(offset).limit(page_size))
     items = [_task_to_response(t) for t in res.scalars().all()]
-    return APIResponse(
-        data=PaginatedData(items=items, page=page, page_size=page_size, total=total).model_dump()
-    ).model_dump()
+    return APIResponse[PaginatedData[ExportTaskResponse]](
+        data=PaginatedData[ExportTaskResponse](
+            items=items,
+            page=page,
+            page_size=page_size,
+            total=total,
+        )
+    )
 
 
 @router.get("/{export_id}")
@@ -453,13 +577,13 @@ async def get_export_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("export:read", "export.view")),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[ExportTaskResponse]:
     task = await db.get(ExportTask, export_id)
     if task is None:
         raise NotFoundException()
     if task.user_id != user.id:
         raise ForbiddenException()
-    return APIResponse(data=_task_to_response(task)).model_dump()
+    return APIResponse[ExportTaskResponse](data=_task_to_response(task))
 
 
 @router.delete("/{export_id}")
@@ -467,24 +591,20 @@ async def delete_export_endpoint(
     export_id: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_any_permission("export:delete", "export.view")),
+    _perm: None = Depends(require_permission("export:delete")),
     db: AsyncSession = Depends(get_db),
-):
+) -> APIResponse[None]:
     task = await db.get(ExportTask, export_id)
     if task is None:
         raise NotFoundException()
     if task.user_id != user.id:
         raise ForbiddenException()
-    if task.file_path and os.path.exists(task.file_path):
-        try:
-            os.remove(task.file_path)
-        except OSError:
-            pass
+    delete_task_dir(task.id)
     await db.delete(task)
     await db.commit()
     await audit(db, action="export_delete", user_id=user.id, resource_id=export_id, request=request)
     await db.commit()
-    return APIResponse().model_dump()
+    return APIResponse[None](data=None)
 
 
 @router.get("/{export_id}/download")
@@ -494,29 +614,30 @@ async def download_export_endpoint(
     token: str = Query(...),
     expires: int = Query(...),
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_any_permission("export:download", "export.view")),
+    _perm: None = Depends(require_permission("export:download")),
     db: AsyncSession = Depends(get_db),
-):
+) -> FileResponse:
     task = await db.get(ExportTask, export_id)
     if task is None:
         raise NotFoundException()
     if task.user_id != user.id:
         raise ForbiddenException(message="无权下载此文件")
+    for document_id in task.document_ids:
+        await _fetch_document_content(db, document_id, user=user)
     if is_expired(expires):
         raise NotFoundException(code=16001, message="下载链接已过期")
     if not verify_download_token(
         export_id=task.id, user_id=task.user_id, expires_at_unix=expires, token=token
     ):
         raise ForbiddenException(message="签名无效")
-    if not task.file_path or not os.path.exists(task.file_path):
-        raise NotFoundException()
+    download_path = _resolve_download_path(task)
     await audit(
         db, action="export_download", user_id=user.id, resource_id=export_id, request=request
     )
     await db.commit()
     return FileResponse(
-        task.file_path,
-        filename=os.path.basename(task.file_path),
+        download_path,
+        filename=download_path.name,
         media_type="application/octet-stream",
     )
 
@@ -525,13 +646,13 @@ async def download_export_endpoint(
 async def cleanup_endpoint(
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_any_permission("export:delete", "export.view")),
+    _perm: None = Depends(require_permission("admin.export.cleanup")),
     db: AsyncSession = Depends(get_db),
-):
-    """管理员触发的过期清理；定时任务也会调用 _run_cleanup。"""
+) -> APIResponse[dict[str, int]]:
+    """管理员触发过期清理；Worker 也会定时调用同一清理函数。"""
     count = await cleanup_expired(db)
     await audit(
         db, action="export_cleanup", user_id=user.id, detail=f"cleaned {count}", request=request
     )
     await db.commit()
-    return APIResponse(data={"cleaned": count}).model_dump()
+    return APIResponse[dict[str, int]](data={"cleaned": count})

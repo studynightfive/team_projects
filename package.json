@@ -16,6 +16,11 @@
     "test:web": "pnpm --filter @team-projects/web test",
     "test:web:watch": "pnpm --filter @team-projects/web test:watch",
     "build:web": "pnpm --filter @team-projects/web build",
-    "verify:web:browser": "pnpm --filter @team-projects/web verify:browser"
+    "verify:web:browser": "pnpm --filter @team-projects/web verify:browser",
+    "generate:api-types": "openapi-typescript docs/api/openapi.yaml -o frontend/web/src/api/generated/openapi.ts",
+    "check:api-types": "pnpm run generate:api-types && git diff --exit-code -- frontend/web/src/api/generated/openapi.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
   }
 }

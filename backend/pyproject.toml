@@ -18,7 +18,7 @@ dependencies = [
     # 数据验证与配置
     # ============================================================
     "pydantic==2.13.4",           # Pydantic：数据验证和序列化
-    "pydantic-settings==2.14.0",  # Pydantic Settings：环境变量配置管理（docling 2.112 要求 >=2.14）
+    "pydantic-settings==2.14.0",  # Pydantic Settings：环境变量配置管理
     # ============================================================
     # 数据库与 ORM
     # ============================================================
@@ -41,7 +41,6 @@ dependencies = [
     # HTTP 客户端与序列化
     # ============================================================
     "httpx==0.28.1",              # HTTPX：异步 HTTP 客户端（模型调用）
-    "orjson==3.11.4",             # orjson：高性能 JSON 序列化
     # ============================================================
     # 日志与监控
     # ============================================================
@@ -50,11 +49,8 @@ dependencies = [
     # ============================================================
     # 文档处理（方案第6.2节支持的格式）
     # ============================================================
-    "tenacity==9.1.2",            # Tenacity：重试策略
-    "docling[rapidocr]==2.112.0", # Docling：文档解析与转换
     "python-magic==0.4.27",       # python-magic：MIME 类型识别
     "pillow==11.3.0",             # Pillow：图片处理
-    "pandas==2.3.3",              # Pandas：表格数据处理（CSV/Excel）
     "openpyxl==3.1.5",            # openpyxl：Excel 文件读写
     "python-docx==1.2.0",         # python-docx：Word 文件读写
     "pypdf==5.9.0",               # pypdf：PDF 文件处理
@@ -66,14 +62,12 @@ dependencies = [
     # Markdown 处理与安全清洗
     # ============================================================
     "markdown-it-py==4.0.0",      # markdown-it-py：Markdown 渲染
-    "mdit-py-plugins==0.5.0",     # mdit-py-plugins：Markdown 扩展插件
     "bleach==6.2.0",              # Bleach：HTML 安全清洗（方案第15.4节）
     # ============================================================
     # 导出
     # ============================================================
     "weasyprint==66.0",           # WeasyPrint：HTML/CSS 转 PDF
-    "fpdf2>=2.8.7",
-    "python-pptx>=1.0.2",
+    "python-pptx==1.0.2",
     "cryptography==46.0.3",       # cryptography：Fernet 对称加密（模型密钥）
 ]
 
@@ -89,7 +83,7 @@ dev = [
 
 # 构建系统配置
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"
 
 # 告诉 hatchling Python 包位于 app/ 目录下
@@ -121,4 +115,4 @@ ignore_missing_imports = true
 # Pytest 测试配置
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=30"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=50"

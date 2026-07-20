@@ -1,18 +1,16 @@
 import axios, { AxiosHeaders } from "axios";
 import type {
+  AxiosAdapter,
   AxiosError,
   AxiosInstance,
   CreateAxiosDefaults,
   InternalAxiosRequestConfig,
 } from "axios";
 
-import {
-  clearAccessToken,
-  getAccessToken,
-  setAccessToken,
-} from "./session";
+import { clearAccessToken, getAccessToken, setAccessToken } from "./session";
 import { isMockApiMode } from "../config/runtime";
 import { mockAdapter } from "../mocks/adapter";
+import type { ApiResponse } from "./contracts";
 
 export interface PublicApiError {
   readonly message: string;
@@ -21,13 +19,8 @@ export interface PublicApiError {
 
 interface ApiClientOptions {
   readonly useMock?: boolean;
-}
-
-interface ApiResponse<T> {
-  readonly code: number;
-  readonly message: string;
-  readonly data: T | null;
-  readonly request_id: string;
+  /** 仅供测试注入传输层，生产环境使用 Axios 默认适配器。 */
+  readonly adapter?: AxiosAdapter;
 }
 
 interface AuthTokenData {
@@ -58,6 +51,8 @@ export const createApiClient = (
 
   if (useMock) {
     config.adapter = mockAdapter;
+  } else if (options.adapter !== undefined) {
+    config.adapter = options.adapter;
   }
 
   const client = axios.create(config);
@@ -78,7 +73,32 @@ export const createApiClient = (
     const refreshClient = axios.create({
       baseURL: config.baseURL,
       withCredentials: true,
+      adapter: options.adapter,
     });
+    let refreshPromise: Promise<string> | undefined;
+
+    const refreshAccessToken = (): Promise<string> => {
+      if (refreshPromise === undefined) {
+        refreshPromise = refreshClient
+          .post<ApiResponse<AuthTokenData>>("/v1/auth/refresh")
+          .then((refreshResponse) => {
+            const token = refreshResponse.data.data?.access_token;
+            if (token === undefined || token === "") {
+              throw new Error("刷新响应缺少 Access Token");
+            }
+            setAccessToken(token);
+            return token;
+          })
+          .catch((error: unknown) => {
+            clearAccessToken();
+            throw error;
+          })
+          .finally(() => {
+            refreshPromise = undefined;
+          });
+      }
+      return refreshPromise;
+    };
 
     client.interceptors.response.use(
       (response) => response,
@@ -105,19 +125,12 @@ export const createApiClient = (
         originalRequest._authRetried = true;
 
         try {
-          const refreshResponse =
-            await refreshClient.post<ApiResponse<AuthTokenData>>(
-              "/v1/auth/refresh",
-            );
-          const token = refreshResponse.data.data?.access_token;
-          if (token === undefined || token === "") {
-            clearAccessToken();
-            return Promise.reject(error);
-          }
-          setAccessToken(token);
+          const token = await refreshAccessToken();
+          const headers = AxiosHeaders.from(originalRequest.headers);
+          headers.set("Authorization", `Bearer ${token}`);
+          originalRequest.headers = headers;
           return client.request(originalRequest);
         } catch {
-          clearAccessToken();
           return Promise.reject(error);
         }
       },

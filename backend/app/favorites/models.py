@@ -33,7 +33,7 @@ class Favorite(Base):
     tags: Mapped[list[str]] = mapped_column(JSONB, default=list)
     note: Mapped[str] = mapped_column(Text, nullable=False, default="")
     source_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    source_payload: Mapped[dict] = mapped_column(JSONB, default=dict)
+    source_payload: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
     saved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

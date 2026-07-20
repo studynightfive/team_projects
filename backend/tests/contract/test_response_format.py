@@ -37,17 +37,38 @@ class TestErrorResponseFormat:
         response = await client.get("/api/v1/nonexistent-endpoint")
         assert response.status_code == 404
         data = response.json()
-        # FastAPI 默认 404 格式为 {"detail": "..."}
-        assert "detail" in data
+        assert data == {
+            "code": 10002,
+            "message": "资源不存在",
+            "data": None,
+            "request_id": response.headers["X-Request-ID"],
+        }
 
     @pytest.mark.asyncio
     async def test_422_response_format(self, client):
         """验证 422 响应格式（请求体校验失败）"""
-        response = await client.post(
-            "/api/v1/health/live",
-            json={"invalid_field": "value"},
-        )
-        assert response.status_code == 405  # GET 端点不支持 POST
+        response = await client.post("/api/v1/auth/login", json={})
+        assert response.status_code == 422
+        data = response.json()
+        assert data == {
+            "code": 10001,
+            "message": "请求参数错误",
+            "data": None,
+            "request_id": response.headers["X-Request-ID"],
+        }
+
+    @pytest.mark.asyncio
+    async def test_405_response_format(self, client):
+        """验证方法不允许也使用统一错误响应。"""
+        response = await client.post("/api/v1/health/live")
+        assert response.status_code == 405
+        data = response.json()
+        assert data == {
+            "code": 10003,
+            "message": "请求方法不允许",
+            "data": None,
+            "request_id": response.headers["X-Request-ID"],
+        }
 
 
 class TestResponseHeaders:

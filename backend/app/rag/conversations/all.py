@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Literal, cast
 
 from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel, Field
@@ -17,11 +17,13 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.auth.dependencies import get_current_user, require_any_permission
+from app.auth.dependencies import get_current_user, require_any_permission, require_permission
 from app.common.database import Base, get_db
 from app.common.exceptions import ForbiddenException, NotFoundException, ValidationException
 from app.common.models import User
 from app.common.schemas import APIResponse, PaginatedData
+from app.documents.permissions import user_can_access_kb
+from app.knowledge.models import KnowledgeBase
 from app.rag._shared.audit_helper import audit
 
 
@@ -45,7 +47,8 @@ class Conversation(Base):
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     kb_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        String(36),
+        ForeignKey("knowledge_bases.id", ondelete="RESTRICT"),
         nullable=False,
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False, default="")
@@ -80,15 +83,16 @@ class Message(Base):
     )
     role: Mapped[str] = mapped_column(String(16), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    citations: Mapped[list] = mapped_column(JSONB, default=list)
+    citations: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
     answer_version: Mapped[int] = mapped_column(Integer, default=1)
     is_latest: Mapped[bool] = mapped_column(Boolean, default=True)
     parent_message_id: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        ForeignKey("messages.id", ondelete="SET NULL"),
         nullable=True,
     )
     finish_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    usage: Mapped[dict] = mapped_column(JSONB, default=dict)
+    usage: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -143,7 +147,7 @@ class MessageResponse(BaseModel):
     is_latest: bool = True
     parent_message_id: str | None = None
     finish_reason: str | None = None
-    usage: dict = Field(default_factory=dict)
+    usage: dict[str, object] = Field(default_factory=dict)
     created_at: datetime | None = None
     model_config = {"from_attributes": True}
 
@@ -250,10 +254,10 @@ async def append_message(
     conv_id: str,
     role: Role,
     content: str,
-    citations: list[dict] | None = None,
+    citations: list[dict[str, object]] | None = None,
     parent_message_id: str | None = None,
     finish_reason: str | None = None,
-    usage: dict | None = None,
+    usage: dict[str, object] | None = None,
 ) -> Message:
     msg = Message(
         conversation_id=conv_id,
@@ -311,7 +315,7 @@ async def list_conversations_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("conversation:read", "conversation.view")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     convs, total = await list_conversations(
         db,
         user_id=user.id,
@@ -333,7 +337,12 @@ async def create_conversation_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("conversation:write", "chat.use")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
+    knowledge_base = await db.get(KnowledgeBase, payload.kb_id)
+    if knowledge_base is None:
+        raise NotFoundException(message="知识库不存在")
+    if not await user_can_access_kb(db, user, payload.kb_id):
+        raise ForbiddenException(message="无权访问该知识库")
     conv, _first = await create_conversation(db, user_id=user.id, payload=payload)
     await db.commit()
     await audit(
@@ -356,7 +365,7 @@ async def patch_conversation_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("conversation:write", "chat.use")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     conv = await get_conversation(db, conv_id=conversation_id, user_id=user.id)
     conv = await update_conversation(db, conv=conv, payload=payload)
     await db.commit()
@@ -376,9 +385,9 @@ async def delete_conversation_endpoint(
     conversation_id: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_any_permission("conversation:delete", "conversation.view")),
+    _perm: None = Depends(require_permission("conversation:delete")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     # SELECT FOR UPDATE 保证并发删除原子化
     res = await db.execute(
         select(Conversation).where(Conversation.id == conversation_id).with_for_update()
@@ -410,7 +419,7 @@ async def list_messages_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("conversation:read", "conversation.view")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     conv = await get_conversation(db, conv_id=conversation_id, user_id=user.id)
     msgs, total, has_more = await list_messages(
         db,
@@ -435,16 +444,19 @@ async def list_messages_endpoint(
 async def append_message_endpoint(
     conversation_id: str,
     request: Request,
-    payload: dict,
+    payload: dict[str, object],
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("conversation:write", "chat.use")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     conv = await get_conversation(db, conv_id=conversation_id, user_id=user.id)
-    role = payload.get("role", "user")
+    role_value = payload.get("role", "user")
     content = payload.get("content", "")
-    if role not in ("user", "system", "tool"):
+    if role_value not in ("user", "system", "tool"):
         raise ValidationException(message="role 必须为 user / system / tool")
+    if not isinstance(content, str):
+        raise ValidationException(message="content 必须为字符串")
+    role = cast(Role, role_value)
     msg = await append_message(db, conv_id=conv.id, role=role, content=content)
     await db.commit()
     return APIResponse(data=MessageResponse.model_validate(msg).model_dump()).model_dump()

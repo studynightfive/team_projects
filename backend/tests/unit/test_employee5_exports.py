@@ -12,6 +12,8 @@ from __future__ import annotations
 import time
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -191,6 +193,141 @@ class TestCsvExporter:
             rows = list(reader)
         assert rows[0] == ["section", "content"]
         assert ["title", "My Doc"] in rows
+
+    @pytest.mark.parametrize("prefix", ["=", "+", "-", "@", "\t", "\r"])
+    def test_formula_prefix_is_escaped(self, tmp_path, monkeypatch, prefix):
+        import csv as csvmod
+
+        from app.common.config import settings
+        from app.exports._shared.storage import task_file_path
+        from app.exports.all import CsvExporter, ExportContent, ExportOptions
+
+        monkeypatch.setattr(settings, "export_storage_root", str(tmp_path / "exports"))
+        content = ExportContent(
+            document_id="d1",
+            title=f"{prefix}danger",
+            markdown=f"{prefix}payload",
+        )
+        out = task_file_path("t1", "formula.csv")
+        result = asyncio.run(CsvExporter().export(content, out, ExportOptions()))
+        with open(result, encoding="utf-8", newline="") as file:
+            rows = list(csvmod.reader(file))
+        assert rows[1][1].startswith("'")
+        assert rows[2][1].startswith("'")
+
+
+class TestPdfResourceBoundary:
+    def test_network_resource_is_rejected(self):
+        from app.exports.all import _local_asset_url_fetcher
+
+        with pytest.raises(ValueError, match="禁止访问网络"):
+            _local_asset_url_fetcher("https://example.com/tracker.png")
+
+    def test_file_outside_storage_is_rejected(self, tmp_path, monkeypatch):
+        from app.common.config import settings
+        from app.exports.all import _local_asset_url_fetcher
+
+        storage = tmp_path / "exports"
+        outside = tmp_path / "outside.png"
+        storage.mkdir()
+        outside.write_bytes(b"not-an-image")
+        monkeypatch.setattr(settings, "export_storage_root", str(storage))
+        with pytest.raises(ValueError, match="受控存储目录"):
+            _local_asset_url_fetcher(outside.resolve().as_uri())
+
+
+class TestExportCleanup:
+    @pytest.mark.asyncio
+    async def test_only_expired_terminal_tasks_are_cleaned(self, monkeypatch):
+        from sqlalchemy.dialects import postgresql
+
+        from app.exports import all as exports
+
+        done = SimpleNamespace(id="done-task", status="done")
+        pending = SimpleNamespace(id="pending-task", status="pending")
+        result = MagicMock()
+        result.scalars.return_value.all.return_value = [done, pending]
+        db = AsyncMock()
+        db.execute.return_value = result
+        deleted: list[str] = []
+        monkeypatch.setattr(exports, "delete_task_dir", deleted.append)
+
+        count = await exports.cleanup_expired(db)
+
+        statement = db.execute.await_args.args[0]
+        sql = str(
+            statement.compile(
+                dialect=postgresql.dialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+        assert "export_tasks.status IN ('done', 'failed', 'cancelled')" in sql
+        assert "FOR UPDATE SKIP LOCKED" in sql
+        assert count == 1
+        assert deleted == ["done-task"]
+        assert done.status == "expired"
+        assert pending.status == "pending"
+        db.commit.assert_awaited_once_with()
+
+    @pytest.mark.asyncio
+    async def test_delete_failure_keeps_task_retryable_and_continues(self, monkeypatch):
+        from app.exports import all as exports
+
+        blocked = SimpleNamespace(id="blocked-task", status="failed")
+        removable = SimpleNamespace(id="removable-task", status="cancelled")
+        result = MagicMock()
+        result.scalars.return_value.all.return_value = [blocked, removable]
+        db = AsyncMock()
+        db.execute.return_value = result
+
+        def delete_task_dir(task_id: str) -> None:
+            if task_id == "blocked-task":
+                raise OSError("locked")
+
+        monkeypatch.setattr(exports, "delete_task_dir", delete_task_dir)
+
+        count = await exports.cleanup_expired(db)
+
+        assert count == 1
+        assert blocked.status == "failed"
+        assert removable.status == "expired"
+        db.commit.assert_awaited_once_with()
+
+
+class TestDownloadPathBoundary:
+    def test_file_inside_current_task_directory_is_allowed(self, tmp_path, monkeypatch):
+        from app.common.config import settings
+        from app.exports.all import _resolve_download_path
+
+        storage = tmp_path / "exports"
+        task_storage = storage / "task-1"
+        task_storage.mkdir(parents=True)
+        exported = task_storage / "report.pdf"
+        exported.write_bytes(b"pdf")
+        monkeypatch.setattr(settings, "export_storage_root", str(storage))
+
+        resolved = _resolve_download_path(
+            SimpleNamespace(id="task-1", file_path=str(exported))
+        )
+
+        assert resolved == exported.resolve()
+
+    @pytest.mark.parametrize("target_kind", ["outside", "directory"])
+    def test_non_task_file_is_rejected(self, tmp_path, monkeypatch, target_kind):
+        from app.common.config import settings
+        from app.common.exceptions import NotFoundException
+        from app.exports.all import _resolve_download_path
+
+        storage = tmp_path / "exports"
+        task_storage = storage / "task-1"
+        task_storage.mkdir(parents=True)
+        outside = storage / "outside.pdf"
+        outside.write_bytes(b"pdf")
+        monkeypatch.setattr(settings, "export_storage_root", str(storage))
+        target = outside if target_kind == "outside" else task_storage
+
+        with pytest.raises(NotFoundException):
+            _resolve_download_path(SimpleNamespace(id="task-1", file_path=str(target)))
 
 
 # ============================================================

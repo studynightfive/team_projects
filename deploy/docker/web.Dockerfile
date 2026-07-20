@@ -52,6 +52,7 @@ RUN rm /etc/nginx/conf.d/default.conf
 
 # 复制自定义 Nginx 配置
 COPY deploy/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY deploy/nginx/security-headers.conf /etc/nginx/snippets/security-headers.conf
 
 # 从构建阶段复制前端构建产物到 Nginx 静态资源目录
 # 构建产物包含 Vue SPA 的 HTML、JS、CSS 和静态资源

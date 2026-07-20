@@ -148,6 +148,7 @@ const askSpace = (question?: string): void => {
           q: nextQuery,
           mode: "smart",
           sources: "knowledge",
+          workspaceId: selectedSpace.value.id,
         },
       },
     });

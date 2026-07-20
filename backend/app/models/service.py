@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.exceptions import ConflictException, NotFoundException, ValidationException
-from app.models.providers.openai import build_provider
+from app.models.providers.openai import build_provider, validate_provider_base_url
 from app.models.repository import Model, ModelProvider
 from app.models.schemas import (
     ModelCreate,
@@ -31,6 +31,10 @@ from app.models.security import decrypt_api_key, encrypt_api_key
 # ============================================================
 # Provider CRUD
 # ============================================================
+def _validate_provider_base_url(code: str, base_url: str) -> None:
+    validate_provider_base_url(code, base_url)
+
+
 async def list_providers(db: AsyncSession) -> Sequence[ModelProvider]:
     res = await db.execute(select(ModelProvider).order_by(ModelProvider.code))
     return res.scalars().all()
@@ -41,6 +45,7 @@ async def get_provider(db: AsyncSession, code: str) -> ModelProvider | None:
 
 
 async def upsert_provider(db: AsyncSession, payload: ModelProviderCreate) -> ModelProvider:
+    _validate_provider_base_url(payload.code, payload.base_url)
     existing = await get_provider(db, payload.code)
     if existing is None:
         provider = ModelProvider(
@@ -63,6 +68,8 @@ async def patch_provider(
     existing = await get_provider(db, code)
     if existing is None:
         raise NotFoundException()
+    if payload.base_url is not None:
+        _validate_provider_base_url(code, payload.base_url)
     for field in ("display_name", "base_url", "enabled"):
         v = getattr(payload, field, None)
         if v is not None:
@@ -150,7 +157,8 @@ async def test_model(db: AsyncSession, model_id: str) -> TestModelResponse:
     provider = await get_provider(db, model.provider_code)
     if provider is None:
         raise NotFoundException()
+    _validate_provider_base_url(provider.code, provider.base_url)
     api_key = decrypt_api_key(model.api_key_encrypted) if model.api_key_encrypted else ""
     p = build_provider(provider.code, provider.base_url, api_key)
     result = await p.test(model_name=model.model_name, api_key=api_key, base_url=provider.base_url)
-    return TestModelResponse(**result)
+    return TestModelResponse.model_validate(result)

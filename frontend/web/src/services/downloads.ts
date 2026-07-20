@@ -1,72 +1,57 @@
 import { apiClient } from "../api/client";
+import {
+  assertApiSuccess,
+  unwrapApiData,
+  type ApiResponse,
+  type ApiSchema,
+} from "../api/contracts";
+import type { paths } from "../api/generated/openapi";
 
-interface ApiResponse<T> {
-  readonly code: number;
-  readonly message: string;
-  readonly data: T | null;
-  readonly request_id: string;
-}
+type ExportOptions = Readonly<Required<ApiSchema<"ExportOptions">>>;
+type ExportCreateRequest =
+  paths["/exports"]["post"]["requestBody"]["content"]["application/json"];
 
-interface PaginatedData<T> {
-  readonly items: readonly T[];
-  readonly page: number;
-  readonly page_size: number;
-  readonly total: number;
-}
+export type ExportFormat = ExportCreateRequest["format"];
+export type ExportStatus = ApiSchema<"ExportTaskResponse">["status"];
 
-export type ExportFormat = "pdf" | "docx" | "markdown" | "csv" | "txt";
-
-export type ExportStatus =
-  | "pending"
-  | "running"
-  | "done"
-  | "failed"
-  | "expired"
-  | "cancelled";
-
-export interface ExportTaskRecord {
-  readonly id: string;
-  readonly user_id: string;
-  readonly format: ExportFormat;
-  readonly document_ids: readonly string[];
-  readonly options: Record<string, unknown>;
-  readonly status: ExportStatus;
-  readonly progress: number;
-  readonly file_path: string | null;
-  readonly file_size: number | null;
-  readonly download_url: string | null;
-  readonly expires_at: string;
-  readonly error_code: string | null;
-  readonly error_message: string | null;
-  readonly created_at: string | null;
-  readonly finished_at: string | null;
-}
-
-export interface ExportCreatePayload {
-  readonly format: ExportFormat;
-  readonly document_ids: readonly string[];
-}
-
-export interface ExportTaskPage {
-  readonly items: readonly ExportTaskRecord[];
-  readonly page: number;
-  readonly pageSize: number;
-  readonly total: number;
-}
-
-const unwrap = <T>(response: ApiResponse<T>): T => {
-  if (response.code !== 0 || response.data === null) {
-    throw new Error(response.message || "请求失败，请稍后重试");
+export type ExportTaskRecord = Readonly<
+  Omit<
+    Required<ApiSchema<"ExportTaskResponse">>,
+    "document_ids" | "options"
+  > & {
+    readonly document_ids: readonly string[];
+    readonly options: ExportOptions;
   }
-  return response.data;
-};
+>;
+
+export type ExportCreatePayload = Readonly<
+  Omit<ExportCreateRequest, "document_ids" | "options"> & {
+    readonly document_ids: readonly string[];
+    readonly options?: ExportOptions;
+  }
+>;
+
+export type ExportTaskPage = Readonly<{
+  items: readonly ExportTaskRecord[];
+  page: number;
+  pageSize: number;
+  total: number;
+}>;
+
+type ExportTaskPageResponse = Readonly<
+  Omit<ApiSchema<"PaginatedData_ExportTaskResponse_">, "items"> & {
+    readonly items: readonly ExportTaskRecord[];
+  }
+>;
 
 const toClientPath = (downloadUrl: string): string =>
   downloadUrl.startsWith("/api/")
     ? downloadUrl.slice("/api".length)
     : downloadUrl;
 
-const getFilenameFromHeader = (header: string | undefined): string | undefined => {
+const getFilenameFromHeader = (
+  header: string | undefined,
+): string | undefined => {
   if (header === undefined || header.trim() === "") return undefined;
 
   const encoded = /filename\*=UTF-8''([^;]+)/iu.exec(header)?.[1];
@@ -85,22 +70,39 @@ export const listExportTasks = async (
   params: { readonly page?: number; readonly pageSize?: number } = {},
   signal?: AbortSignal,
 ): Promise<ExportTaskPage> => {
-  const response = await apiClient.get<
-    ApiResponse<PaginatedData<ExportTaskRecord>>
-  >("/v1/exports", {
-    params: {
-      page: params.page ?? 1,
-      page_size: params.pageSize ?? 50,
+  const response = await apiClient.get<ApiResponse<ExportTaskPageResponse>>(
+    "/v1/exports",
+    {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.pageSize ?? 50,
+      },
+      signal,
     },
-    signal,
-  });
-  const data = unwrap(response.data);
+  );
+  const data = unwrapApiData(response.data);
   return {
     items: data.items,
     page: data.page,
     pageSize: data.page_size,
     total: data.total,
   };
+};
+
+export const listAllExportTasks = async (
+  signal?: AbortSignal,
+): Promise<ExportTaskPage> => {
+  const items: ExportTaskRecord[] = [];
+  let page = 1;
+  let total = 0;
+  do {
+    const current = await listExportTasks({ page, pageSize: 100 }, signal);
+    items.push(...current.items);
+    total = current.total;
+    page += 1;
+    if (current.items.length === 0) break;
+  } while (items.length < total);
+  return { items, page: 1, pageSize: Math.max(items.length, 1), total };
 };
 
 export const createExportTask = async (
@@ -110,11 +112,14 @@ export const createExportTask = async (
     "/v1/exports",
     payload,
   );
-  return unwrap(response.data);
+  return unwrapApiData(response.data);
 };
 
 export const deleteExportTask = async (exportId: string): Promise<void> => {
-  await apiClient.delete(`/v1/exports/${exportId}`);
+  const response = await apiClient.delete<ApiSchema<"APIResponse_NoneType_">>(
+    `/v1/exports/${exportId}`,
+  );
+  assertApiSuccess(response.data);
 };
 
 export const downloadExportBlob = async (

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "智能知识库平台 - 测试样本清单",
-  "updated_at": "2026-07-16",
+  "updated_at": "2026-07-20",
   "samples": [
     {
       "id": "pdf-001",
@@ -14,8 +14,8 @@
         "paragraphs"
       ],
       "page_count": 3,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 1164,
+      "sha256": "91301e12d036ef3a0ed9b9eeadfac428440a83e574d14ce6579eca4c06478aa4",
       "description": "纯文本中文PDF，3页，含标题和正文段落",
       "status": "ready"
     },
@@ -30,8 +30,8 @@
         "tables"
       ],
       "page_count": 2,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 1260,
+      "sha256": "5139713dfb110f669656d20726301600f15c28a2a4bc3fedf5b44b697c8da883",
       "description": "含表格的中文PDF，2页",
       "status": "ready"
     },
@@ -93,8 +93,8 @@
         "corrupted"
       ],
       "page_count": 0,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 500,
+      "sha256": "7e06d2fa8197ea69d9cb1a2e2dac36ce73d6380645034c7e197fd5358859b04e",
       "description": "损坏的PDF文件（截断），测试错误处理",
       "status": "ready"
     },
@@ -109,8 +109,8 @@
         "paragraphs"
       ],
       "page_count": 2,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 37071,
+      "sha256": "fe06fcb2d5319e76b4c0dbb81267eec3bc0f0317b6c05da89cbca05ddd0bb203",
       "description": "纯文本中文Word，含标题和正文",
       "status": "ready"
     },
@@ -125,8 +125,8 @@
         "tables"
       ],
       "page_count": 2,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 36955,
+      "sha256": "11e6dd7770c61494e2e59ea3ac02103bf0b2fe7c12281f2bf164e344399f225e",
       "description": "含表格的中文Word文档",
       "status": "ready"
     },
@@ -141,8 +141,8 @@
         "images"
       ],
       "page_count": 3,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 37204,
+      "sha256": "e4cb1c931a33665a80a272ae4cfdce71278069a72a84984cbb17546b1f1e9d45",
       "description": "含图片的中文Word文档",
       "status": "ready"
     },
@@ -188,8 +188,8 @@
         "tables"
       ],
       "page_count": 1,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 5060,
+      "sha256": "7e1bca89f8ce36cdd22c41cf55f5ac536fedb530bd8b52ae1c89e22a21b5af97",
       "description": "简单表格Excel文件",
       "status": "ready"
     },
@@ -204,8 +204,8 @@
         "merged-cells"
       ],
       "page_count": 1,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 5173,
+      "sha256": "c0c8598e476b3e37c7689e2e1c6910815e7d2a4ca5fe7b87755ea51abbdc6e8f",
       "description": "含合并单元格的Excel文件",
       "status": "ready"
     },
@@ -220,8 +220,8 @@
         "multi-sheet"
       ],
       "page_count": 3,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 6051,
+      "sha256": "7d0b1ea855847ecb41957290c0021ff4ef0c2abc77c64a5723c6bf7d7932ba8a",
       "description": "多工作表Excel文件",
       "status": "ready"
     },
@@ -251,8 +251,8 @@
         "empty"
       ],
       "page_count": 0,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 4783,
+      "sha256": "c3c5bcba1dff37af7ee672df4eac39ab1c21418b20585aca437d2c4c749c1177",
       "description": "空工作簿Excel文件",
       "status": "ready"
     },
@@ -267,8 +267,8 @@
         "slides"
       ],
       "page_count": 5,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 29274,
+      "sha256": "4b45620f8f7b87114cd988ea3b4d3b256da68d9cbe11a66d24c153365baaea4e",
       "description": "简单中文PPT，含标题和正文",
       "status": "ready"
     },
@@ -284,8 +284,8 @@
         "notes"
       ],
       "page_count": 3,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 33005,
+      "sha256": "4e9810329033b3a023dd3f21f2dba692abc04ee1c81649f9dffa4b0b084edc68",
       "description": "含备注的中文PPT",
       "status": "ready"
     },
@@ -315,8 +315,8 @@
         "empty"
       ],
       "page_count": 0,
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 27387,
+      "sha256": "c46552fa2a01233e8ecefffde3d7c7e39d4e827cbf4999141af931a72b616625",
       "description": "无内容的PPT",
       "status": "ready"
     },
@@ -331,8 +331,8 @@
         "headings",
         "paragraphs"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 2268,
+      "sha256": "ef89c3b69b69e944e18a0d2fd302942232feb693dfbdb2df7bd2701b33d62002",
       "description": "基础Markdown文件，含中文标题和段落",
       "status": "ready"
     },
@@ -346,8 +346,8 @@
         "text",
         "code-blocks"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 1880,
+      "sha256": "5606d77550fd265d412aeb6b4e6bb56d4bbc046984f2901db15875c897a7f0de",
       "description": "含代码块的Markdown文件",
       "status": "ready"
     },
@@ -361,8 +361,8 @@
         "text",
         "tables"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 987,
+      "sha256": "c8f4eeca36884aec185f5770db223048cc59225971c02d9226b466a4d2cf558c",
       "description": "含表格的Markdown文件",
       "status": "ready"
     },
@@ -378,8 +378,8 @@
       ],
       "file_size_bytes": 0,
       "sha256": "",
-      "description": "含图片引用的Markdown文件",
-      "status": "ready"
+      "description": "含图片引用的 Markdown 文件，待补齐真实图片资源",
+      "status": "pending"
     },
     {
       "id": "md-005",
@@ -391,8 +391,8 @@
         "xss",
         "malicious"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 961,
+      "sha256": "ec9be7da1a5c29fba4af3b3d6f2a2b658418e6b48451a65bf0c978aacd8510ed",
       "description": "含危险HTML的Markdown文件（XSS清洗测试）",
       "status": "ready"
     },
@@ -406,7 +406,7 @@
         "empty"
       ],
       "file_size_bytes": 0,
-      "sha256": "",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "description": "空Markdown文件",
       "status": "ready"
     },
@@ -420,8 +420,8 @@
         "text",
         "utf8"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 1309,
+      "sha256": "c67082c898f298d554c60d60d9ddd5ae5244f0602f36cc3cf2f81e07f2529c8c",
       "description": "UTF-8编码中文文本",
       "status": "ready"
     },
@@ -435,8 +435,8 @@
         "text",
         "gbk"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 173,
+      "sha256": "f3dc80be5557d51fe5639b75874b93674584cfba48c0b9bc17ed57d68b389e66",
       "description": "GBK编码中文文本，测试编码自动识别",
       "status": "ready"
     },
@@ -450,8 +450,8 @@
         "text",
         "long-lines"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 1480,
+      "sha256": "db928a9d6b0efe5547b23f6ba88e4ac6bbc8a3f6f42c7209eea185fec2e99661",
       "description": "超长行文本文件，测试长文本处理",
       "status": "ready"
     },
@@ -465,8 +465,8 @@
         "binary",
         "mismatch"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 108,
+      "sha256": "a1f76d954944aa5baf6d59cbc33793432c6aed8cb308b595e15055a9e37185b7",
       "description": "实际是二进制文件但扩展名为.txt，测试MIME识别",
       "status": "ready"
     },
@@ -480,8 +480,8 @@
         "tables",
         "utf8"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 1370,
+      "sha256": "8b8bfe520a5fc62170bb6efd10bdb4ecc1a20483c47537afa6b1a9b6f82843e6",
       "description": "UTF-8编码CSV文件",
       "status": "ready"
     },
@@ -495,8 +495,8 @@
         "tables",
         "special-chars"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 373,
+      "sha256": "a067ece6788b0828cc1b477dec50f6424df6fbb1d634a83e84add51ff8684012",
       "description": "含特殊字符的CSV文件（逗号、引号、换行）",
       "status": "ready"
     },
@@ -510,8 +510,8 @@
         "tables",
         "inconsistent"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 40,
+      "sha256": "5d404906db3f6571c7dbccbc980978aece06f1452d7388c60bcf839358d3af9e",
       "description": "列数不一致的CSV文件",
       "status": "ready"
     },
@@ -525,7 +525,7 @@
         "empty"
       ],
       "file_size_bytes": 0,
-      "sha256": "",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "description": "空CSV文件",
       "status": "ready"
     },
@@ -539,8 +539,8 @@
         "text",
         "html"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 2716,
+      "sha256": "a01c8afbc61b1526aa2814b4ff70ca8a1c14839533ad350e3905c96f4b6636d4",
       "description": "简单文章HTML页面",
       "status": "ready"
     },
@@ -555,8 +555,8 @@
         "tables",
         "html"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 1068,
+      "sha256": "b0cb7ec283ff21d26270a88ddcc220ae0534ffd6d0f850a449ebd97dc6fa2b75",
       "description": "含表格的HTML页面",
       "status": "ready"
     },
@@ -571,8 +571,8 @@
         "malicious",
         "html"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 981,
+      "sha256": "cb2ed158c88f191a0c1c70ed7bb60cca9ac6f84e2c1082f2013664120e7146e1",
       "description": "含脚本和事件属性的HTML（清洗测试）",
       "status": "ready"
     },
@@ -586,8 +586,8 @@
         "html",
         "nested"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 2765,
+      "sha256": "c4de1a40e066f262dc00f693ce41ed1a826ad8c9f6fef6acc18be17e9345aa2d",
       "description": "100层嵌套div的HTML，测试解析器深度限制",
       "status": "ready"
     },
@@ -738,8 +738,8 @@
         "text",
         "email"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 877,
+      "sha256": "f1763d3c4aa10567edb3bdc6a12e446aa20ba22a3f4839a339f46a9f17c414ff",
       "description": "简单中文邮件，含主题、发件人和正文",
       "status": "ready"
     },
@@ -753,8 +753,8 @@
         "corrupted",
         "email"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 533,
+      "sha256": "fc0ee7c6553bd2cb4332fa9a1555b6244ac7adb32149ec26a9c5611aa7567e1c",
       "description": "MIME边界损坏的邮件",
       "status": "ready"
     },
@@ -798,8 +798,8 @@
         "text",
         "rtf"
       ],
-      "file_size_bytes": 0,
-      "sha256": "",
+      "file_size_bytes": 1407,
+      "sha256": "a12f9bd3fbafb030df27ac524ba95c04c0e7ea48c92e1d0cb68b757e3ab3b677",
       "description": "RTF富文本文件",
       "status": "ready"
     },
@@ -817,6 +817,150 @@
       "sha256": "",
       "description": "空ODT文件",
       "status": "pending"
+    },
+    {
+      "id": "staff4-csv-001",
+      "path": "documents/staff4/csv/normal.csv",
+      "format": "csv",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": ["staff4-regression"],
+      "file_size_bytes": 27,
+      "sha256": "f6c2f265961ccfd0386ff22062cc6ebdfb1ac10becc3f6559a263ba790bb93a4",
+      "description": "员工4 CSV 解析回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-docx-001",
+      "path": "documents/staff4/docx/normal_zh.docx",
+      "format": "docx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": ["staff4-regression"],
+      "file_size_bytes": 36842,
+      "sha256": "5402d1942b39e7ee566cb692b26d521574dbbd3bdda3b40776e522c269c8d619",
+      "description": "员工4 中文 DOCX 解析回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-eml-001",
+      "path": "documents/staff4/eml/normal.eml",
+      "format": "eml",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": ["staff4-regression"],
+      "file_size_bytes": 213,
+      "sha256": "4024ba52890ed349722dc860c7d5dde800936652f606ca5fdaf5221c2b5fc1d5",
+      "description": "员工4 EML 解析回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-html-001",
+      "path": "documents/staff4/html/normal.html",
+      "format": "html",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": ["staff4-regression"],
+      "file_size_bytes": 138,
+      "sha256": "57383c808209f993c55e30abd1787c572844af7df144bdcbe2e1447d74a928d5",
+      "description": "员工4 HTML 解析回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-json-001",
+      "path": "documents/staff4/json/normal.json",
+      "format": "json",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": ["staff4-regression"],
+      "file_size_bytes": 51,
+      "sha256": "0010e8ed21c880b92f206667691454e3cb2b749db685e748a9c66e5d4d668f51",
+      "description": "员工4 JSON 解析回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-md-001",
+      "path": "documents/staff4/md/normal_zh.md",
+      "format": "md",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": ["staff4-regression"],
+      "file_size_bytes": 108,
+      "sha256": "d158eb0345958f471de85a7595200b14c9fdd9308b8d3269f2255a8cbfa6b233",
+      "description": "员工4 中文 Markdown 解析回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-md-002",
+      "path": "documents/staff4/md/xss.md",
+      "format": "md",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": ["staff4-regression", "xss"],
+      "file_size_bytes": 77,
+      "sha256": "3c0bad0cf116e12c151ad35a614391a29684af388b8751790863d1c751c4ac97",
+      "description": "员工4 Markdown XSS 清洗回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-pdf-001",
+      "path": "documents/staff4/pdf/corrupt.pdf",
+      "format": "pdf",
+      "category": "abnormal",
+      "language": "zh-CN",
+      "features": ["staff4-regression", "corrupted"],
+      "file_size_bytes": 32,
+      "sha256": "323782d3393b9eeec31cc173ba3dd13b758dbd4b4be56bc10a23143d0032c1b8",
+      "description": "员工4损坏 PDF 回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-pptx-001",
+      "path": "documents/staff4/pptx/normal_zh.pptx",
+      "format": "pptx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": ["staff4-regression"],
+      "file_size_bytes": 28286,
+      "sha256": "9f3ceb440cd5b02e62554551b58f0ec90a8d8fb5986b464f42a50ee6ea68329f",
+      "description": "员工4中文 PPTX 解析回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-txt-001",
+      "path": "documents/staff4/txt/normal_en.txt",
+      "format": "txt",
+      "category": "normal",
+      "language": "en-US",
+      "features": ["staff4-regression"],
+      "file_size_bytes": 75,
+      "sha256": "69a79704cfdb12826f3d28549b36e1a5f4b97f8246d9795fbfaae238211a1667",
+      "description": "员工4英文文本解析回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-unsupported-001",
+      "path": "documents/staff4/unsupported/unknown.bin",
+      "format": "bin",
+      "category": "unsupported",
+      "language": "und",
+      "features": ["staff4-regression", "unsupported"],
+      "file_size_bytes": 16,
+      "sha256": "fa92c337546e52379e2db491f151298f39337c23695fb4f5dffd1db26879c5c8",
+      "description": "员工4未知二进制格式拒绝回归样本",
+      "status": "ready"
+    },
+    {
+      "id": "staff4-xlsx-001",
+      "path": "documents/staff4/xlsx/normal_zh.xlsx",
+      "format": "xlsx",
+      "category": "normal",
+      "language": "zh-CN",
+      "features": ["staff4-regression"],
+      "file_size_bytes": 4897,
+      "sha256": "29405ff12f88e6097822df7ce64363a0b386918fc7b81a57b5d93c9ae1b98c66",
+      "description": "员工4中文 XLSX 解析回归样本",
+      "status": "ready"
     }
   ]
 }

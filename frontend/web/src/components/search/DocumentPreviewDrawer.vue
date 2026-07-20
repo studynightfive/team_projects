@@ -44,7 +44,14 @@ const moveHit = async (direction: -1 | 1): Promise<void> => {
 };
 
 const copyLink = async (): Promise<void> => {
-  const path = `${window.location.origin}/search?document=${encodeURIComponent(props.document?.id ?? "")}`;
+  if (
+    props.document?.documentId === undefined ||
+    props.document.knowledgeBaseId === undefined
+  ) {
+    emit("notice", "当前结果缺少文档定位信息，无法复制可恢复链接");
+    return;
+  }
+  const path = `${window.location.origin}/knowledge/${encodeURIComponent(props.document.knowledgeBaseId)}/documents/${encodeURIComponent(props.document.documentId)}`;
   try {
     await navigator.clipboard.writeText(path);
     emit("notice", "文档链接已复制");

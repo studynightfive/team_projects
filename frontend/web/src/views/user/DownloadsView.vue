@@ -13,7 +13,7 @@ import {
   createExportTask,
   deleteExportTask,
   downloadExportBlob,
-  listExportTasks,
+  listAllExportTasks,
   type ExportFormat,
   type ExportStatus,
   type ExportTaskRecord,
@@ -130,10 +130,7 @@ const loadRealDownloads = async (): Promise<void> => {
   loadError.value = "";
 
   try {
-    const page = await listExportTasks(
-      { page: 1, pageSize: 100 },
-      loadController.signal,
-    );
+    const page = await listAllExportTasks(loadController.signal);
     realDownloads.value = page.items;
     realTotal.value = page.total;
     loadState.value = "idle";
@@ -407,7 +404,7 @@ onBeforeUnmount(() => {
           }}
         </span>
         <span v-if="isRealApiMode">服务端总数 {{ realTotal }} 条</span>
-        <span>第 1 / 1 页</span>
+        <span>已加载全部记录</span>
       </template>
     </ResourcePanel>
   </div>

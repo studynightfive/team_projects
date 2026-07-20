@@ -5,7 +5,9 @@ import { RouterLink, useRoute } from "vue-router";
 import NotificationPreview from "../components/NotificationPreview.vue";
 import WorkspaceShell from "../components/WorkspaceShell.vue";
 import { ChevronDown } from "../components/icons";
-import { adminMobileNavigation, adminNavigation } from "../data/foundation";
+import { isRealApiMode } from "../config/runtime";
+import { adminNavigation } from "../data/foundation";
+import type { NavigationItem } from "../data/foundation";
 import { useSessionStore } from "../stores/session";
 
 const route = useRoute();
@@ -14,15 +16,36 @@ const environment = ref("演示");
 const currentTitle = computed(() =>
   typeof route.meta.title === "string" ? route.meta.title : "平台总览",
 );
+const visibleNavigation = computed<readonly NavigationItem[]>(() =>
+  !isRealApiMode
+    ? (adminNavigation as readonly NavigationItem[])
+    : (adminNavigation as readonly NavigationItem[]).flatMap((item) => {
+        const children = item.children?.filter((child) =>
+          sessionStore.hasAnyPermission(child.requiredPermissions ?? []),
+        );
+        const visible = sessionStore.hasAnyPermission(
+          item.requiredPermissions ?? [],
+        );
+        if (!visible && (children?.length ?? 0) === 0) return [];
+        return [
+          {
+            ...item,
+            to: children?.[0]?.to ?? item.to,
+            children,
+          },
+        ];
+      }),
+);
+const visibleMobileNavigation = computed(() => visibleNavigation.value.slice(0, 4));
 </script>
 
 <template>
   <WorkspaceShell
     variant="admin"
     area-title="管理中心"
-    :navigation="adminNavigation"
+    :navigation="visibleNavigation"
     navigation-label="管理中心"
-    :mobile-navigation="adminMobileNavigation"
+    :mobile-navigation="visibleMobileNavigation"
     :identity-name="sessionStore.displayName"
     :identity-role="sessionStore.roleLabel"
     :identity-initial="sessionStore.initial"

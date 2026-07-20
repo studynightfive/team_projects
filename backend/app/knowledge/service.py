@@ -233,6 +233,14 @@ async def update_knowledge_base(
             raise ValidationException(message="知识库名称不能为空")
         await _ensure_name_available(db, name, exclude_id=kb_id)
         update["name"] = name
+    chunk_size = update.get("chunk_size")
+    chunk_overlap = update.get("chunk_overlap")
+    final_chunk_size = chunk_size if isinstance(chunk_size, int) else item.chunk_size
+    final_chunk_overlap = (
+        chunk_overlap if isinstance(chunk_overlap, int) else item.chunk_overlap
+    )
+    if final_chunk_overlap >= final_chunk_size:
+        raise ValidationException(message="chunk_overlap 必须小于 chunk_size")
     for field, value in update.items():
         if value is not None:
             setattr(item, field, value)

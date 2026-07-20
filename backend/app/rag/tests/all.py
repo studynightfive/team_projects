@@ -6,18 +6,17 @@
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import math
 from datetime import datetime, timezone
-from typing import Any, Literal, cast
+from typing import Literal, TypedDict, cast
 from uuid import uuid4
 
 import structlog
 from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel, Field
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, func, select
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func, select
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -30,11 +29,18 @@ from app.common.models import User
 from app.common.schemas import APIResponse, PaginatedData
 from app.rag._shared.audit_helper import audit
 from app.rag.search import service as search_service
+from app.rag.search.schemas import SearchRequest
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v1/retrieval-tests", tags=["retrieval-tests"])
 
 SearchMode = Literal["keyword", "vector", "hybrid"]
+
+
+class StoredRetrievalTestQuery(TypedDict):
+    query: str
+    relevant_chunk_ids: list[str]
+    notes: str | None
 
 
 # ============================================================
@@ -50,12 +56,14 @@ class RetrievalTestDataset(Base):
         default=lambda: str(uuid4()),
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    description: Mapped[str] = mapped_column(default="")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     kb_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False).with_variant(String(36), "sqlite"),
         nullable=False,
     )
-    queries: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    queries: Mapped[list[StoredRetrievalTestQuery]] = mapped_column(
+        JSONB, nullable=False, default=list
+    )
     created_by: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("users.id"),
@@ -85,13 +93,13 @@ class RetrievalTestRun(Base):
         ForeignKey("retrieval_test_datasets.id", ondelete="CASCADE"),
         nullable=False,
     )
-    config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    config: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False, default=dict)
     config_hash: Mapped[str] = mapped_column(String(16), nullable=False)
     status: Mapped[str] = mapped_column(String(16), default="pending")
     progress: Mapped[int] = mapped_column(Integer, default=0)
     total: Mapped[int] = mapped_column(Integer, default=0)
-    metrics: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    per_query: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    metrics: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
+    per_query: Mapped[list[dict[str, object]] | None] = mapped_column(JSONB, nullable=True)
     error_message: Mapped[str | None] = mapped_column(String(512), nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -138,7 +146,7 @@ class RetrievalTestConfig(BaseModel):
     threshold: float = Field(default=0.0, ge=0.0, le=1.0)
     embedding_model_id: str | None = None
     rerank_model_id: str | None = None
-    metadata_filter: dict[str, Any] | None = None
+    metadata_filter: dict[str, object] | None = None
 
 
 class RetrievalTestRequest(BaseModel):
@@ -165,6 +173,7 @@ class PerQueryResult(BaseModel):
     ndcg: float
     recall: float
     precision: float
+    average_precision: float = 0.0
     latency_ms: int
 
 
@@ -240,7 +249,7 @@ def _aggregate_metrics(per_query: list[PerQueryResult]) -> RetrievalTestMetrics:
         ndcg_at_k=sum(p.ndcg for p in per_query) / n,
         recall_at_k=sum(p.recall for p in per_query) / n,
         precision_at_k=sum(p.precision for p in per_query) / n,
-        map_at_k=sum(p.precision for p in per_query) / n,  # 简化为 precision 平均
+        map_at_k=sum(p.average_precision for p in per_query) / n,
     )
 
 
@@ -250,6 +259,14 @@ def _aggregate_metrics(per_query: list[PerQueryResult]) -> RetrievalTestMetrics:
 def _hash_config(cfg: RetrievalTestConfig) -> str:
     raw = json.dumps(cfg.model_dump(), sort_keys=True, ensure_ascii=False).encode()
     return hashlib.sha256(raw).hexdigest()[:16]
+
+
+def _store_query(query: RetrievalTestQuery) -> StoredRetrievalTestQuery:
+    return {
+        "query": query.query,
+        "relevant_chunk_ids": query.relevant_chunk_ids,
+        "notes": query.notes,
+    }
 
 
 # ============================================================
@@ -276,7 +293,7 @@ async def create_dataset(
         name=payload.name,
         description=payload.description,
         kb_id=payload.kb_id,
-        queries=[q.model_dump() for q in payload.queries],
+        queries=[_store_query(query) for query in payload.queries],
         created_by=user_id,
     )
     db.add(ds)
@@ -297,7 +314,7 @@ async def update_dataset(
     if payload.queries is not None:
         if len(payload.queries) > settings.retrieval_test_max_queries:
             raise ValidationException(message=f"queries 上限 {settings.retrieval_test_max_queries}")
-        ds.queries = [q.model_dump() for q in payload.queries]
+        ds.queries = [_store_query(query) for query in payload.queries]
     return ds
 
 
@@ -352,32 +369,28 @@ async def _run_evaluation(
     per_query_results: list[PerQueryResult] = []
     n = len(dataset.queries)
     for i, q in enumerate(dataset.queries, start=1):
-        relevant = set(q.get("relevant_chunk_ids") or [])
-        qtext = q.get("query", "")
+        relevant = set(q["relevant_chunk_ids"])
+        qtext = q["query"]
         start = datetime.now(timezone.utc)
         try:
             resp = await search_service.search(
                 db,
                 user=user,
-                req=type(
-                    "R",
-                    (),
-                    {
-                        "query": qtext,
-                        "mode": config.mode,
-                        "kb_id": dataset.kb_id,
-                        "top_k": config.top_k,
-                        "threshold": config.threshold,
-                        "metadata_filter": config.metadata_filter,
-                        "rerank": config.rerank,
-                        "rerank_model_id": config.rerank_model_id,
-                        "embedding_model_id": config.embedding_model_id,
-                    },
-                )(),
+                req=SearchRequest(
+                    query=qtext,
+                    mode=config.mode,
+                    kb_id=dataset.kb_id,
+                    top_k=config.top_k,
+                    threshold=config.threshold,
+                    metadata_filter=config.metadata_filter,
+                    rerank=config.rerank,
+                    rerank_model_id=config.rerank_model_id,
+                    embedding_model_id=config.embedding_model_id,
+                ),
             )
             retrieved = [h.chunk_id for h in resp.hits]
         except Exception as exc:
-            logger.warning("test_query_failed", query=qtext, error=str(exc))
+            logger.warning("test_query_failed", error_type=type(exc).__name__)
             retrieved = []
         latency = int((datetime.now(timezone.utc) - start).total_seconds() * 1000)
         k = config.top_k
@@ -391,6 +404,7 @@ async def _run_evaluation(
                 ndcg=_ndg_at_k(retrieved, relevant, k),
                 recall=_recall_at_k(retrieved, relevant, k),
                 precision=_precision_at_k(retrieved, relevant, k),
+                average_precision=_average_precision_at_k(retrieved, relevant, k),
                 latency_ms=latency,
             )
         )
@@ -414,9 +428,9 @@ async def list_datasets_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("retrieval_test:read")),
+    _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     items, total = await list_datasets(db, user_id=user.id, page=page, page_size=page_size)
     return APIResponse(
         data=PaginatedData(
@@ -433,9 +447,9 @@ async def create_dataset_endpoint(
     request: Request,
     payload: RetrievalTestDatasetCreate,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("retrieval_test:write")),
+    _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     ds = await create_dataset(db, user_id=user.id, payload=payload)
     await db.commit()
     await db.refresh(ds)
@@ -458,9 +472,9 @@ async def get_dataset_endpoint(
     dataset_id: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("retrieval_test:read")),
+    _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     ds = await get_dataset(db, dataset_id)
     if ds is None:
         raise NotFoundException()
@@ -475,9 +489,9 @@ async def patch_dataset_endpoint(
     request: Request,
     payload: RetrievalTestDatasetUpdate,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("retrieval_test:write")),
+    _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     ds = await get_dataset(db, dataset_id)
     if ds is None:
         raise NotFoundException()
@@ -494,9 +508,9 @@ async def delete_dataset_endpoint(
     dataset_id: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("retrieval_test:write")),
+    _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     ds = await get_dataset(db, dataset_id)
     if ds is None:
         raise NotFoundException()
@@ -518,33 +532,15 @@ async def run_test_endpoint(
     request: Request,
     payload: RetrievalTestRequest,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("retrieval_test:run")),
+    _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     dataset = await get_dataset(db, payload.dataset_id)
     if dataset is None:
         raise NotFoundException()
 
     if payload.async_run:
-        # 简化为后台任务占位（生产用 arq）
-        run = RetrievalTestRun(
-            dataset_id=dataset.id,
-            config=payload.config.model_dump(),
-            config_hash=_hash_config(payload.config),
-            status="pending",
-            total=len(dataset.queries),
-        )
-        db.add(run)
-        await db.commit()
-        asyncio.create_task(_run_evaluation(db, user=user, dataset=dataset, config=payload.config))
-        return APIResponse(
-            data=RetrievalTestRunSummary(
-                id=run.id,
-                status=cast(Literal["pending", "running", "done", "failed"], run.status),
-                progress=run.progress,
-                error_message=None,
-            ).model_dump()
-        ).model_dump()
+        raise ValidationException(message="异步评测尚未接入 Worker，请使用 async_run=false")
 
     run = await _run_evaluation(db, user=user, dataset=dataset, config=payload.config)
     return APIResponse(
@@ -568,16 +564,16 @@ async def list_runs_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("retrieval_test:read")),
+    _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     q = select(RetrievalTestRun)
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar() or 0
     offset = (page - 1) * page_size
     res = await db.execute(
         q.order_by(RetrievalTestRun.started_at.desc()).offset(offset).limit(page_size)
     )
-    items = []
+    items: list[dict[str, object]] = []
     for r in res.scalars().all():
         items.append(
             {
@@ -601,9 +597,9 @@ async def get_run_endpoint(
     run_id: str,
     request: Request,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("retrieval_test:read")),
+    _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, object]:
     run = await db.get(RetrievalTestRun, run_id)
     if run is None:
         raise NotFoundException()

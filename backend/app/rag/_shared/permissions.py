@@ -11,7 +11,8 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from typing import TypeVar
 
 import structlog
 from sqlalchemy import select
@@ -87,11 +88,14 @@ async def get_user_accessible_doc_ids(db: AsyncSession, user: User) -> set[str]:
     return set()
 
 
+HitT = TypeVar("HitT", bound=Mapping[str, object])
+
+
 def post_filter_hits(
     *,
-    hits: list[dict],
+    hits: list[HitT],
     accessible_kb_ids: Iterable[str],
-) -> list[dict]:
+) -> list[HitT]:
     """对检索/引用结果做后置权限过滤（提示词 02 §4.4 + 03 §5.3）。
 
     入参 hit 至少含 `kb_id` 字段。
@@ -99,7 +103,7 @@ def post_filter_hits(
     """
     allowed = set(accessible_kb_ids)
     dropped = 0
-    filtered: list[dict] = []
+    filtered: list[HitT] = []
     for hit in hits:
         if hit.get("kb_id") in allowed:
             filtered.append(hit)

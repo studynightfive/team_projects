@@ -44,26 +44,26 @@
 
 - GitHub 仓库：`studynightfive/team_projects`，默认分支 `main`。
 - 2026-07-19 RAG 真实问答链路新增 `POST /api/v1/retrieval/answer`：后端先复用真实检索命中文档片段，再调用 DeepSeek OpenAI 兼容聊天接口生成基于引用的答案；前端 AI 搜索与 AI 助手真实模式均走该接口。文档切分继续使用本地 Markdown-aware chunker，以保证处理结果稳定、可重复、可追溯；DeepSeek 不负责原文切分。Chunker 优先按 Markdown 标题、段落、表格和代码块形成语义块，`chunk_size`/`chunk_overlap` 仅用于超长段落兜底滑窗拆分。
-- 2026-07-19 DeepSeek 聊天模型默认使用 `deepseek-v4-pro`；真实 API 模式下搜索问题不写入 URL 查询参数，刷新页面不恢复上一条提问，避免问题内容残留在地址栏。
+- 2026-07-19 DeepSeek 聊天模型默认使用官方 API 模型名 `deepseek-chat`；真实 API 模式下搜索问题不写入 URL 查询参数，刷新页面不恢复上一条提问，避免问题内容残留在地址栏。
 - 2026-07-19 RAG 回答完成后会复用已有 `conversations/messages` 表保存用户问题、AI 回答和引用；真实 API 模式下历史会话与搜索历史从该表读取，我的空间从真实知识库列表读取，收藏内容通过 `/api/v1/favorites` 写入后端收藏表。
 - 2026-07-19 真实 API 模式下，AI 搜索框的知识库选择必须从 `/api/v1/knowledge-bases` 读取当前账号可访问知识库；选中项通过 `workspaceId` 传入前端搜索请求，并由真实 RAG 服务转换为后端 `kb_id`。知识库名称按去首尾空格、大小写不敏感规则唯一，服务层返回 409，数据库层通过 `uq_knowledge_bases_name_normalized` 防止并发重名。
 - 2026-07-19 交付演示范围收敛为企业知识库闭环，用户端不再暴露 `/data-sources` 页面、导航或顶部状态入口；真实模式“我的下载”统一调用 `/api/v1/exports`，下载文件必须使用后端返回的签名 `download_url` 走鉴权接口，不展示固定下载样例。
 - 2026-07-19 因后端没有独立深度研究任务接口，用户端移除 `/research` 页面、导航、首页快捷入口和 `research` 搜索模式；当前交付只保留真实可用的 AI 搜索/RAG 问答、企业知识库、上传、历史、收藏和下载闭环。
-- 2026-07-19 管理中心页面统一改为真实 API 服务层读取和写入，不再在页面内直接读取 `localPageData` 或 `foundationData` 固定样例；测试环境只保留接口形状 mock。API 启动会幂等补齐演示账号 `admin/admin123`、`liuhaiwang/1234567`、`qmxl/1234567`，注册页通过公开查重接口和后端唯一性约束避免账号 ID 重复，注册成功的普通用户进入用户管理列表。
+- 2026-07-19 管理中心页面统一改为真实 API 服务层读取和写入，不再在页面内直接读取 `localPageData` 或 `foundationData` 固定样例；测试环境只保留接口形状 mock。仅当 `AUTO_SEED_DEMO_DATA=true` 且运行时提供至少 12 位的 `DEMO_SEED_PASSWORD` 时，API 才会幂等补齐 `admin`、`liuhaiwang`、`qmxl` 三类演示账号；生产环境禁止演示播种，口令值不得写入仓库或记忆。注册页通过公开查重接口和后端唯一性约束避免账号 ID 重复，注册成功的普通用户进入用户管理列表。
 - 2026-07-19 用户端交付范围继续收敛：AI 助手页面因与 AI 搜索共用同一条真实 RAG 回答链路而移除，问答入口统一到 AI 搜索，记录查看保留在历史会话；用户与管理员壳层账号资料统一来自登录态 `/api/v1/me`，真实 API 模式下 `/admin` 路由必须具备管理员权限。
 - 2026-07-19 认证与权限边界进一步收敛：登录接口 401 在登录页显示账号或密码错误，普通业务接口 401 仍表示会话失效；退出登录必须调用 `/api/v1/auth/logout` 并清理前端内存会话。管理员编辑已有用户时只允许调整角色，不修改账号 ID 或姓名；企业知识库页按 `admin.knowledge_base.create` 权限展示创建入口，超级管理员与知识库编辑者可创建知识库，普通用户不展示入口且后端继续返回 403。
-- 2026-07-19 通知中心已接入真实 API：新增 `notifications` 表和 `/api/v1/notifications` 读写接口，用户通知按当前登录用户持久化，管理员通知仅管理员可见；前端顶栏预览和通知中心真实模式不再读取固定样例。RAG 索引核查结论：上传文档会转 Markdown 并写入 `document_chunks`；已新增 `document_chunks.embedding_vector vector(1024)` 和 HNSW 索引，并配置 `dashscope / qwen3.7-text-embedding` 作为默认 Qwen embedding 模型；无 `DASHSCOPE_API_KEY` 时仍保留 `embedding_json` deterministic stub 兜底。
-- 2026-07-19 晚间真实 RAG 联调确认：`deploy/env/.env` 是 Docker 生效配置文件；DeepSeek 与 DashScope Key 仅保存在该本地文件。演示文档重新处理后 30 个 active chunk 均写入 1024 维 `embedding_vector`，`/api/v1/retrieval/answer` 通过 `hybrid` 检索加 `deepseek-v4-pro` 生成带引用编号的答案。
+- 2026-07-19 通知中心已接入真实 API：新增 `notifications` 表和 `/api/v1/notifications` 读写接口，用户通知按当前登录用户持久化，管理员通知仅管理员可见；前端顶栏预览和通知中心真实模式不再读取固定样例。RAG 索引核查结论：上传文档会转 Markdown 并写入 `document_chunks`；已新增 `document_chunks.embedding_vector vector(1024)` 和 HNSW 索引，并配置 `dashscope / text-embedding-v4` 作为默认 embedding 模型；无 `DASHSCOPE_API_KEY` 时仍保留 `embedding_json` deterministic stub 兜底。
+- 2026-07-19 晚间真实 RAG 联调确认：`deploy/env/.env` 是 Docker 生效配置文件；DeepSeek 与 DashScope Key 仅保存在该本地文件。演示文档重新处理后 30 个 active chunk 均写入 1024 维 `embedding_vector`，`/api/v1/retrieval/answer` 通过 `hybrid` 检索加 `deepseek-chat` 生成带引用编号的答案。
 - 2026-07-19 AI 搜索页的范围选择收敛为单一真实知识库选择，不再提供“全部企业知识/全部当前知识库”聚合范围；右侧辅助信息只展示真实知识库列表统计与 RAG citations。知识库上传和管理权限边界固定为：超级管理员与知识库编辑者可上传、创建、编辑知识库，普通用户只能查看、检索和问答。
 - 2026-07-19 文档模块的知识库访问鉴权必须同时检查用户级和角色级 `KnowledgeBasePermission`，与知识库列表和 `/me` 的权限继承保持一致；普通用户可进入有权知识库的文档目录和文档预览，但上传仍必须具备 `document.upload` 或 `admin.document.upload`。真实前端详情页在接口加载完成前只显示加载态，不得先渲染“知识库不存在/文档不存在”。
 - 2026-07-19 管理端模型管理必须把 RAG 链路显式拆成聊天模型和 embedding 模型：DeepSeek 聊天模型从 `DEEPSEEK_CHAT_MODEL`/`DEEPSEEK_API_KEY` 幂等写入模型表，Qwen embedding 模型从 DashScope 配置写入；AI 搜索真实模式的模型下拉读取启用聊天模型并向 `/api/v1/retrieval/answer` 传递 `chat_model_id`。管理端页面不得回退到固定样例；命中率测试页已接入真实测试集创建/编辑、候选 chunk 检索、keyword/vector/hybrid 运行和指标明细，不再依赖固定样例或只读后端数据。
 - 2026-07-19 交付演示可使用真实 API 中的 `医疗信息化演示测试集`：绑定演示知识库 10 个医疗信息化问题和真实 `document_chunks.id`，推荐参数 `hybrid / TopK 8 / threshold 0 / rerank false`；当前验证结果为 10 题命中 9 题，Hit Rate `0.9`。
 - 2026-07-15 接管项目治理时，远端 `main` 基线为 `c57255a162ffbd8ba59e353f9f46588c2e80e192`，仓库尚无工程代码、治理文件、Issue 模板或 CI。
 - 当前协作账号对仓库是 Write 权限而不是 Admin；项目不再要求管理员配置 GitHub 必需状态检查，也不再维护分支保护配置脚本。
-- 项目直接依赖必须精确锁定；Node.js `22.23.1`、pnpm `11.13.0`、Python `3.10.20`、uv `0.8.22`。
+- 项目直接依赖必须精确锁定；Node.js `22.23.1`、pnpm `11.13.0`、Python `3.10.20`、uv `0.11.26`。
 - 2026-07-16 员工6 初始化后端基础设施时发现两个依赖版本冲突，已修复并记录：
   - `redis` 从方案定版 `6.4.0` 降级为 `5.2.1`：`arq==0.26.3` 的依赖约束为 `redis>=4.2.0,<6`，不兼容 redis 6.x。后续若需升级 redis 6.x，必须同步升级 arq 到支持 redis 6 的版本。
-  - `pydantic-settings` 从方案定版 `2.12.0` 升级为 `2.14.0`：`docling==2.112.0` 的传递依赖 `docling-core` 要求 `pydantic-settings>=2.14.0`。后续若需降级 pydantic-settings，必须同步降级 docling 到兼容版本。
+  - `pydantic-settings==2.14.0` 是当前直接锁定版本；仓库已不依赖 `docling`，因此不再把该版本与历史 `docling-core` 约束绑定。后续调整以 `pyproject.toml`、`uv.lock` 和 `uv sync --frozen` 的实际解析结果为准。
   - 以上两个版本偏离已体现于 `backend/pyproject.toml` 和 `backend/uv.lock`，CI 中的 `uv sync --frozen` 以此为准。
   - 2026-07-16 CI 中 uv 从方案定版 `0.8.22` 升级为 `0.11.26`：本地生成 `uv.lock` 使用的 uv 版本为 0.11.26，旧版 CI 无法正确解析 lock 文件路径。`uv sync` 命令同步改为 `cd backend && uv sync --frozen`。
 
@@ -71,5 +71,16 @@
 
 - 模块：`backend/app/documents`、`backend/app/parsers`
 - 迁移：`backend/migrations/versions/0002_documents_tables.py`
-- 默认 `WORKER_INLINE=true`；ARQ 任务 `process_document_task`
-- 向量链路已增加真实 pgvector 字段 `document_chunks.embedding_vector vector(1024)`；配置 `DASHSCOPE_API_KEY` 后新上传文档会写入 Qwen3 embedding，旧 `embedding_json` deterministic stub 仅作为无外部模型时的处理兜底。
+- 默认 `WORKER_INLINE=false`；Compose 始终使用独立 Worker，测试可显式设为 `true`；ARQ 任务 `process_document_task`
+- 向量链路已增加真实 pgvector 字段 `document_chunks.embedding_vector vector(1024)`；配置 `DASHSCOPE_API_KEY` 后新上传文档会写入 `text-embedding-v4` 向量，旧 `embedding_json` deterministic stub 仅作为无外部模型时的处理兜底。
+
+## 2026-07-20 全项目审计后的长期决定
+
+- 运行时 FastAPI OpenAPI 是接口事实来源，`docs/api/openapi.yaml` 由脚本生成，前端 `generated/openapi.ts` 由固定版本 `openapi-typescript@7.13.0` 生成；CI 必须验证生成后无差异，已有 OpenAPI component 不再在前端服务重复手写。
+- API 的框架级 404、405、422 与业务异常统一返回 `code/message/data/request_id`；响应头和正文复用同一 request ID，校验失败不回显原始输入。
+- 内建权限和角色在启动时始终幂等初始化；演示账号只在非生产环境、`AUTO_SEED_DEMO_DATA=true` 且显式提供合规演示口令时播种。生产首管理员通过 `backend/scripts/bootstrap_admin.py` 交互创建，不保留默认凭据。
+- 会话撤销以 `users.session_version` 和 Refresh Token 撤销记录为事实来源；禁用用户、重置密码或改变角色后，既有 Access/Refresh Token 必须立即失效。Refresh Cookie 与服务端有效期共用 `REFRESH_TOKEN_EXPIRE_DAYS`。
+- 迁移 `0012_schema_consistency`、`0013_user_session_version`、`0014_conversation_integrity` 负责收敛 ORM/数据库约束、会话版本及会话/消息外键；迁移必须同时通过空库升级、降级往返和 `alembic check`。
+- 文档和导出任务由独立 ARQ Worker 消费；Worker 通过 Redis 中的 ARQ 心跳判定健康。过期导出只清理终态任务；LibreOffice 临时目录始终清理，PDF 在受限子进程中执行并受时间、页数和 Linux 内存上限保护。
+- 批量上传在数据库失败时删除本批新目录，`REPLACE` 在提交前保留快照并在失败时恢复；外部文档响应不得包含宿主机或容器存储路径。
+- Nginx 使用 Docker DNS 动态解析 API 上游，API 容器单独重建不要求重启 Web；认证、注册、上传、模型测试、检索与问答端点在边缘执行限流，公开入口不暴露 Prometheus 指标。

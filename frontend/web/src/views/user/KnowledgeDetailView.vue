@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { RouterLink, useRoute } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { isRealApiMode } from "../../config/runtime";
 import InlineState from "../../components/InlineState.vue";
@@ -11,6 +11,7 @@ import { ChevronLeft, Download, Eye, FileUp } from "../../components/icons";
 import { localPageData } from "../../data/local-pages";
 import { toPublicApiError } from "../../api/client";
 import { useSessionStore } from "../../stores/session";
+import { createExportTask } from "../../services/downloads";
 import {
   listDocuments,
   listKnowledgeBases,
@@ -20,6 +21,7 @@ import {
 } from "../../services/knowledge";
 
 const route = useRoute();
+const router = useRouter();
 const { message } = AntApp.useApp();
 const sessionStore = useSessionStore();
 const query = ref("");
@@ -33,6 +35,7 @@ const loadState = ref<"idle" | "loading" | "error">(
 const loadError = ref("");
 const uploadInputRef = ref<HTMLInputElement>();
 const isUploading = ref(false);
+const isExporting = ref(false);
 
 let loadController: AbortController | undefined;
 
@@ -156,10 +159,24 @@ const toggleAllVisible = (): void => {
   ];
 };
 
-const previewExport = (): void => {
-  void message.info(
-    `已选择 ${selectedDocumentIds.value.length} 个文档；导出仅展示本地配置，不会创建任务`,
-  );
+const exportSelected = async (): Promise<void> => {
+  if (!isRealApiMode) {
+    void message.info(`已选择 ${selectedDocumentIds.value.length} 个模拟文档`);
+    return;
+  }
+  isExporting.value = true;
+  try {
+    await createExportTask({
+      format: "markdown",
+      document_ids: selectedDocumentIds.value,
+    });
+    void message.success("导出任务已创建，可在下载中心查看进度");
+    await router.push("/downloads");
+  } catch (error: unknown) {
+    void message.error(toPublicApiError(error).message);
+  } finally {
+    isExporting.value = false;
+  }
 };
 
 const loadRealDetail = async (): Promise<void> => {
@@ -265,11 +282,11 @@ onBeforeUnmount(() => {
         <button
           class="primary-button"
           type="button"
-          :disabled="selectedDocumentIds.length === 0"
-          @click="previewExport"
+          :disabled="selectedDocumentIds.length === 0 || isExporting"
+          @click="exportSelected"
         >
           <Download :size="17" aria-hidden="true" />
-          导出所选（{{ selectedDocumentIds.length }}）
+          {{ isExporting ? "正在创建任务" : `导出所选（${selectedDocumentIds.length}）` }}
         </button>
       </template>
     </PageHeader>

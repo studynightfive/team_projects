@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import cast
+from unicodedata import normalize
 
 import structlog
 from sqlalchemy import func, select
@@ -16,6 +17,21 @@ from app.audit.schemas import AuditLogResponse
 from app.common.models import AuditLog, User
 
 logger = structlog.get_logger()
+
+
+def normalize_bounded_audit_text(
+    value: str | None,
+    max_length: int,
+) -> str | None:
+    """清理控制字符并限制审计短字段，避免不可信上下文破坏写入。"""
+    if value is None:
+        return None
+    cleaned = "".join(
+        character
+        for character in normalize("NFKC", value).strip()
+        if character.isprintable()
+    )
+    return cleaned[:max_length] or None
 
 
 async def write_audit_log(
@@ -34,16 +50,18 @@ async def write_audit_log(
     """写入审计日志。不记录密码、密钥、Token、完整请求体。"""
     entry = AuditLog(
         user_id=user_id,
-        action=action,
-        resource_type=resource_type,
-        resource_id=resource_id,
+        action=normalize_bounded_audit_text(action, 100) or "unknown",
+        resource_type=normalize_bounded_audit_text(resource_type, 100),
+        resource_id=normalize_bounded_audit_text(resource_id, 36),
         detail=detail,
-        ip_address=ip_address,
-        user_agent=user_agent,
-        result=result,
-        request_id=request_id,
+        ip_address=normalize_bounded_audit_text(ip_address, 45),
+        user_agent=normalize_bounded_audit_text(user_agent, 500),
+        result=normalize_bounded_audit_text(result, 20) or "unknown",
+        request_id=normalize_bounded_audit_text(request_id, 36),
     )
     db.add(entry)
+    # 在 savepoint 内立即暴露约束错误，不能把失败推迟到业务提交阶段。
+    await db.flush()
 
 
 async def list_audit_logs(

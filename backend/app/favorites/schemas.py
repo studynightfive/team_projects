@@ -17,7 +17,7 @@ class FavoriteCreate(BaseModel):
     tags: list[str] = Field(default_factory=list)
     note: str = Field(default="", max_length=1000)
     source_id: str | None = Field(default=None, max_length=128)
-    source_payload: dict = Field(default_factory=dict)
+    source_payload: dict[str, object] = Field(default_factory=dict)
 
 
 class FavoriteUpdate(BaseModel):
@@ -33,7 +33,7 @@ class FavoriteResponse(BaseModel):
     tags: list[str]
     note: str
     source_id: str | None = None
-    source_payload: dict = Field(default_factory=dict)
+    source_payload: dict[str, object] = Field(default_factory=dict)
     saved_at: datetime | None = None
     updated_at: datetime | None = None
     model_config = {"from_attributes": True}

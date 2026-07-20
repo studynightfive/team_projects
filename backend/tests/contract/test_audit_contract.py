@@ -4,13 +4,18 @@ Employee 3 responsibility.
 
 Tests verify endpoint behavior without requiring a live database.
 """
+import inspect
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock
 
 import jwt
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.audit.router import audit_logs_endpoint
+from app.auth.dependencies import get_current_user
 from app.common.config import settings
+from app.common.database import get_db
 from app.main import app
 
 
@@ -39,6 +44,29 @@ class TestAuditContract:
         """No auth header returns 401."""
         response = await client.get("/api/v1/audit-logs")
         assert response.status_code == 401
+
+    async def test_invalid_audit_datetime_uses_validation_contract(self, client):
+        permission_dependency = inspect.signature(audit_logs_endpoint).parameters[
+            "_perm"
+        ].default.dependency
+        previous_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_current_user] = lambda: object()
+        app.dependency_overrides[get_db] = lambda: AsyncMock()
+        app.dependency_overrides[permission_dependency] = lambda: None
+        try:
+            response = await client.get(
+                "/api/v1/audit-logs", params={"created_after": "not-a-datetime"}
+            )
+        finally:
+            app.dependency_overrides.clear()
+            app.dependency_overrides.update(previous_overrides)
+        assert response.status_code == 422
+        assert response.json() == {
+            "code": 10001,
+            "message": "请求参数错误",
+            "data": None,
+            "request_id": response.headers["X-Request-ID"],
+        }
 
     async def test_audit_logs_endpoint_behavior(self, client):
         """With valid token and no DB, either 401/403/500 is expected."""

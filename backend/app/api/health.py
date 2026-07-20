@@ -2,10 +2,20 @@
 # 提供存活检查（/health/live）和就绪检查（/health/ready）
 # 方案第17.4节：监控必须覆盖健康检查
 
+import asyncio
 import time
+from collections.abc import Awaitable, Callable
+from pathlib import Path
+from tempfile import TemporaryFile
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from redis.asyncio import Redis
+from sqlalchemy import text
+
+from app.common.config import settings
+from app.common.database import engine
 
 router = APIRouter(tags=["health"])
 
@@ -22,8 +32,52 @@ class HealthCheckResponse(BaseModel):
 class ReadyCheckResponse(BaseModel):
     """就绪检查响应模型"""
     status: str
-    checks: dict
+    checks: dict[str, str]
     timestamp: str
+
+
+_CHECK_TIMEOUT_SECONDS = 2.0
+
+
+async def _check_database() -> None:
+    async with engine.connect() as connection:
+        await connection.execute(text("SELECT 1"))
+
+
+async def _check_redis() -> None:
+    client = Redis.from_url(
+        settings.redis_url,
+        socket_connect_timeout=_CHECK_TIMEOUT_SECONDS,
+        socket_timeout=_CHECK_TIMEOUT_SECONDS,
+    )
+    try:
+        await client.ping()
+    finally:
+        await client.aclose()
+
+
+def _check_storage() -> None:
+    root = Path(settings.storage_root).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    with TemporaryFile(dir=root) as probe:
+        probe.write(b"health")
+        probe.flush()
+
+
+async def _run_async_check(check: Callable[[], Awaitable[None]]) -> str:
+    try:
+        await asyncio.wait_for(check(), timeout=_CHECK_TIMEOUT_SECONDS)
+    except Exception:
+        return "unavailable"
+    return "ok"
+
+
+def _run_storage_check() -> str:
+    try:
+        _check_storage()
+    except Exception:
+        return "unavailable"
+    return "ok"
 
 
 # ============================================================
@@ -32,16 +86,16 @@ class ReadyCheckResponse(BaseModel):
 # 只要进程存活就返回 200
 # ============================================================
 @router.get("/health/live", response_model=HealthCheckResponse)
-async def health_live():
+async def health_live() -> HealthCheckResponse:
     """
     存活检查端点
     返回 200 表示进程正常运行
     用于 Docker HEALTHCHECK 和编排系统
     """
-    return {
-        "status": "ok",
-        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    }
+    return HealthCheckResponse(
+        status="ok",
+        timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    )
 
 
 # ============================================================
@@ -51,7 +105,7 @@ async def health_live():
 # 全部通过返回 200，任一失败返回 503
 # ============================================================
 @router.get("/health/ready", response_model=ReadyCheckResponse)
-async def health_ready():
+async def health_ready() -> ReadyCheckResponse | JSONResponse:
     """
     就绪检查端点
     检查内容：
@@ -59,48 +113,30 @@ async def health_ready():
     2. Redis 连接：执行 PING
     3. 文件存储：检查存储目录是否可读写
     """
-    checks = {}
-
-    # 检查数据库连接
-    # 注意：此时数据库模型可能尚未就位，因此暂时跳过数据库检查
-    # 完整实现将在数据库模型创建后补充
-    try:
-        # TODO: 当数据库模型就位后，执行 SELECT 1 验证连接
-        checks["database"] = "ok"
-    except Exception:
-        checks["database"] = "unavailable"
-
-    # 检查 Redis 连接
-    try:
-        # TODO: 当 Redis 连接就位后，执行 PING 验证连接
-        checks["redis"] = "ok"
-    except Exception:
-        checks["redis"] = "unavailable"
-
-    # 检查文件存储
-    try:
-        # TODO: 检查存储目录是否可读写
-        checks["storage"] = "ok"
-    except Exception:
-        checks["storage"] = "unavailable"
+    database_status, redis_status = await asyncio.gather(
+        _run_async_check(_check_database),
+        _run_async_check(_check_redis),
+    )
+    checks = {
+        "database": database_status,
+        "redis": redis_status,
+        "storage": _run_storage_check(),
+    }
 
     # 判断整体状态
     all_ok = all(v == "ok" for v in checks.values())
     status = "ok" if all_ok else "degraded"
 
-    # 如果有检查项失败，返回 503
+    payload = ReadyCheckResponse(
+        status=status,
+        checks=checks,
+        timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    )
+
     if not all_ok:
-        raise HTTPException(
+        return JSONResponse(
             status_code=503,
-            detail={
-                "status": status,
-                "checks": checks,
-                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            },
+            content=payload.model_dump(),
         )
 
-    return {
-        "status": status,
-        "checks": checks,
-        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    }
+    return payload

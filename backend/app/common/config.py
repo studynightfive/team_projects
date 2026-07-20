@@ -3,7 +3,12 @@
 所有 Secret 通过环境变量在运行时注入，不硬编码
 """
 
+from __future__ import annotations
+
+from typing import Literal
+
 from cryptography.fernet import Fernet
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -19,8 +24,11 @@ class Settings(BaseSettings):
     # ============================================================
     app_name: str = "智能知识库平台"
     app_version: str = "0.1.0"
+    app_environment: Literal["development", "test", "production"] = "development"
+    testing: bool = False
     debug: bool = False  # 生产环境必须为 False
-    auto_seed_demo_data: bool = True
+    auto_seed_demo_data: bool = False
+    demo_seed_password: str = ""
 
     # ============================================================
     # CORS 配置
@@ -30,7 +38,7 @@ class Settings(BaseSettings):
     # ============================================================
     # 数据库配置
     # ============================================================
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/knowledge_base"
+    database_url: str
 
     # ============================================================
     # Redis 配置
@@ -40,15 +48,18 @@ class Settings(BaseSettings):
     # ============================================================
     # 安全配置
     # ============================================================
-    secret_key: str = "change-me-in-production-use-a-random-secret-key"
-    access_token_expire_minutes: int = 30
-    refresh_token_expire_days: int = 7
+    secret_key: str = Field(min_length=32)
+    cookie_secure: bool = False
+    business_timezone: str = "Asia/Shanghai"
+    access_token_expire_minutes: int = Field(default=30, ge=1, le=1440)
+    refresh_token_expire_days: int = Field(default=7, ge=1, le=365)
 
     # ============================================================
     # 文件存储配置
     # ============================================================
     storage_root: str = "./storage"
     max_upload_size: int = 104857600
+    max_upload_request_bytes: int = 104857600
     # 员工4 documents 模块使用的别名（与 max_upload_size 同值）
     max_upload_bytes: int = 104857600
 
@@ -58,10 +69,10 @@ class Settings(BaseSettings):
     model_api_key: str = ""
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
-    deepseek_chat_model: str = "deepseek-v4-pro"
+    deepseek_chat_model: str = "deepseek-chat"
     dashscope_api_key: str = ""
     dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    qwen_embedding_model: str = "qwen3.7-text-embedding"
+    qwen_embedding_model: str = "text-embedding-v4"
     qwen_embedding_dimensions: int = 1024
     rag_answer_max_context_chars: int = 12000
     rag_answer_max_tokens: int = 1200
@@ -83,6 +94,13 @@ class Settings(BaseSettings):
     )
     libreoffice_bin: str = "soffice"
     libreoffice_timeout_seconds: int = 120
+    pdf_parse_timeout_seconds: int = Field(default=120, ge=1, le=3600)
+    pdf_max_pages: int = Field(default=500, ge=1, le=10000)
+    pdf_parse_memory_limit_mb: int = Field(default=512, ge=128, le=4096)
+    archive_max_entries: int = 10000
+    archive_max_entry_bytes: int = 134217728
+    archive_max_uncompressed_bytes: int = 536870912
+    archive_max_compression_ratio: int = 1000
     tesseract_bin: str = "tesseract"
     tesseract_timeout_seconds: int = 60
     ocr_default_languages: str = "chi_sim+eng"
@@ -92,7 +110,7 @@ class Settings(BaseSettings):
     chunk_size_max: int = 4000
     chunk_overlap_min: int = 0
     embedding_dimensions: int = 8
-    worker_inline: bool = True
+    worker_inline: bool = False
 
     # ============================================================
     # 员工5 扩展配置：模型密钥 Fernet 加密（提示词 01）
@@ -135,6 +153,24 @@ class Settings(BaseSettings):
     retrieval_test_max_runtime_seconds: int = 1800
     retrieval_test_cache_ttl_seconds: int = 86400
 
+    @model_validator(mode="after")
+    def validate_production_safety(self) -> Settings:
+        """阻止缺少口令的演示播种，并强制生产环境使用安全配置。"""
+        if self.auto_seed_demo_data and len(self.demo_seed_password) < 12:
+            raise ValueError(
+                "启用 AUTO_SEED_DEMO_DATA 时必须提供至少 12 位的 DEMO_SEED_PASSWORD"
+            )
+        if self.app_environment == "production":
+            if not self.cookie_secure:
+                raise ValueError("生产环境必须设置 COOKIE_SECURE=true")
+            if self.auto_seed_demo_data:
+                raise ValueError("生产环境禁止设置 AUTO_SEED_DEMO_DATA=true")
+            if not self.model_key_fernet_key.strip():
+                raise ValueError("生产环境必须设置 MODEL_KEY_FERNET_KEY")
+            if not self.export_download_signing_key.strip():
+                raise ValueError("生产环境必须设置 EXPORT_DOWNLOAD_SIGNING_KEY")
+        return self
+
     # ============================================================
     # Pydantic Settings 配置
     # ============================================================
@@ -145,7 +181,8 @@ class Settings(BaseSettings):
     }
 
 
-settings = Settings()
+# 必填值由 BaseSettings 在运行时从环境变量或 .env 注入，静态签名无法表达该来源。
+settings = Settings()  # type: ignore[call-arg]
 
 # ============================================================
 # 派生工具
@@ -177,7 +214,7 @@ def get_model_key_fernet() -> Fernet:
         structlog.get_logger().warning(
             "model_key_fernet_key_not_configured",
             fallback="derived_from_secret_key",
-            impact="重启后已落库的 API Key 将无法解密，生产环境必须配置",
+            impact="SECRET_KEY 轮换后已落库的 API Key 将无法解密，生产环境必须独立配置",
         )
         _fernet_warning_emitted = True
 

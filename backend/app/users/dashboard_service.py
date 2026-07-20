@@ -2,9 +2,13 @@
 # 员工3 负责
 # 方案第9.3节：系统概览所需聚合接口
 
+from datetime import datetime, time, timezone
+from zoneinfo import ZoneInfo
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.config import settings
 from app.common.models import Role, User
 from app.documents.models import Document
 from app.knowledge.models import KnowledgeBase
@@ -48,8 +52,15 @@ async def get_dashboard_metrics(db: AsyncSession) -> DashboardMetrics:
     result = await db.execute(select(func.count(Conversation.id)))
     metrics.total_conversations = result.scalar() or 0
 
+    local_now = datetime.now(ZoneInfo(settings.business_timezone))
+    day_start = datetime.combine(local_now.date(), time.min, tzinfo=local_now.tzinfo).astimezone(
+        timezone.utc
+    )
     result = await db.execute(
-        select(func.count(Message.id)).where(Message.role == "user")
+        select(func.count(Message.id)).where(
+            Message.role == "user",
+            Message.created_at >= day_start,
+        )
     )
     metrics.total_chats_today = result.scalar() or 0
 

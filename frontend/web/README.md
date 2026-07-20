@@ -1,30 +1,18 @@
 # 统一 Web 前端
 
-`frontend/web` 是普通用户工作区与 `/admin` 管理中心共用的 Vue 3 应用。M01 `web-foundation` V2 已由项目负责人批准并冻结为正式视觉和交互基线；M02–M14、AI 搜索工作台以及通知中心、帮助中心、偏好设置已在同一壳层中形成业务路由的本地可交互页面，但尚未接入真实认证、权限或业务接口。静态设计数据不会伪装成真实接口结果。
+`frontend/web` 是普通用户工作区与 `/admin` 管理中心共用的 Vue 3 应用，使用 strict TypeScript、Vue Router、Pinia、Ant Design Vue 和 Lucide 图标。
 
-当前全部页面的用途、主要操作和联调边界见 [`docs/frontend-feature-guide.md`](../../docs/frontend-feature-guide.md)。
+## 运行模式
 
-## 当前范围
+- `pnpm.cmd run dev:web`：确定性 Mock 模式。未注册请求直接失败，不访问真实业务网络，适合视觉和交互回归。
+- `pnpm.cmd run dev:web:api`：真实 API 模式。`/api` 默认代理到 `http://127.0.0.1:8000`，启用登录、会话刷新、权限守卫和业务数据读取。
+- 生产构建默认使用真实 API，并通过同源 Nginx 访问后端。
 
-- Vue 3、Vite、strict TypeScript、Vue Router、Pinia、Ant Design Vue `4.2.6` 与 `@lucide/vue` `1.24.0` 配置基线。
-- 普通用户工作区与管理中心两套响应式布局。
-- 18 个用户工作区路由、10 个管理中心路由，以及 `/login`、`/403` 和全局 404 特殊入口。
-- 加载、空、通用错误、403 和 404 状态组件。
-- `/api` Axios Client、Cookie 请求配置与安全错误收窄。
-- design-only Mock Adapter；未注册请求默认失败，不回退真实网络。
-- M02–M14、AI 搜索工作台和账号支持页面的筛选、弹窗、抽屉、确认与状态切换使用本地状态；桌面端通知铃铛悬停或键盘聚焦时预览最近 4 条通知，未读状态只在当前 Pinia 会话内跨页面共享，刷新后恢复固定样例。
+Mock 数据只用于预览；真实模式中尚无后端契约的能力会隐藏、禁用或明确提示，不会伪造成功结果。访问 `/admin` 需要真实会话具备对应权限码。
 
-当前版本不包含真实登录、会话、权限码、路由守卫、业务 API 或后端联调。M02–M14 与 AI 搜索工作台只能标记为“本地页面已开发”，不能标记为业务里程碑联调完成。`/admin` 可进入仅用于验证布局，不代表普通用户拥有管理权限。真实数据、上传、下载、轮询和流式问答必须等待 OpenAPI 契约后接入。
+## 命令
 
-## 设计事实来源
-
-- V2 视觉变量直接导入 `docs/design/m01-web-foundation/tokens-v2.css`，前端不维护第二份 tokens。
-- 页面固定展示数据分别来自 M01 设计数据、`src/data/local-pages.ts`、`src/data/account-support.ts` 和 `src/mocks/ai-search.ts`，仅用于布局、交互和边界验收。
-- production 页面应与 `docs/design/m01-web-foundation/` 下已冻结的 V2 规格及 `docs/verification/m01-web-foundation/` 正式基线截图保持一致；`artifact.html` 与 `tokens.css` 仅保留为 V1 历史证据。
-
-## 开发命令
-
-在仓库根目录使用 pnpm `11.13.0` 执行：
+在仓库根目录执行：
 
 ```powershell
 pnpm.cmd install --frozen-lockfile
@@ -38,25 +26,21 @@ pnpm.cmd run build:web
 pnpm.cmd run verify:web:browser
 ```
 
-- `dev:web` 使用 Vite `mock` mode；API Client 默认拒绝未注册请求。
-- `dev:web:api` 使用 Vite `api` mode，并把 `/api` 代理到 `http://127.0.0.1:8000`。
-- 开发地址为 `http://127.0.0.1:5173`；管理中心为 `http://127.0.0.1:5173/admin`。
-- `verify:web:browser` 需在 `dev:web` 运行时执行；它通过 Chrome DevTools Protocol 覆盖 M01 的 20 个基线场景、M02–M14 的 50 个场景和账号支持页面的 12 个场景，并检查溢出、可见顶栏标题、控制台、业务网络请求和移动抽屉焦点。可用 `WEB_VERIFY_GROUP=account-support` 只运行账号支持页面。
+`verify:web:browser` 需要先运行 `dev:web`，用于固定数据下的桌面端和移动端页面回归。真实 API 的授权、失败状态和并发刷新由组件/服务测试及 Docker 联调验证。
 
-## 目录
+## 主要目录
 
 ```text
-src/
-├─ api/          统一 API Client 与公开错误边界
-├─ components/   已确认复用的工作区壳、移动抽屉和状态卡
-├─ data/         design-only 数据、完整导航与安全固定样例
-├─ layouts/      用户和管理布局
-├─ mocks/        默认拒绝网络的 Mock Adapter
-├─ router/       M01–M14、AI 搜索与账号支持正式前端路由
-├─ stores/       当前应用会话内确需跨页面共享的最小状态
-├─ styles/       全局布局样式和 tokens 导入
-├─ tests/        路由、布局、移动交互和 API 边界测试
-└─ views/        用户工作区与管理中心页面
+src/api/          Axios Client、Cookie 会话和单飞刷新
+src/components/   共享布局与业务组件
+src/config/       运行模式判断
+src/data/         设计基线固定数据
+src/mocks/        拒绝未知请求的 Mock Adapter
+src/router/       用户、管理和错误页路由守卫
+src/services/     按业务域封装的真实 API 调用
+src/stores/       跨页面会话和通知状态
+src/tests/        组件、路由、权限和 API 边界测试
+src/views/        用户工作区与管理中心页面
 ```
 
-Pinia 当前只管理顶栏与通知页共同需要的本地未读状态，不持久化；用户、权限和其他业务 Store 继续等待真实跨页面需求与 API 契约。表单和页面临时状态仍留在组件局部。
+视觉事实来源仍位于 `docs/design/`；OpenAPI 事实来源位于 `docs/api/openapi.yaml`。

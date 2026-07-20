@@ -9,6 +9,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.common.config import settings
+from app.common.database import engine
 
 
 def _make_token(user_id: str = None, permissions: list[str] = None) -> str:
@@ -33,8 +34,12 @@ def _make_token(user_id: str = None, permissions: list[str] = None) -> str:
 async def client():
     """Async HTTP test client using ASGI transport (no real server)."""
     transport = ASGITransport(app=__import__("app.main").main.app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
+    try:
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac
+    finally:
+        # ASGITransport 不触发 lifespan，测试必须显式释放共享连接池。
+        await engine.dispose()
 
 
 @pytest.fixture

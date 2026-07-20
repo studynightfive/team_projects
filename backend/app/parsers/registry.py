@@ -6,6 +6,7 @@ from pathlib import Path
 
 from app.common.exceptions import AppException
 from app.common.schemas import ErrorCode
+from app.parsers.archive import ZIP_DOCUMENT_EXTENSIONS, validate_zip_container
 from app.parsers.base import DocumentParser, ParsedDocument
 from app.parsers.email_ebook import EmlParser, EpubParser
 from app.parsers.html_xml import HtmlParser, JsonParser, XmlParser
@@ -38,6 +39,11 @@ class ParserRegistry:
         return None
 
     async def parse(self, source_path: str, mime_type: str, extension: str) -> ParsedDocument:
+        normalized_extension = (
+            extension.lower() if extension.startswith(".") else f".{extension.lower()}"
+        )
+        if normalized_extension in ZIP_DOCUMENT_EXTENSIONS:
+            validate_zip_container(source_path)
         parser = self.resolve(mime_type, extension)
         if parser is None:
             raise AppException(code=ErrorCode.PARSER_NOT_FOUND, message=f"未找到解析器: ext={extension}, mime={mime_type}", status_code=422)

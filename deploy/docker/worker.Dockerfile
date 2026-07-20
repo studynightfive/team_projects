@@ -52,7 +52,7 @@ WORKDIR /app
 RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
     && apt-get -o Acquire::Retries=5 update \
     && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
-    libpq-dev \
+    libpq5 \
     libreoffice \
     tesseract-ocr \
     tesseract-ocr-eng \
@@ -87,10 +87,10 @@ USER appuser
 # Worker 不对外暴露端口
 # 通过 Redis 队列接收任务，不处理 HTTP 请求
 
-# 健康检查：检查 Worker 进程是否存活
-# 使用 Python 读取 PID 1 命令行，避免为健康检查额外安装 procps
+# 健康检查：同时确认 Worker 进程存活且 Redis 可达
+# 使用现有 Python/ARQ 依赖，避免为健康检查额外安装工具
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \
-  CMD ["/app/backend/.venv/bin/python", "-c", "from pathlib import Path; raise SystemExit(b'arq' not in Path('/proc/1/cmdline').read_bytes())"]
+  CMD ["/app/backend/.venv/bin/python", "-c", "import asyncio; from pathlib import Path; from app.worker.settings import redis_is_reachable; process_ok = b'arq' in Path('/proc/1/cmdline').read_bytes(); raise SystemExit(not process_ok or not asyncio.run(redis_is_reachable()))"]
 
 # 启动命令：使用 arq 启动 Worker
 # arq 是 Redis 异步任务队列，用于处理文档转换、OCR、索引、导出等耗时任务

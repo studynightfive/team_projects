@@ -8,23 +8,23 @@ from __future__ import annotations
 
 import asyncio
 import time
-import uuid
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-from typing import Any, cast
 
+import structlog
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import get_current_user, require_any_permission
 from app.common.config import settings
 from app.common.database import get_db
+from app.common.exceptions import ForbiddenException, ValidationException
 from app.common.models import User
+from app.documents.permissions import user_can_access_kb
 from app.models import service as model_service
-from app.models.providers.openai import build_provider
-from app.models.repository import ModelProvider
+from app.models.providers.openai import OpenAICompatibleProvider, build_provider
 from app.models.security import decrypt_api_key
 from app.rag._shared.permissions import (
     get_user_accessible_kb_ids,
@@ -35,11 +35,14 @@ from app.rag._shared.sse import format_keepalive, format_sse, new_message_id
 from app.rag.conversations.all import (
     Conversation,
     Message,
+    get_conversation,
     regenerate_answer,
 )
+from app.rag.search.schemas import SearchRequest
 from app.rag.search.service import search as search_rag
 
 router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
+logger = structlog.get_logger()
 
 
 # ============================================================
@@ -53,7 +56,7 @@ class ChatStreamRequest(BaseModel):
     embedding_model_id: str
     rerank_model_id: str | None = None
     top_k: int = Field(default=10, ge=1, le=50)
-    metadata_filter: dict[str, Any] | None = None
+    metadata_filter: dict[str, object] | None = None
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)
     parent_message_id: str | None = None  # 重新生成时指向原 assistant 消息
 
@@ -66,34 +69,32 @@ async def _retrieve_context(
     *,
     user: User,
     req: ChatStreamRequest,
-) -> list[dict]:
+) -> list[dict[str, object]]:
     search_resp = await search_rag(
         db,
         user=user,
-        req=type(
-            "R",
-            (),
-            {
-                "query": req.question,
-                "mode": "hybrid",
-                "kb_id": req.kb_id,
-                "top_k": req.top_k,
-                "threshold": 0.0,
-                "metadata_filter": req.metadata_filter,
-                "rerank": bool(req.rerank_model_id),
-                "rerank_model_id": req.rerank_model_id,
-                "embedding_model_id": req.embedding_model_id,
-            },
-        )(),
+        req=SearchRequest(
+            query=req.question,
+            mode="hybrid",
+            kb_id=req.kb_id,
+            top_k=req.top_k,
+            threshold=0.0,
+            metadata_filter=req.metadata_filter,
+            rerank=bool(req.rerank_model_id),
+            rerank_model_id=req.rerank_model_id,
+            embedding_model_id=req.embedding_model_id,
+        ),
     )
     # 二次权限过滤（即使 search 内已过滤）
-    hits_dicts = [h.model_dump() for h in search_resp.hits]
+    hits_dicts: list[dict[str, object]] = [h.model_dump() for h in search_resp.hits]
     accessible = await get_user_accessible_kb_ids(db, user)
     safe = post_filter_hits(hits=hits_dicts, accessible_kb_ids=accessible)
     return safe
 
 
-def _build_prompt(question: str, contexts: list[dict]) -> list[dict]:
+def _build_prompt(
+    question: str, contexts: list[dict[str, object]]
+) -> list[dict[str, str]]:
     """仅基于 context 回答；明示未引用。"""
     if not contexts:
         context_text = "（暂无检索结果）"
@@ -120,10 +121,56 @@ async def _chat_stream(
     req: ChatStreamRequest,
 ) -> AsyncIterator[str]:
     request_id = new_request_id()
-    conversation_id = req.conversation_id or str(uuid.uuid4())
     message_id = new_message_id()
 
-    # start 事件
+    # 1. 创建/获取会话与消息
+    if not await user_can_access_kb(db, user, req.kb_id):
+        raise ForbiddenException(message="无权访问该知识库")
+
+    if req.conversation_id is None:
+        if req.parent_message_id is not None:
+            raise ValidationException(message="重新生成必须指定已有会话")
+        conv = Conversation(user_id=user.id, kb_id=req.kb_id, title="")
+        db.add(conv)
+        await db.flush()
+        conversation_id = conv.id
+    else:
+        conv = await get_conversation(
+            db,
+            conv_id=req.conversation_id,
+            user_id=user.id,
+        )
+        if conv.kb_id != req.kb_id:
+            raise ValidationException(message="会话与知识库不匹配")
+        conversation_id = conv.id
+
+    if req.parent_message_id is None:
+        user_msg = Message(
+            conversation_id=conversation_id,
+            role="user",
+            content=req.question,
+        )
+        db.add(user_msg)
+        conv.message_count = (conv.message_count or 0) + 1
+
+    # 2. 处理重新生成
+    if req.parent_message_id:
+        parent = await db.get(Message, req.parent_message_id)
+        if (
+            parent is None
+            or parent.conversation_id != conversation_id
+            or parent.role != "assistant"
+        ):
+            raise ValidationException(message="父消息不属于当前会话或不可重新生成")
+        assistant_msg = await regenerate_answer(db, parent_message_id=req.parent_message_id)
+        message_id = assistant_msg.id
+    else:
+        assistant_msg = Message(conversation_id=conversation_id, role="assistant", content="")
+        db.add(assistant_msg)
+        await db.flush()
+        message_id = assistant_msg.id
+
+    # 返回数据库实际生成的会话和消息 ID，避免客户端持有不存在的临时 ID。
     yield format_sse(
         event="start",
         data={
@@ -134,36 +181,21 @@ async def _chat_stream(
         },
     )
 
-    # 1. 创建/获取会话与消息
-    if req.conversation_id is None:
-        conv = Conversation(user_id=user.id, kb_id=req.kb_id, title="")
-        db.add(conv)
-        await db.flush()
-        conversation_id = conv.id
-        # 把首条 user 消息落库
-        user_msg = Message(conversation_id=conversation_id, role="user", content=req.question)
-        db.add(user_msg)
-
-    # 2. 处理重新生成
-    if req.parent_message_id:
-        assistant_msg = await regenerate_answer(db, parent_message_id=req.parent_message_id)
-        message_id = assistant_msg.id
-    else:
-        assistant_msg = Message(conversation_id=conversation_id, role="assistant", content="")
-        db.add(assistant_msg)
-        await db.flush()
-        message_id = assistant_msg.id
-
     # 3. 检索 + 拼 prompt
     try:
         contexts = await _retrieve_context(db, user=user, req=req)
     except Exception as exc:
+        logger.warning(
+            "chat_retrieval_failed",
+            request_id=request_id,
+            error_type=type(exc).__name__,
+        )
         yield format_sse(
             event="error",
             data={
                 "event": "error",
                 "code": "retrieval_failed",
-                "message": str(exc)[:200],
+                "message": "检索服务暂不可用",
                 "request_id": request_id,
                 "retryable": True,
             },
@@ -173,7 +205,7 @@ async def _chat_stream(
         return
 
     # 4. 发送 citations（受 post_filter 保护）
-    citations_payload = []
+    citations_payload: list[dict[str, object]] = []
     for c in contexts:
         evt = {
             "event": "citation",
@@ -192,7 +224,7 @@ async def _chat_stream(
 
     # 5. 调模型流式
     chat_model = await model_service.get_model(db, req.chat_model_id)
-    if chat_model is None or chat_model.kind != "chat":
+    if chat_model is None or chat_model.kind != "chat" or not chat_model.enabled:
         yield format_sse(
             event="error",
             data={
@@ -205,15 +237,14 @@ async def _chat_stream(
         )
         return
     provider = await model_service.get_provider(db, chat_model.provider_code)
-    if provider is None:
+    if provider is None or not provider.enabled:
         yield format_sse(event="error", data={
             "event": "error", "code": "internal_error", "message": "provider not found",
             "request_id": request_id, "retryable": False,
         })
         return
-    provider = cast(ModelProvider, provider)
     api_key = decrypt_api_key(chat_model.api_key_encrypted) if chat_model.api_key_encrypted else ""
-    p = build_provider(provider.code, provider.base_url, api_key)
+    p: OpenAICompatibleProvider = build_provider(provider.code, provider.base_url, api_key)
 
     finish_reason = "stop"
     accumulated = ""
@@ -228,7 +259,8 @@ async def _chat_stream(
             stream=True,
             timeout=settings.model_provider_timeout_seconds,
         )
-        # provider 返回 AsyncIterator
+        if isinstance(stream, str):
+            raise TypeError("流式模型返回了非流式结果")
         async for delta in stream:
             if not delta:
                 continue
@@ -258,12 +290,17 @@ async def _chat_stream(
         )
     except Exception as exc:
         finish_reason = "error"
+        logger.warning(
+            "chat_model_failed",
+            request_id=request_id,
+            error_type=type(exc).__name__,
+        )
         yield format_sse(
             event="error",
             data={
                 "event": "error",
                 "code": "model_timeout",
-                "message": str(exc)[:200],
+                "message": "模型服务暂不可用",
                 "request_id": request_id,
                 "retryable": True,
             },
@@ -273,14 +310,6 @@ async def _chat_stream(
     assistant_msg.content = accumulated
     assistant_msg.citations = citations_payload
     assistant_msg.finish_reason = finish_reason
-    conv = await db.get(Conversation, conversation_id)  # type: ignore[assignment]
-    if conv is None:
-        yield format_sse(event="error", data={
-            "event": "error", "code": "internal_error", "message": "conversation not found",
-            "request_id": request_id, "retryable": False,
-        })
-        return
-    conv = cast(Conversation, conv)
     conv.last_message_at = datetime.now(timezone.utc)
     conv.message_count = (conv.message_count or 0) + 1
     # 自动标题生成：流式结束后若 title 仍空，用聊天模型生成 ≤20 字
@@ -320,10 +349,10 @@ async def chat_stream_endpoint(
     request: Request,
     payload: ChatStreamRequest,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("chat:write")),
+    _perm: None = Depends(require_any_permission("chat.use", "chat:write")),
     db: AsyncSession = Depends(get_db),
-):
-    async def event_gen():
+) -> StreamingResponse:
+    async def event_gen() -> AsyncIterator[str]:
         try:
             async for chunk in _chat_stream(db, user=user, req=payload):
                 yield chunk
@@ -331,13 +360,19 @@ async def chat_stream_endpoint(
             # 客户端断开
             return
         except Exception as exc:
+            request_id = new_request_id()
+            logger.warning(
+                "chat_stream_failed",
+                request_id=request_id,
+                error_type=type(exc).__name__,
+            )
             yield format_sse(
                 event="error",
                 data={
                     "event": "error",
                     "code": "internal_error",
-                    "message": str(exc)[:200],
-                    "request_id": new_request_id(),
+                    "message": "流式问答失败",
+                    "request_id": request_id,
                     "retryable": False,
                 },
             )

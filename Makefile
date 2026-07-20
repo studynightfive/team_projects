@@ -9,11 +9,14 @@
 .DEFAULT_GOAL := help
 
 # 声明所有目标为伪目标（不产生同名文件）
-.PHONY: help dev build test test-watch clean restart logs status shell
+.PHONY: help dev dev-full build test test-watch clean purge-data restart logs status health shell
 
 # Docker Compose 文件路径
 COMPOSE_FILE := deploy/docker-compose.yml
 COMPOSE_TEST_FILE := deploy/docker-compose.test.yml
+ENV_FILE := deploy/env/.env
+COMPOSE := docker compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE)
+COMPOSE_TEST := docker compose -f $(COMPOSE_TEST_FILE)
 
 # ----------------------------------------------------------
 # 帮助：显示所有可用命令
@@ -37,7 +40,8 @@ help:
 	@echo "  make health        检查所有服务健康状态"
 	@echo ""
 	@echo "清理："
-	@echo "  make clean         清理所有容器和卷"
+	@echo "  make clean         停止并移除容器（保留数据卷）"
+	@echo "  make purge-data CONFIRM=delete-data  删除容器和数据卷"
 	@echo "  make restart       重启所有服务"
 
 # ----------------------------------------------------------
@@ -46,11 +50,11 @@ help:
 # ----------------------------------------------------------
 dev:
 	@echo "启动开发环境（postgres + redis）..."
-	docker compose -f $(COMPOSE_FILE) up -d postgres redis
+	$(COMPOSE) up -d postgres redis
 	@echo "开发环境已启动。"
-	@echo "  前端：npm run dev:web          (http://localhost:5173)"
+	@echo "  前端：pnpm run dev:web         (http://localhost:5173)"
 	@echo "  后端：uv run uvicorn ...       (http://localhost:8000)"
-	@echo "  前端+API：npm run dev:web:api  (http://localhost:5173, 代理到 8000)"
+	@echo "  前端+API：pnpm run dev:web:api (http://localhost:5173, 代理到 8000)"
 
 # ----------------------------------------------------------
 # 完整开发环境：启动全部 5 个服务
@@ -58,7 +62,7 @@ dev:
 # ----------------------------------------------------------
 dev-full:
 	@echo "启动完整开发环境（全部 5 个服务）..."
-	docker compose -f $(COMPOSE_FILE) up -d
+	$(COMPOSE) up -d
 	@echo "全部服务已启动。访问 http://localhost"
 
 # ----------------------------------------------------------
@@ -67,7 +71,7 @@ dev-full:
 # ----------------------------------------------------------
 build:
 	@echo "构建所有 Docker 镜像..."
-	docker compose -f $(COMPOSE_FILE) build --no-cache
+	$(COMPOSE) build --no-cache
 	@echo "镜像构建完成。"
 
 # ----------------------------------------------------------
@@ -78,7 +82,8 @@ build:
 # ----------------------------------------------------------
 test:
 	@echo "运行完整容器测试..."
-	docker compose -f $(COMPOSE_TEST_FILE) up --build --abort-on-container-exit
+	@set -e; trap '$(COMPOSE_TEST) down -v --remove-orphans' EXIT; \
+		$(COMPOSE_TEST) up --build --abort-on-container-exit --exit-code-from test-runner
 	@echo "测试完成。"
 
 # ----------------------------------------------------------
@@ -86,7 +91,7 @@ test:
 # ----------------------------------------------------------
 test-watch:
 	@echo "启动前端测试监听模式..."
-	npm run test:web:watch
+	pnpm run test:web:watch
 
 # ----------------------------------------------------------
 # 日志：查看所有服务日志
@@ -94,14 +99,14 @@ test-watch:
 # --tail=100：显示最近 100 行
 # ----------------------------------------------------------
 logs:
-	docker compose -f $(COMPOSE_FILE) logs --tail=100 --follow
+	$(COMPOSE) logs --tail=100 --follow
 
 # ----------------------------------------------------------
 # 状态：查看所有服务运行状态
 # ----------------------------------------------------------
 status:
 	@echo "服务状态："
-	@docker compose -f $(COMPOSE_FILE) ps
+	@$(COMPOSE) ps
 	@echo ""
 	@echo "健康检查："
 	@bash scripts/health-check.sh
@@ -116,24 +121,28 @@ health:
 # 进入容器：进入 api-server 容器的 shell
 # ----------------------------------------------------------
 shell:
-	docker compose -f $(COMPOSE_FILE) exec api-server bash
+	$(COMPOSE) exec api-server sh
 
 # ----------------------------------------------------------
 # 重启：重启所有服务
 # ----------------------------------------------------------
 restart:
 	@echo "重启所有服务..."
-	docker compose -f $(COMPOSE_FILE) restart
+	$(COMPOSE) restart
 	@echo "服务已重启。"
 
 # ----------------------------------------------------------
-# 清理：停止所有容器并删除卷
-# 警告：这会删除所有数据（包括数据库和文件存储）
+# 清理：停止容器，保留数据库和文件存储卷
 # ----------------------------------------------------------
 clean:
-	@echo "警告：即将删除所有容器和数据卷！"
-	@echo "按 Ctrl+C 取消，或等待 5 秒自动继续..."
-	@sleep 5
-	docker compose -f $(COMPOSE_FILE) down -v
-	docker compose -f $(COMPOSE_TEST_FILE) down -v 2>/dev/null || true
-	@echo "清理完成。"
+	$(COMPOSE) down
+	$(COMPOSE_TEST) down 2>/dev/null || true
+	@echo "容器已清理，数据卷仍保留。"
+
+# 删除数据：必须传入显式确认值，避免误删业务数据。
+purge-data:
+	@test "$(CONFIRM)" = "delete-data" || \
+		(echo "拒绝执行：请显式传入 CONFIRM=delete-data" && exit 1)
+	$(COMPOSE) down -v
+	$(COMPOSE_TEST) down -v 2>/dev/null || true
+	@echo "容器和数据卷已删除。"

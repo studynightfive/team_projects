@@ -1,12 +1,7 @@
 import { apiClient } from "../api/client";
+import { unwrapApiData, type ApiResponse } from "../api/contracts";
+import type { paths } from "../api/generated/openapi";
 import type { Favorite, FavoriteType } from "../types/ai-search";
-
-interface ApiResponse<T> {
-  readonly code: number;
-  readonly message: string;
-  readonly data: T | null;
-  readonly request_id: string;
-}
 
 interface PaginatedData<T> {
   readonly items: readonly T[];
@@ -27,22 +22,16 @@ interface FavoriteRecord {
   readonly saved_at: string | null;
 }
 
-export interface FavoriteCreatePayload {
-  readonly type: FavoriteType;
-  readonly title: string;
-  readonly summary: string;
-  readonly tags?: readonly string[];
-  readonly note?: string;
-  readonly source_id?: string | null;
-  readonly source_payload?: Record<string, unknown>;
-}
+type FavoriteCreateRequest =
+  paths["/favorites"]["post"]["requestBody"]["content"]["application/json"];
 
-const unwrap = <T>(response: ApiResponse<T>): T => {
-  if (response.code !== 0 || response.data === null) {
-    throw new Error(response.message || "请求失败，请稍后重试");
+export type FavoriteCreatePayload = Readonly<
+  Omit<FavoriteCreateRequest, "tags" | "note" | "source_payload"> & {
+    readonly tags?: readonly string[];
+    readonly note?: FavoriteCreateRequest["note"];
+    readonly source_payload?: Readonly<Record<string, unknown>>;
   }
-  return response.data;
-};
+>;
 
 const toFavorite = (record: FavoriteRecord): Favorite => ({
   id: record.id,
@@ -58,32 +47,41 @@ const toFavorite = (record: FavoriteRecord): Favorite => ({
 export const listFavorites = async (
   signal?: AbortSignal,
 ): Promise<readonly Favorite[]> => {
-  const response = await apiClient.get<ApiResponse<PaginatedData<FavoriteRecord>>>(
-    "/v1/favorites",
-    { params: { page: 1, page_size: 100 }, signal },
-  );
-  return unwrap(response.data).items.map(toFavorite);
+  const response = await apiClient.get<
+    ApiResponse<PaginatedData<FavoriteRecord>>
+  >("/v1/favorites", { params: { page: 1, page_size: 100 }, signal });
+  return unwrapApiData(response.data).items.map(toFavorite);
 };
 
 export const createFavorite = async (
   payload: FavoriteCreatePayload,
 ): Promise<Favorite> => {
+  const request: FavoriteCreateRequest = {
+    ...payload,
+    tags: payload.tags === undefined ? undefined : [...payload.tags],
+    note: payload.note ?? "",
+  };
   const response = await apiClient.post<ApiResponse<FavoriteRecord>>(
     "/v1/favorites",
-    payload,
+    request,
   );
-  return toFavorite(unwrap(response.data));
+  return toFavorite(unwrapApiData(response.data));
 };
 
 export const updateFavorite = async (
   favoriteId: string,
   payload: { readonly note?: string; readonly tags?: readonly string[] },
 ): Promise<Favorite> => {
+  const request: paths["/favorites/{favorite_id}"]["patch"]["requestBody"]["content"]["application/json"] =
+    {
+      ...payload,
+      tags: payload.tags === undefined ? undefined : [...payload.tags],
+    };
   const response = await apiClient.patch<ApiResponse<FavoriteRecord>>(
     `/v1/favorites/${favoriteId}`,
-    payload,
+    request,
   );
-  return toFavorite(unwrap(response.data));
+  return toFavorite(unwrapApiData(response.data));
 };
 
 export const deleteFavorite = async (favoriteId: string): Promise<void> => {

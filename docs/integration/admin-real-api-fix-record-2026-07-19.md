@@ -19,20 +19,20 @@
 
 ## 演示账号
 
-API 启动后会幂等补齐以下演示账号和角色：
+API 启动会始终幂等补齐内建权限和三类基础角色，但仅当 `AUTO_SEED_DEMO_DATA=true` 且已配置合格口令时，才会创建或重置以下演示账号：
 
-- 管理员：`admin` / `admin123`
-- 普通用户：`liuhaiwang` / `1234567`
-- 知识库编辑者：`qmxl` / `1234567`
+- 管理员：`admin`
+- 普通用户：`liuhaiwang`
+- 知识库编辑者：`qmxl`
 
-说明：密码最小长度调整为 7 位，以兼容本次交付指定演示密码。
+说明：三个账号统一使用运行时 `DEMO_SEED_PASSWORD`，口令至少 12 位且不得写入仓库；生产环境禁止启用演示播种。
 
 ## 后端变更记录
 
 - `backend/app/auth/router.py`：新增 `/api/v1/auth/check-username` 和 `/api/v1/auth/register`。
 - `backend/app/users/schemas.py`、`backend/app/users/service.py`：密码最小长度改为 7 位；创建用户统一按去首尾空格后的账号 ID 做唯一性校验。
-- `backend/app/common/seed.py`：补齐 `seed_demo_accounts`，幂等创建三类演示账号、角色和权限；默认知识库补齐普通用户读权限、编辑者管理权限。
-- `backend/app/main.py`：启动时幂等执行演示基础数据 seed，失败时只记录跳过原因，不输出敏感信息。
+- `backend/app/common/seed.py`：将内建权限/角色初始化与演示账号播种分离；内建角色按当前白名单纠正遗留授权，`seed_demo_accounts` 自身校验演示开关和口令长度。
+- `backend/app/main.py`：启动时始终幂等初始化内建授权；演示账号、默认知识库和演示模型仍只在显式启用演示播种时创建。
 - `backend/app/users/role_router.py`：新增权限码列表接口。
 - `backend/app/documents/router.py`、`backend/app/documents/service.py`、`backend/app/documents/schemas.py`：新增管理端文档和任务总览接口。
 - `backend/app/users/dashboard_service.py`：系统概览补充真实知识库、文档、会话统计。

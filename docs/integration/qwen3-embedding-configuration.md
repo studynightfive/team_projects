@@ -1,10 +1,10 @@
-# Qwen3 Embedding 配置记录
+# DashScope Embedding 配置记录
 
 日期：2026-07-19
 
 ## 修正目标
 
-将项目从仅有本地 deterministic stub 向量，升级为可接入真实 embedding API 的链路。默认模型切换为 `qwen3.7-text-embedding`，当前项目仍按 1024 维向量和 cosine 距离写入 pgvector，并用于 RAG 混合检索。
+将项目从仅有本地 deterministic stub 向量，升级为可接入真实 embedding API 的链路。当前托管默认模型为 `text-embedding-v4`，项目按 1024 维向量和 cosine 距离写入 pgvector，并用于 RAG 混合检索。
 
 参考资料：
 
@@ -20,7 +20,7 @@
 - 后端支持 `dashscope` provider，并复用现有 OpenAI-compatible `/embeddings` 适配器。
 - API 启动时幂等创建默认 embedding provider 和模型记录：
   - provider：`dashscope`
-  - model：`qwen3.7-text-embedding`
+  - model：`text-embedding-v4`
   - kind：`embedding`
   - dimensions：`1024`
   - distance：`cosine`
@@ -38,7 +38,7 @@
 
 ```text
 provider_code: dashscope
-model_name: qwen3.7-text-embedding
+model_name: text-embedding-v4
 kind: embedding
 dimensions: 1024
 distance: cosine
@@ -55,14 +55,8 @@ api_key_set: false
 ```env
 DASHSCOPE_API_KEY=你的 DashScope 或兼容 embedding 服务密钥
 DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-QWEN_EMBEDDING_MODEL=qwen3.7-text-embedding
-QWEN_EMBEDDING_DIMENSIONS=1024
-```
-
-如果 DashScope 工作区只开放其他阿里云托管模型，可以仅把模型名改为：
-
-```env
 QWEN_EMBEDDING_MODEL=text-embedding-v4
+QWEN_EMBEDDING_DIMENSIONS=1024
 ```
 
 然后重启服务：
@@ -84,7 +78,7 @@ docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml up -d --f
 - `GET /api/v1/models?kind=embedding` 返回 Qwen embedding 模型配置。
 - `POST /api/v1/retrieval/search` 使用 `mode=hybrid` 时，在未配置 DashScope Key 的状态下自动退回 `keyword` 并正常返回。
 - 配置真实 Key 后，`document_chunks` 验证结果：`active_chunks=30`、`vector_chunks=30`、`vector_dims=1024`。
-- `POST /api/v1/retrieval/answer` 使用 `mode=hybrid`、`model=deepseek-v4-pro`，可基于医疗信息化演示文档生成带引用编号的 RAG 回答。
+- `POST /api/v1/retrieval/answer` 使用 `mode=hybrid`、`model=deepseek-chat`，可基于医疗信息化演示文档生成带引用编号的 RAG 回答。
 
 ## 剩余限制
 

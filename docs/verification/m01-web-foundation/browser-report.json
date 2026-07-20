@@ -1,9 +1,10 @@
 {
-  "generatedAt": "2026-07-17T05:17:40.652Z",
-  "sourceCommit": "38a8444e23644c601d3cd49bc5258d5d35e072e9",
+  "generatedAt": "2026-07-20T12:43:47.925Z",
+  "sourceCommit": "ef373f11118042a7c14519943225b97362610319",
   "sourceWorktreeDirty": true,
+  "sourceWorktreeFingerprint": "59455c09922b12f8fa417a2d77884294346598437fa613979c4988a5af551699",
   "baseUrl": "http://127.0.0.1:5173",
-  "browser": "Chrome/150.0.7871.115",
+  "browser": "Chrome/150.0.7871.125",
   "results": [
     {
       "group": "m01",
@@ -16,13 +17,20 @@
         "innerHeight": 1080,
         "clientWidth": 1920,
         "scrollWidth": 1920,
-        "scrollHeight": 1616,
+        "scrollHeight": 1305,
         "h1Count": 1,
         "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 66,
+        "svgIconCount": 45,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -34,12 +42,12 @@
         "statCardCount": 0,
         "activityCount": 0,
         "searchHeroCount": 1,
-        "quickActionCount": 5,
+        "quickActionCount": 2,
         "homeInformationSectionCount": 2,
-        "dataSourceCardCount": 4,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -48,7 +56,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1695,
+        "notificationPreviewCenterOffset": 1759,
         "profilePreviewVisible": false,
         "profilePreviewWithinViewport": false,
         "profileDetailCount": 0,
@@ -89,7 +97,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 66
+          "actual": 45
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -117,9 +125,9 @@
           "actual": 1
         },
         {
-          "label": "高频任务共五项",
+          "label": "高频任务共两项",
           "pass": true,
-          "actual": 5
+          "actual": 2
         },
         {
           "label": "继续工作与常用知识板块存在",
@@ -127,9 +135,9 @@
           "actual": 2
         },
         {
-          "label": "数据源状态共四项",
+          "label": "不再展示已移除的数据源状态板块",
           "pass": true,
-          "actual": 4
+          "actual": 0
         }
       ],
       "passed": true
@@ -145,13 +153,20 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1616,
+        "scrollHeight": 1305,
         "h1Count": 1,
         "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 66,
+        "svgIconCount": 45,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -163,12 +178,12 @@
         "statCardCount": 0,
         "activityCount": 0,
         "searchHeroCount": 1,
-        "quickActionCount": 5,
+        "quickActionCount": 2,
         "homeInformationSectionCount": 2,
-        "dataSourceCardCount": 4,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -177,7 +192,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1215,
+        "notificationPreviewCenterOffset": 1279,
         "profilePreviewVisible": false,
         "profilePreviewWithinViewport": false,
         "profileDetailCount": 0,
@@ -218,7 +233,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 66
+          "actual": 45
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -246,9 +261,9 @@
           "actual": 1
         },
         {
-          "label": "高频任务共五项",
+          "label": "高频任务共两项",
           "pass": true,
-          "actual": 5
+          "actual": 2
         },
         {
           "label": "继续工作与常用知识板块存在",
@@ -256,9 +271,9 @@
           "actual": 2
         },
         {
-          "label": "数据源状态共四项",
+          "label": "不再展示已移除的数据源状态板块",
           "pass": true,
-          "actual": 4
+          "actual": 0
         }
       ],
       "passed": true
@@ -274,13 +289,20 @@
         "innerHeight": 900,
         "clientWidth": 1280,
         "scrollWidth": 1280,
-        "scrollHeight": 1624,
+        "scrollHeight": 1313,
         "h1Count": 1,
         "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 62,
+        "svgIconCount": 42,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -292,12 +314,12 @@
         "statCardCount": 0,
         "activityCount": 0,
         "searchHeroCount": 1,
-        "quickActionCount": 5,
+        "quickActionCount": 2,
         "homeInformationSectionCount": 2,
-        "dataSourceCardCount": 4,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -306,7 +328,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1055,
+        "notificationPreviewCenterOffset": 1119,
         "profilePreviewVisible": false,
         "profilePreviewWithinViewport": false,
         "profileDetailCount": 0,
@@ -347,7 +369,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 62
+          "actual": 42
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -375,9 +397,9 @@
           "actual": 1
         },
         {
-          "label": "高频任务共五项",
+          "label": "高频任务共两项",
           "pass": true,
-          "actual": 5
+          "actual": 2
         },
         {
           "label": "继续工作与常用知识板块存在",
@@ -385,9 +407,9 @@
           "actual": 2
         },
         {
-          "label": "数据源状态共四项",
+          "label": "不再展示已移除的数据源状态板块",
           "pass": true,
-          "actual": 4
+          "actual": 0
         }
       ],
       "passed": true
@@ -403,13 +425,20 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 3231,
+        "scrollHeight": 2007,
         "h1Count": 1,
         "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 62,
+        "svgIconCount": 42,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -421,12 +450,12 @@
         "statCardCount": 0,
         "activityCount": 0,
         "searchHeroCount": 1,
-        "quickActionCount": 5,
+        "quickActionCount": 2,
         "homeInformationSectionCount": 2,
-        "dataSourceCardCount": 4,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -446,7 +475,7 @@
         "screenshotHeight": 812
       },
       "drawer": {
-        "navigationCount": 10,
+        "navigationCount": 7,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -482,7 +511,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 62
+          "actual": 42
         },
         {
           "label": "关键内容未越过视口",
@@ -512,7 +541,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 10
+          "actual": 7
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -540,9 +569,9 @@
           "actual": 1
         },
         {
-          "label": "高频任务共五项",
+          "label": "高频任务共两项",
           "pass": true,
-          "actual": 5
+          "actual": 2
         },
         {
           "label": "继续工作与常用知识板块存在",
@@ -550,9 +579,9 @@
           "actual": 2
         },
         {
-          "label": "数据源状态共四项",
+          "label": "不再展示已移除的数据源状态板块",
           "pass": true,
-          "actual": 4
+          "actual": 0
         }
       ],
       "passed": true
@@ -568,13 +597,20 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1616,
+        "scrollHeight": 1305,
         "h1Count": 1,
         "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 66,
+        "svgIconCount": 45,
         "sidebarDisplay": "flex",
         "sidebarWidth": 64,
         "topbarHeight": 56,
@@ -586,12 +622,12 @@
         "statCardCount": 0,
         "activityCount": 0,
         "searchHeroCount": 1,
-        "quickActionCount": 5,
+        "quickActionCount": 2,
         "homeInformationSectionCount": 2,
-        "dataSourceCardCount": 4,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -600,7 +636,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1215,
+        "notificationPreviewCenterOffset": 1279,
         "profilePreviewVisible": false,
         "profilePreviewWithinViewport": false,
         "profileDetailCount": 0,
@@ -641,7 +677,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 66
+          "actual": 45
         },
         {
           "label": "折叠侧栏宽度 64px",
@@ -669,9 +705,9 @@
           "actual": 1
         },
         {
-          "label": "高频任务共五项",
+          "label": "高频任务共两项",
           "pass": true,
-          "actual": 5
+          "actual": 2
         },
         {
           "label": "继续工作与常用知识板块存在",
@@ -679,9 +715,9 @@
           "actual": 2
         },
         {
-          "label": "数据源状态共四项",
+          "label": "不再展示已移除的数据源状态板块",
           "pass": true,
-          "actual": 4
+          "actual": 0
         }
       ],
       "passed": true
@@ -697,13 +733,20 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1616,
+        "scrollHeight": 1305,
         "h1Count": 1,
         "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 72,
+        "svgIconCount": 51,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -715,12 +758,12 @@
         "statCardCount": 0,
         "activityCount": 0,
         "searchHeroCount": 1,
-        "quickActionCount": 5,
+        "quickActionCount": 2,
         "homeInformationSectionCount": 2,
-        "dataSourceCardCount": 4,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -729,7 +772,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1215,
+        "notificationPreviewCenterOffset": 1279,
         "profilePreviewVisible": true,
         "profilePreviewWithinViewport": true,
         "profileDetailCount": 3,
@@ -774,7 +817,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 72
+          "actual": 51
         },
         {
           "label": "个人资料弹窗可见",
@@ -832,9 +875,9 @@
           "actual": 1
         },
         {
-          "label": "高频任务共五项",
+          "label": "高频任务共两项",
           "pass": true,
-          "actual": 5
+          "actual": 2
         },
         {
           "label": "继续工作与常用知识板块存在",
@@ -842,9 +885,9 @@
           "actual": 2
         },
         {
-          "label": "数据源状态共四项",
+          "label": "不再展示已移除的数据源状态板块",
           "pass": true,
-          "actual": 4
+          "actual": 0
         }
       ],
       "passed": true
@@ -860,13 +903,20 @@
         "innerHeight": 900,
         "clientWidth": 1280,
         "scrollWidth": 1280,
-        "scrollHeight": 1624,
+        "scrollHeight": 1313,
         "h1Count": 1,
         "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 68,
+        "svgIconCount": 48,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -878,12 +928,12 @@
         "statCardCount": 0,
         "activityCount": 0,
         "searchHeroCount": 1,
-        "quickActionCount": 5,
+        "quickActionCount": 2,
         "homeInformationSectionCount": 2,
-        "dataSourceCardCount": 4,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -892,7 +942,7 @@
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
-        "notificationPreviewCenterOffset": 1055,
+        "notificationPreviewCenterOffset": 1119,
         "profilePreviewVisible": true,
         "profilePreviewWithinViewport": true,
         "profileDetailCount": 3,
@@ -937,7 +987,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 68
+          "actual": 48
         },
         {
           "label": "个人资料弹窗可见",
@@ -995,9 +1045,9 @@
           "actual": 1
         },
         {
-          "label": "高频任务共五项",
+          "label": "高频任务共两项",
           "pass": true,
-          "actual": 5
+          "actual": 2
         },
         {
           "label": "继续工作与常用知识板块存在",
@@ -1005,9 +1055,9 @@
           "actual": 2
         },
         {
-          "label": "数据源状态共四项",
+          "label": "不再展示已移除的数据源状态板块",
           "pass": true,
-          "actual": 4
+          "actual": 0
         }
       ],
       "passed": true
@@ -1023,13 +1073,20 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 3231,
+        "scrollHeight": 2007,
         "h1Count": 1,
         "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "AI 搜索",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 68,
+        "svgIconCount": 48,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -1041,12 +1098,12 @@
         "statCardCount": 0,
         "activityCount": 0,
         "searchHeroCount": 1,
-        "quickActionCount": 5,
+        "quickActionCount": 2,
         "homeInformationSectionCount": 2,
-        "dataSourceCardCount": 4,
+        "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1070,7 +1127,7 @@
         "profileActionWorks": true
       },
       "drawer": {
-        "navigationCount": 10,
+        "navigationCount": 7,
         "focusEntered": true,
         "closed": true,
         "focusReturned": true,
@@ -1106,7 +1163,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 68
+          "actual": 48
         },
         {
           "label": "个人资料弹窗可见",
@@ -1166,7 +1223,7 @@
         {
           "label": "移动完整导航项正确",
           "pass": true,
-          "actual": 10
+          "actual": 7
         },
         {
           "label": "抽屉打开后焦点进入关闭按钮",
@@ -1194,9 +1251,9 @@
           "actual": 1
         },
         {
-          "label": "高频任务共五项",
+          "label": "高频任务共两项",
           "pass": true,
-          "actual": 5
+          "actual": 2
         },
         {
           "label": "继续工作与常用知识板块存在",
@@ -1204,9 +1261,9 @@
           "actual": 2
         },
         {
-          "label": "数据源状态共四项",
+          "label": "不再展示已移除的数据源状态板块",
           "pass": true,
-          "actual": 4
+          "actual": 0
         }
       ],
       "passed": true
@@ -1222,13 +1279,20 @@
         "innerHeight": 1080,
         "clientWidth": 1920,
         "scrollWidth": 1920,
-        "scrollHeight": 1235,
+        "scrollHeight": 1080,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "平台总览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 31,
+        "svgIconCount": 25,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1244,9 +1308,9 @@
         "homeInformationSectionCount": 0,
         "dataSourceCardCount": 0,
         "sparklineCount": 4,
-        "sparklinePointCount": 28,
+        "sparklinePointCount": 24,
         "auditHeaderBackground": "rgb(241, 245, 249)",
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1296,7 +1360,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 31
+          "actual": 25
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -1334,9 +1398,9 @@
           "actual": 4
         },
         {
-          "label": "Sparkline 共 28 个数据点",
+          "label": "Sparkline 共 24 个数据点",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "审计表头使用 slate-100",
@@ -1344,7 +1408,7 @@
           "actual": "rgb(241, 245, 249)"
         },
         {
-          "label": "分页提供禁用态",
+          "label": "管理概览提供刷新操作",
           "pass": true,
           "actual": 1
         }
@@ -1362,13 +1426,20 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1235,
+        "scrollHeight": 1079,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "平台总览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 31,
+        "svgIconCount": 25,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1384,9 +1455,9 @@
         "homeInformationSectionCount": 0,
         "dataSourceCardCount": 0,
         "sparklineCount": 4,
-        "sparklinePointCount": 28,
+        "sparklinePointCount": 24,
         "auditHeaderBackground": "rgb(241, 245, 249)",
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1436,7 +1507,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 31
+          "actual": 25
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -1474,9 +1545,9 @@
           "actual": 4
         },
         {
-          "label": "Sparkline 共 28 个数据点",
+          "label": "Sparkline 共 24 个数据点",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "审计表头使用 slate-100",
@@ -1484,7 +1555,7 @@
           "actual": "rgb(241, 245, 249)"
         },
         {
-          "label": "分页提供禁用态",
+          "label": "管理概览提供刷新操作",
           "pass": true,
           "actual": 1
         }
@@ -1502,13 +1573,20 @@
         "innerHeight": 900,
         "clientWidth": 1280,
         "scrollWidth": 1280,
-        "scrollHeight": 1235,
+        "scrollHeight": 1079,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "平台总览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 31,
+        "svgIconCount": 25,
         "sidebarDisplay": "flex",
         "sidebarWidth": 240,
         "topbarHeight": 56,
@@ -1524,9 +1602,9 @@
         "homeInformationSectionCount": 0,
         "dataSourceCardCount": 0,
         "sparklineCount": 4,
-        "sparklinePointCount": 28,
+        "sparklinePointCount": 24,
         "auditHeaderBackground": "rgb(241, 245, 249)",
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1576,7 +1654,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 31
+          "actual": 25
         },
         {
           "label": "桌面侧栏宽度 240px",
@@ -1614,9 +1692,9 @@
           "actual": 4
         },
         {
-          "label": "Sparkline 共 28 个数据点",
+          "label": "Sparkline 共 24 个数据点",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "审计表头使用 slate-100",
@@ -1624,7 +1702,7 @@
           "actual": "rgb(241, 245, 249)"
         },
         {
-          "label": "分页提供禁用态",
+          "label": "管理概览提供刷新操作",
           "pass": true,
           "actual": 1
         }
@@ -1642,13 +1720,20 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 2699,
+        "scrollHeight": 2106,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "平台总览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 31,
+        "svgIconCount": 25,
         "sidebarDisplay": "none",
         "sidebarWidth": 0,
         "topbarHeight": 56,
@@ -1664,9 +1749,9 @@
         "homeInformationSectionCount": 0,
         "dataSourceCardCount": 0,
         "sparklineCount": 4,
-        "sparklinePointCount": 28,
+        "sparklinePointCount": 24,
         "auditHeaderBackground": "rgb(241, 245, 249)",
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1722,7 +1807,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 31
+          "actual": 25
         },
         {
           "label": "关键内容未越过视口",
@@ -1790,9 +1875,9 @@
           "actual": 4
         },
         {
-          "label": "Sparkline 共 28 个数据点",
+          "label": "Sparkline 共 24 个数据点",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "审计表头使用 slate-100",
@@ -1800,7 +1885,7 @@
           "actual": "rgb(241, 245, 249)"
         },
         {
-          "label": "分页提供禁用态",
+          "label": "管理概览提供刷新操作",
           "pass": true,
           "actual": 1
         }
@@ -1818,13 +1903,20 @@
         "innerHeight": 1000,
         "clientWidth": 1440,
         "scrollWidth": 1440,
-        "scrollHeight": 1235,
+        "scrollHeight": 1079,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "平台总览",
         "topbarTitleVisible": true,
         "hasEmoji": false,
-        "svgIconCount": 31,
+        "svgIconCount": 25,
         "sidebarDisplay": "flex",
         "sidebarWidth": 64,
         "topbarHeight": 56,
@@ -1840,9 +1932,9 @@
         "homeInformationSectionCount": 0,
         "dataSourceCardCount": 0,
         "sparklineCount": 4,
-        "sparklinePointCount": 28,
+        "sparklinePointCount": 24,
         "auditHeaderBackground": "rgb(241, 245, 249)",
-        "disabledInteractiveCount": 1,
+        "adminRefreshButtonCount": 1,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -1892,7 +1984,7 @@
         {
           "label": "页面使用线性 SVG 图标",
           "pass": true,
-          "actual": 31
+          "actual": 25
         },
         {
           "label": "折叠侧栏宽度 64px",
@@ -1930,9 +2022,9 @@
           "actual": 4
         },
         {
-          "label": "Sparkline 共 28 个数据点",
+          "label": "Sparkline 共 24 个数据点",
           "pass": true,
-          "actual": 28
+          "actual": 24
         },
         {
           "label": "审计表头使用 slate-100",
@@ -1940,7 +2032,7 @@
           "actual": "rgb(241, 245, 249)"
         },
         {
-          "label": "分页提供禁用态",
+          "label": "管理概览提供刷新操作",
           "pass": true,
           "actual": 1
         }
@@ -1961,6 +2053,13 @@
         "scrollHeight": 1080,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "",
         "topbarTitleVisible": false,
         "hasEmoji": false,
@@ -1977,7 +2076,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0.55,
         "loginFormWidth": 360,
         "loginColumnCount": 2,
@@ -2087,6 +2186,13 @@
         "scrollHeight": 1000,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "",
         "topbarTitleVisible": false,
         "hasEmoji": false,
@@ -2103,7 +2209,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0.55,
         "loginFormWidth": 360,
         "loginColumnCount": 2,
@@ -2213,6 +2319,13 @@
         "scrollHeight": 900,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "",
         "topbarTitleVisible": false,
         "hasEmoji": false,
@@ -2229,7 +2342,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0.55,
         "loginFormWidth": 360,
         "loginColumnCount": 2,
@@ -2336,9 +2449,16 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 1033,
+        "scrollHeight": 1087,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "",
         "topbarTitleVisible": false,
         "hasEmoji": false,
@@ -2355,7 +2475,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 1,
         "loginFormWidth": 343,
         "loginColumnCount": 1,
@@ -2465,6 +2585,13 @@
         "scrollHeight": 1000,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "",
         "topbarTitleVisible": false,
         "hasEmoji": false,
@@ -2481,7 +2608,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -2549,6 +2676,13 @@
         "scrollHeight": 900,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "",
         "topbarTitleVisible": false,
         "hasEmoji": false,
@@ -2565,7 +2699,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -2633,6 +2767,13 @@
         "scrollHeight": 812,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "",
         "topbarTitleVisible": false,
         "hasEmoji": false,
@@ -2649,7 +2790,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -2727,6 +2868,13 @@
         "scrollHeight": 1000,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "",
         "topbarTitleVisible": false,
         "hasEmoji": false,
@@ -2743,7 +2891,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -2811,6 +2959,13 @@
         "scrollHeight": 900,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "",
         "topbarTitleVisible": false,
         "hasEmoji": false,
@@ -2827,7 +2982,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
@@ -2895,6 +3050,13 @@
         "scrollHeight": 812,
         "h1Count": 1,
         "businessPageCount": 0,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
         "topbarTitle": "",
         "topbarTitleVisible": false,
         "hasEmoji": false,
@@ -2911,7 +3073,7 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
-        "disabledInteractiveCount": 0,
+        "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
