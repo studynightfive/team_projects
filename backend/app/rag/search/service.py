@@ -45,9 +45,9 @@ def _embedding_literal(value):
     """序列化 embedding 为 pgvector 字面量"""
     if isinstance(value, str):
         return value
-    if isinstance(value, (bytes, bytearray)):
+    if isinstance(value, bytes | bytearray):
         return "b'" + value.hex() + "'"
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         return "[" + ",".join(str(float(x)) for x in value) + "]"
     return str(value)
 
