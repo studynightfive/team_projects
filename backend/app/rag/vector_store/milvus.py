@@ -27,7 +27,7 @@ _collection_ready = False
 
 def _import_milvus() -> Any:
     try:
-        from pymilvus import (  # type: ignore[import-not-found]
+        from pymilvus import (
             Collection,
             CollectionSchema,
             DataType,
