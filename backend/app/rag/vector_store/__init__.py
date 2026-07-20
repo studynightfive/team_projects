@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Dict, Protocol
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +15,7 @@ class VectorHit:
     kb_id: str
     page: int | None
     content: str
-    metadata: dict
+    metadata: Dict[str, Any]
     score: float
 
 
@@ -27,7 +27,7 @@ class VectorRecord:
     content: str
     page: int | None
     embedding: list[float]
-    metadata: dict
+    metadata: Dict[str, Any]
 
 
 class VectorStore(Protocol):

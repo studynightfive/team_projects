@@ -38,7 +38,7 @@ def _cache_key(*, user_id: str, kb_id: str | None, query: str) -> str:
 
 
 async def _redis() -> Redis:
-    return Redis.from_url(settings.redis_url, decode_responses=True)
+    return Redis.from_url(settings.redis_url, decode_responses=True)  # type: ignore[no-any-return]
 
 
 async def get_cached_answer(
