@@ -10,6 +10,7 @@ import uuid
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.common.config import Settings
 from app.common.models import KnowledgeBasePermission, Permission, Role, User
@@ -36,20 +37,36 @@ def _make_settings(tmp_path) -> Settings:
 
 
 async def _seed_user_and_kb(session, *, kb_name: str = "e2e-kb") -> tuple[User, KnowledgeBase]:
-    upload_perm = Permission(
-        id=str(uuid.uuid4()),
-        code="admin.document.upload",
-        name="上传文档",
-        module="admin",
-        action="document.upload",
+    # 用 pg_insert + on_conflict_do_nothing 避免跨测试 / 跨 schema 的 unique 冲突
+    # 每个 test function 用不同 uuid, 重复执行时 unique 约束自动跳过
+    upload_perm_id = str(uuid.uuid4())
+    view_perm_id = str(uuid.uuid4())
+    await session.execute(
+        pg_insert(Permission).values(
+            id=upload_perm_id,
+            code="admin.document.upload",
+            name="上传文档",
+            module="admin",
+            action="document.upload",
+        ).on_conflict_do_nothing(index_elements=["code"])
     )
-    view_perm = Permission(
-        id=str(uuid.uuid4()),
-        code="admin.document.view",
-        name="查看文档",
-        module="admin",
-        action="document.view",
+    await session.execute(
+        pg_insert(Permission).values(
+            id=view_perm_id,
+            code="admin.document.view",
+            name="查看文档",
+            module="admin",
+            action="document.view",
+        ).on_conflict_do_nothing(index_elements=["code"])
     )
+    # 取回已存在的 Permission（无论是新建还是已 conflict skip）
+    from sqlalchemy import select as _select
+    upload_perm = (await session.execute(
+        _select(Permission).where(Permission.code == "admin.document.upload")
+    )).scalar_one()
+    view_perm = (await session.execute(
+        _select(Permission).where(Permission.code == "admin.document.view")
+    )).scalar_one()
     role = Role(
         id=str(uuid.uuid4()),
         name=f"e2e-admin-{uuid.uuid4().hex[:6]}",
