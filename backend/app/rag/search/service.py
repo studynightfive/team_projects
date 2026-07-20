@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 from typing import TypeAlias
 
@@ -23,6 +24,7 @@ from app.rag._shared.permissions import (
     get_user_accessible_kb_ids,
     post_filter_hits,
 )
+from app.rag.answer_cache import get_cached_answer, set_cached_answer
 from app.rag.conversations.all import Conversation, Message
 from app.rag.search.schemas import (
     RagAnswerRequest,
@@ -38,6 +40,69 @@ logger = structlog.get_logger()
 # RRF 常数（提示词 02 §4.2）
 RRF_K = 60
 SearchRow: TypeAlias = dict[str, object]
+
+_CJK_STOPWORDS = {
+    "的",
+    "了",
+    "吗",
+    "呢",
+    "是",
+    "在",
+    "有",
+    "和",
+    "与",
+    "及",
+    "或",
+    "等",
+    "什么",
+    "怎么",
+    "如何",
+    "多少",
+    "哪个",
+    "哪些",
+    "请问",
+    "一下",
+    "是否",
+}
+
+_THINK_BLOCK_RE = re.compile(
+    r"<think\b[^>]*>.*?</think>",
+    flags=re.IGNORECASE | re.DOTALL,
+)
+
+
+def strip_model_think_blocks(text: str) -> str:
+    """去掉模型输出中的思考标签，只保留最终回答。"""
+    return _THINK_BLOCK_RE.sub("", text).strip()
+
+
+def extract_search_terms(query: str, *, max_terms: int = 12) -> list[str]:
+    """从自然语言问题提取可检索词（支持中文连续字串拆 bigram）。"""
+    cleaned = query.strip()
+    if not cleaned:
+        return []
+
+    candidates: list[str] = []
+    for match in re.finditer(r"[A-Za-z0-9_]{2,}", cleaned):
+        candidates.append(match.group(0).lower())
+
+    for match in re.finditer(r"[\u4e00-\u9fff]+", cleaned):
+        run = match.group(0)
+        if run in _CJK_STOPWORDS:
+            continue
+        if len(run) <= 4:
+            candidates.append(run)
+            continue
+        for index in range(len(run) - 1):
+            bigram = run[index : index + 2]
+            if bigram not in _CJK_STOPWORDS:
+                candidates.append(bigram)
+        if len(run) <= 10:
+            candidates.append(run)
+
+    ranked = sorted(set(candidates), key=lambda item: (-len(item), item))
+    terms = [item for item in ranked if len(item) >= 2][:max_terms]
+    return terms if terms else [cleaned[:32]]
 
 
 # ============================================================
@@ -79,9 +144,18 @@ async def _keyword_search(
 ) -> tuple[list[SearchRow], int]:
     if not accessible_kb_ids:
         return [], 0
+    terms = extract_search_terms(query)
+    if not terms:
+        return [], 0
+
     kb_list = list(accessible_kb_ids)
+    like_clauses = " OR ".join(f"c.content ILIKE :t{i}" for i in range(len(terms)))
+    score_expr = " + ".join(
+        f"(CASE WHEN c.content ILIKE :t{i} THEN {max(len(terms) - i, 1)} ELSE 0 END)"
+        for i in range(len(terms))
+    )
     sql = text(
-        """
+        f"""
         SELECT
                c.id AS chunk_id,
                c.document_id AS doc_id,
@@ -89,27 +163,23 @@ async def _keyword_search(
                c.knowledge_base_id AS kb_id,
                c.page_no AS page,
                c.content AS content,
-               ts_rank_cd(
-                   to_tsvector('simple', c.content),
-                   plainto_tsquery('simple', :q)
-               )
-               + CASE WHEN c.content ILIKE :like_q THEN 0.5 ELSE 0 END AS score
+               ({score_expr})::float AS score
         FROM document_chunks c
         JOIN documents d ON d.id = c.document_id
         WHERE c.knowledge_base_id = ANY(:kb_ids)
           AND c.is_active IS TRUE
-          AND (
-            to_tsvector('simple', c.content) @@ plainto_tsquery('simple', :q)
-            OR c.content ILIKE :like_q
-          )
+          AND ({like_clauses})
         ORDER BY score DESC
         LIMIT :limit
         """
     )
-    res = await db.execute(
-        sql,
-        {"q": query, "like_q": f"%{query}%", "kb_ids": kb_list, "limit": top_k * 2},
-    )
+    params: dict[str, object] = {
+        "kb_ids": kb_list,
+        "limit": top_k * 2,
+    }
+    for index, term in enumerate(terms):
+        params[f"t{index}"] = f"%{term}%"
+    res = await db.execute(sql, params)
     rows: list[SearchRow] = [dict(r._mapping) for r in res.fetchall()]
     return rows, len(rows)
 
@@ -463,6 +533,16 @@ async def answer(
     req: RagAnswerRequest,
 ) -> RagAnswerResponse:
     start = time.time()
+    cached = await get_cached_answer(
+        user_id=user.id,
+        kb_id=req.kb_id,
+        query=req.query,
+    )
+    if cached is not None:
+        cached.took_ms = int((time.time() - start) * 1000)
+        logger.info("rag_answer_cache_hit", kb_id=req.kb_id)
+        return cached
+
     search_resp = await search(db, user=user, req=req)
 
     if not search_resp.hits:
@@ -474,6 +554,7 @@ async def answer(
             model=None,
             conversation_id=None,
             generated=False,
+            from_cache=False,
         )
 
     provider_code, base_url, model_name, api_key = await _resolve_chat_model(
@@ -485,15 +566,41 @@ async def answer(
         api_key,
         timeout=settings.model_provider_timeout_seconds,
     )
-    generated = await provider.chat(
-        model_name=model_name,
-        messages=_build_answer_messages(req.query, search_resp.hits),
-        temperature=0.2,
-        max_tokens=settings.rag_answer_max_tokens,
-        stream=False,
-        timeout=settings.model_provider_timeout_seconds,
+    try:
+        generated = await provider.chat(
+            model_name=model_name,
+            messages=_build_answer_messages(req.query, search_resp.hits),
+            temperature=0.2,
+            max_tokens=settings.rag_answer_max_tokens,
+            stream=False,
+            timeout=settings.model_provider_timeout_seconds,
+        )
+    except Exception as exc:  # noqa: BLE001
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        logger.warning(
+            "rag_chat_provider_failed",
+            error_type=type(exc).__name__,
+            status_code=status,
+            model=model_name,
+        )
+        # 检索已成功时仍返回引用，便于排查模型 Key；不写入问答缓存
+        return RagAnswerResponse(
+            answer=(
+                f"已检索到 {len(search_resp.hits)} 条相关片段，但聊天模型调用失败"
+                f"（{status or type(exc).__name__}）。"
+                "请检查 MiniMax/DeepSeek 的 API Key、Base URL 与模型名。"
+            ),
+            hits=search_resp.hits,
+            mode=search_resp.mode,
+            took_ms=int((time.time() - start) * 1000),
+            model=model_name,
+            conversation_id=None,
+            generated=False,
+            from_cache=False,
+        )
+    answer_text = strip_model_think_blocks(
+        generated if isinstance(generated, str) else ""
     )
-    answer_text = generated if isinstance(generated, str) else ""
     conversation = await _persist_answer_conversation(
         db,
         user=user,
@@ -501,7 +608,7 @@ async def answer(
         answer_text=answer_text.strip() or "未在文档中找到相关引用。",
         hits=search_resp.hits,
     )
-    return RagAnswerResponse(
+    response = RagAnswerResponse(
         answer=answer_text.strip() or "未在文档中找到相关引用。",
         hits=search_resp.hits,
         mode=search_resp.mode,
@@ -509,7 +616,15 @@ async def answer(
         model=model_name,
         conversation_id=conversation.id,
         generated=True,
+        from_cache=False,
     )
+    await set_cached_answer(
+        user_id=user.id,
+        kb_id=req.kb_id,
+        query=req.query,
+        response=response,
+    )
+    return response
 
 
 async def _persist_answer_conversation(

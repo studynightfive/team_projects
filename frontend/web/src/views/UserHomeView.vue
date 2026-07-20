@@ -207,6 +207,20 @@ const runQuickAction = (action: QuickAction): void => {
       void message.warning("当前账号没有上传文档权限");
       return;
     }
+    // 真实 API 模式不支持搜索框附件检索，跳转到知识库上传并自动打开文件选择
+    if (isRealApiMode) {
+      const kbId = workspaceId.value ?? knowledgeBaseOptions.value[0]?.id;
+      if (kbId === undefined) {
+        void message.warning("暂无可用知识库，请先到企业知识库创建后再上传");
+        void router.push("/knowledge");
+        return;
+      }
+      void router.push({
+        path: `/knowledge/${kbId}`,
+        query: { action: "upload" },
+      });
+      return;
+    }
     searchBoxRef.value?.openFilePicker();
     return;
   }

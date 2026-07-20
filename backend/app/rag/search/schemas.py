@@ -68,3 +68,4 @@ class RagAnswerResponse(BaseModel):
     model: str | None = None
     conversation_id: str | None = None
     generated: bool = True
+    from_cache: bool = False

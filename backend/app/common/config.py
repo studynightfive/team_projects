@@ -72,10 +72,12 @@ class Settings(BaseSettings):
     deepseek_chat_model: str = "deepseek-chat"
     dashscope_api_key: str = ""
     dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    qwen_embedding_model: str = "text-embedding-v4"
-    qwen_embedding_dimensions: int = 1024
+    qwen_embedding_model: str = "text-embedding-v2"
+    qwen_embedding_dimensions: int = 1536
     rag_answer_max_context_chars: int = 12000
     rag_answer_max_tokens: int = 1200
+    rag_answer_cache_enabled: bool = True
+    rag_answer_cache_ttl_seconds: int = Field(default=604800, ge=60, le=2592000)
 
     # ============================================================
     # 文档处理（员工 4）
