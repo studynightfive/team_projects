@@ -420,8 +420,8 @@
         "text",
         "utf8"
       ],
-      "file_size_bytes": 1337,
-      "sha256": "81ba68f8fa51db3d98b4ec0e486b14bf353cfc2134b0b9074e9a939b830078bd",
+      "file_size_bytes": 1309,
+      "sha256": "c67082c898f298d554c60d60d9ddd5ae5244f0602f36cc3cf2f81e07f2529c8c",
       "description": "UTF-8编码中文文本",
       "status": "ready"
     },
@@ -435,8 +435,8 @@
         "text",
         "gbk"
       ],
-      "file_size_bytes": 183,
-      "sha256": "faa0f67adc4087b151c8939898b8c9d298f915350d18649800ffb4bb37438aa6",
+      "file_size_bytes": 173,
+      "sha256": "f3dc80be5557d51fe5639b75874b93674584cfba48c0b9bc17ed57d68b389e66",
       "description": "GBK编码中文文本，测试编码自动识别",
       "status": "ready"
     },
@@ -450,8 +450,8 @@
         "text",
         "long-lines"
       ],
-      "file_size_bytes": 1486,
-      "sha256": "d0c0ac97a6c9a0f5609655c98353eb1d0d58e94a0faf2edd645c5dc7d1e55afe",
+      "file_size_bytes": 1480,
+      "sha256": "db928a9d6b0efe5547b23f6ba88e4ac6bbc8a3f6f42c7209eea185fec2e99661",
       "description": "超长行文本文件，测试长文本处理",
       "status": "ready"
     },
@@ -480,8 +480,8 @@
         "tables",
         "utf8"
       ],
-      "file_size_bytes": 1379,
-      "sha256": "6d73cfcd382bfac473f907df06b9f56293a1025c61f6d357a04d4ae5156f8e83",
+      "file_size_bytes": 1370,
+      "sha256": "8b8bfe520a5fc62170bb6efd10bdb4ecc1a20483c47537afa6b1a9b6f82843e6",
       "description": "UTF-8编码CSV文件",
       "status": "ready"
     },
@@ -495,8 +495,8 @@
         "tables",
         "special-chars"
       ],
-      "file_size_bytes": 380,
-      "sha256": "c8067c05e107d5a2cba5648eaf8b5bb83f5e14285812df46371c97c4fa69fd4f",
+      "file_size_bytes": 373,
+      "sha256": "a067ece6788b0828cc1b477dec50f6424df6fbb1d634a83e84add51ff8684012",
       "description": "含特殊字符的CSV文件（逗号、引号、换行）",
       "status": "ready"
     },
@@ -510,8 +510,8 @@
         "tables",
         "inconsistent"
       ],
-      "file_size_bytes": 44,
-      "sha256": "111c2534b569fb4095f3d3f6d471e8979213398630d1e5811234400805fec8fc",
+      "file_size_bytes": 40,
+      "sha256": "5d404906db3f6571c7dbccbc980978aece06f1452d7388c60bcf839358d3af9e",
       "description": "列数不一致的CSV文件",
       "status": "ready"
     },
@@ -539,8 +539,8 @@
         "text",
         "html"
       ],
-      "file_size_bytes": 2785,
-      "sha256": "fb42862377ebfc6e44b7365486148024ecd07d78dde8247a7d679bcec0aecb12",
+      "file_size_bytes": 2716,
+      "sha256": "a01c8afbc61b1526aa2814b4ff70ca8a1c14839533ad350e3905c96f4b6636d4",
       "description": "简单文章HTML页面",
       "status": "ready"
     },
@@ -555,8 +555,8 @@
         "tables",
         "html"
       ],
-      "file_size_bytes": 1111,
-      "sha256": "e7c94af971ea43d4ba3feebbc2b85d3384a6bbddef9787e7d12295dcbe146b23",
+      "file_size_bytes": 1068,
+      "sha256": "b0cb7ec283ff21d26270a88ddcc220ae0534ffd6d0f850a449ebd97dc6fa2b75",
       "description": "含表格的HTML页面",
       "status": "ready"
     },
@@ -571,8 +571,8 @@
         "malicious",
         "html"
       ],
-      "file_size_bytes": 1009,
-      "sha256": "73a72612e7f2218964fadb27ba9e39f78498eb8bf900c6f36565941d464892b2",
+      "file_size_bytes": 981,
+      "sha256": "cb2ed158c88f191a0c1c70ed7bb60cca9ac6f84e2c1082f2013664120e7146e1",
       "description": "含脚本和事件属性的HTML（清洗测试）",
       "status": "ready"
     },
@@ -586,8 +586,8 @@
         "html",
         "nested"
       ],
-      "file_size_bytes": 2772,
-      "sha256": "f64515bef5349cf08028b5cab4920c6822f59c203618cfba906da770a26099a4",
+      "file_size_bytes": 2765,
+      "sha256": "c4de1a40e066f262dc00f693ce41ed1a826ad8c9f6fef6acc18be17e9345aa2d",
       "description": "100层嵌套div的HTML，测试解析器深度限制",
       "status": "ready"
     },
@@ -738,8 +738,8 @@
         "text",
         "email"
       ],
-      "file_size_bytes": 903,
-      "sha256": "6cecb2fe2a7b646df6d92c10774a2f33330451c389e9ba85cf4fbe6514f39dfd",
+      "file_size_bytes": 877,
+      "sha256": "f1763d3c4aa10567edb3bdc6a12e446aa20ba22a3f4839a339f46a9f17c414ff",
       "description": "简单中文邮件，含主题、发件人和正文",
       "status": "ready"
     },
@@ -753,8 +753,8 @@
         "corrupted",
         "email"
       ],
-      "file_size_bytes": 556,
-      "sha256": "caeed37d8429a00f8151b3fac6b7487969ca254e6dde6ce2248d5df8ec75a733",
+      "file_size_bytes": 533,
+      "sha256": "fc0ee7c6553bd2cb4332fa9a1555b6244ac7adb32149ec26a9c5611aa7567e1c",
       "description": "MIME边界损坏的邮件",
       "status": "ready"
     },
@@ -798,8 +798,8 @@
         "text",
         "rtf"
       ],
-      "file_size_bytes": 1439,
-      "sha256": "d0174a95d24f03d3eb1d4af8579e6b57e1cea04fcd4260d692f49a6f6575ff7d",
+      "file_size_bytes": 1407,
+      "sha256": "a12f9bd3fbafb030df27ac524ba95c04c0e7ea48c92e1d0cb68b757e3ab3b677",
       "description": "RTF富文本文件",
       "status": "ready"
     },
@@ -825,8 +825,8 @@
       "category": "normal",
       "language": "zh-CN",
       "features": ["staff4-regression"],
-      "file_size_bytes": 30,
-      "sha256": "2e692a6e89eea638d19d8accdd4864f20a867ff6b595c5bbbb3e5d7cfcf4115b",
+      "file_size_bytes": 27,
+      "sha256": "f6c2f265961ccfd0386ff22062cc6ebdfb1ac10becc3f6559a263ba790bb93a4",
       "description": "员工4 CSV 解析回归样本",
       "status": "ready"
     },
@@ -849,8 +849,8 @@
       "category": "normal",
       "language": "zh-CN",
       "features": ["staff4-regression"],
-      "file_size_bytes": 221,
-      "sha256": "1a892b82dcc0e7b972ebd8a1367e06b9744dd04655107aeb20d2158c389145ba",
+      "file_size_bytes": 213,
+      "sha256": "4024ba52890ed349722dc860c7d5dde800936652f606ca5fdaf5221c2b5fc1d5",
       "description": "员工4 EML 解析回归样本",
       "status": "ready"
     },
@@ -861,8 +861,8 @@
       "category": "normal",
       "language": "zh-CN",
       "features": ["staff4-regression"],
-      "file_size_bytes": 139,
-      "sha256": "6ec1e7a6dbdbe9d5a604a7a975ae93e132e2ff0c32c3dc685e68804efd8e574f",
+      "file_size_bytes": 138,
+      "sha256": "57383c808209f993c55e30abd1787c572844af7df144bdcbe2e1447d74a928d5",
       "description": "员工4 HTML 解析回归样本",
       "status": "ready"
     },
@@ -873,8 +873,8 @@
       "category": "normal",
       "language": "zh-CN",
       "features": ["staff4-regression"],
-      "file_size_bytes": 52,
-      "sha256": "1d8d27480f36981807a8516983687610dc5a92eb03d609e201a84b6631c12502",
+      "file_size_bytes": 51,
+      "sha256": "0010e8ed21c880b92f206667691454e3cb2b749db685e748a9c66e5d4d668f51",
       "description": "员工4 JSON 解析回归样本",
       "status": "ready"
     },
@@ -909,8 +909,8 @@
       "category": "abnormal",
       "language": "zh-CN",
       "features": ["staff4-regression", "corrupted"],
-      "file_size_bytes": 35,
-      "sha256": "18bf0b0792e2a76fe7b87aadec74a0e4b53c45486795154ba8d055c9267c7d07",
+      "file_size_bytes": 32,
+      "sha256": "323782d3393b9eeec31cc173ba3dd13b758dbd4b4be56bc10a23143d0032c1b8",
       "description": "员工4损坏 PDF 回归样本",
       "status": "ready"
     },
@@ -933,8 +933,8 @@
       "category": "normal",
       "language": "en-US",
       "features": ["staff4-regression"],
-      "file_size_bytes": 77,
-      "sha256": "01e7a8bb84d96fbbee1cafecdde08f3cf0064186c5dc52c6115e6310e7f84954",
+      "file_size_bytes": 75,
+      "sha256": "69a79704cfdb12826f3d28549b36e1a5f4b97f8246d9795fbfaae238211a1667",
       "description": "员工4英文文本解析回归样本",
       "status": "ready"
     },
