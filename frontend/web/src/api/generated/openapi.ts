@@ -1006,7 +1006,10 @@ export interface paths {
         put?: never;
         /**
          * 敏感词检查
-         * @description 对用户输入的问题进行两层敏感词过滤
+         * @description 对用户输入的问题进行两层敏感词过滤：
+         *     - Layer 1: 正则表达式精确匹配已知敏感词和攻击模式
+         *     - Layer 2: BERT 语义理解和意图识别
+         *     返回是否通过及详细的过滤信息。
          */
         post: operations["sensitive_check_endpoint_api_v1_sensitive_check_post"];
         delete?: never;
@@ -1431,7 +1434,19 @@ export interface components {
              */
             request_id: string;
         };
-        /** APIResponse[SensitiveCheckResponse] */
+        /**
+         * APIResponse[SensitiveCheckResponse]
+         * @description 统一 API 响应格式（方案第14.2节）
+         *
+         *     ```json
+         *     {
+         *       "code": 0,
+         *       "message": "success",
+         *       "data": {},
+         *       "request_id": "uuid"
+         *     }
+         *     ```
+         */
         APIResponse_SensitiveCheckResponse_: {
             /**
              * Code
@@ -2252,7 +2267,10 @@ export interface components {
             /** Embedding Model Id */
             embedding_model_id?: string | null;
         };
-        /** SensitiveCheckRequest */
+        /**
+         * SensitiveCheckRequest
+         * @description 敏感词检查请求
+         */
         SensitiveCheckRequest: {
             /**
              * Question
@@ -2260,7 +2278,10 @@ export interface components {
              */
             question: string;
         };
-        /** SensitiveCheckResponse */
+        /**
+         * SensitiveCheckResponse
+         * @description 敏感词检查响应
+         */
         SensitiveCheckResponse: {
             /**
              * Passed

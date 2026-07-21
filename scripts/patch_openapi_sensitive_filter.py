@@ -31,8 +31,9 @@ def main() -> None:
             }
         },
         "required": ["question"],
-        "title": "SensitiveCheckRequest",
         "type": "object",
+        "title": "SensitiveCheckRequest",
+        "description": "敏感词检查请求",
     }
 
     # SensitiveCheckResponse
@@ -74,8 +75,9 @@ def main() -> None:
             },
         },
         "required": ["passed", "verdict"],
-        "title": "SensitiveCheckResponse",
         "type": "object",
+        "title": "SensitiveCheckResponse",
+        "description": "敏感词检查响应",
     }
 
     # APIResponse[SensitiveCheckResponse]
@@ -100,8 +102,19 @@ def main() -> None:
                 "default": "",
             },
         },
-        "title": "APIResponse[SensitiveCheckResponse]",
         "type": "object",
+        "title": "APIResponse[SensitiveCheckResponse]",
+        "description": (
+            "统一 API 响应格式（方案第14.2节）\n\n"
+            "```json\n"
+            "{\n"
+            '  "code": 0,\n'
+            '  "message": "success",\n'
+            '  "data": {},\n'
+            '  "request_id": "uuid"\n'
+            "}\n"
+            "```"
+        ),
     }
 
     # Sort schemas alphabetically
@@ -114,7 +127,12 @@ def main() -> None:
         "post": {
             "tags": ["sensitive-filter"],
             "summary": "敏感词检查",
-            "description": "对用户输入的问题进行两层敏感词过滤",
+            "description": (
+                "对用户输入的问题进行两层敏感词过滤：\n"
+                "- Layer 1: 正则表达式精确匹配已知敏感词和攻击模式\n"
+                "- Layer 2: BERT 语义理解和意图识别\n"
+                "返回是否通过及详细的过滤信息。"
+            ),
             "operationId": "sensitive_check_endpoint_api_v1_sensitive_check_post",
             "requestBody": {
                 "content": {
