@@ -117,8 +117,8 @@ const loadData = async (): Promise<void> => {
       listModelProviders(),
       listModels(),
     ]);
-    providers.value = providerItems;
-    models.value = modelItems;
+    providers.value = [...providerItems];
+    models.value = [...modelItems];
     editor.providerCode =
       providerItems.find((provider) => provider.enabled)?.code ?? "";
   } catch (err) {
