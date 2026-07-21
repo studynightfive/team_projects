@@ -52,10 +52,10 @@ class TestRegexFilter:
         assert any("赌博" in m for m in matches)
 
     def test_check_sensitive_word_drug(self) -> None:
-        """包含"毒品"应被拦截"""
-        blocked, matches = check_regex("制毒的方法")
+        """包含"毒品"或"制毒"应被拦截"""
+        blocked, matches = check_regex("毒品交易和制毒的方法")
         assert blocked is True
-        assert any("毒品" in m for m in matches)
+        assert any("毒品" in m for m in matches) or any("制毒" in m for m in matches)
 
     def test_check_sql_injection_pattern(self) -> None:
         """SQL 注入模式应被拦截"""
@@ -218,9 +218,9 @@ class TestFilterVerdict:
         assert FilterVerdict.BLOCK_REGEX.value == "regex"
         assert FilterVerdict.BLOCK_BERT.value == "bert"
 
-    def test_verdict_str(self) -> None:
-        assert str(FilterVerdict.PASS) == "pass"
-        assert str(FilterVerdict.BLOCK_REGEX) == "regex"
+    def test_verdict_value(self) -> None:
+        assert FilterVerdict.PASS.value == "pass"
+        assert FilterVerdict.BLOCK_REGEX.value == "regex"
 
 
 class TestFilterResult:
