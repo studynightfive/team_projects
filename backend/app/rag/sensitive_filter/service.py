@@ -77,7 +77,8 @@ async def check_sensitive(question: str) -> FilterResult:
     if is_regex_blocked:
         result.verdict = FilterVerdict.BLOCK_REGEX
         result.passed = False
-        result.reason = f"正则过滤器拦截 — 命中 {len(regex_matches)} 条规则: {'; '.join(regex_matches[:3])}"
+        rules = "; ".join(regex_matches[:3])
+        result.reason = f"正则过滤器拦截 — 命中 {len(regex_matches)} 条规则: {rules}"
         logger.info(
             "sensitive_filter_blocked_regex",
             question_len=len(question),

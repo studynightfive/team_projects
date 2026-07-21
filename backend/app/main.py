@@ -43,8 +43,8 @@ from app.notifications.router import router as notifications_router
 from app.rag.chat.all import router as chat_router
 from app.rag.conversations.all import router as conversations_router
 from app.rag.search.api import router as retrieval_router
-from app.rag.tests.all import router as retrieval_tests_router
 from app.rag.sensitive_filter.router import router as sensitive_filter_router
+from app.rag.tests.all import router as retrieval_tests_router
 from app.users.dashboard_router import router as dashboard_router
 from app.users.role_router import router as role_router
 from app.users.router import router as users_router

@@ -253,8 +253,8 @@ class TestBertFilter:
     def skip_if_no_transformers(self) -> None:
         """如果没有安装 transformers，跳过测试"""
         try:
-            import transformers  # noqa: F401
             import torch  # noqa: F401
+            import transformers  # noqa: F401
         except ImportError:
             pytest.skip("transformers/torch 未安装，跳过 BERT 集成测试")
 

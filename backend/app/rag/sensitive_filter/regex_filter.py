@@ -40,7 +40,10 @@ class RegexSensitiveFilter:
     SENSITIVE_PATTERNS: ClassVar[list[re.Pattern[str]]] = [
         # SQL 注入模式
         re.compile(r"(?:drop|alter|truncate)\s+(?:table|database)", re.IGNORECASE),
-        re.compile(r"(?:insert\s+into|update\s+.*\s+set|delete\s+from).*(?:--|#|/\*)", re.IGNORECASE),
+        re.compile(
+            r"(?:insert\s+into|update\s+.*\s+set|delete\s+from).*(?:--|#|/\*)",
+            re.IGNORECASE,
+        ),
         re.compile(r"union\s+(?:all\s+)?select", re.IGNORECASE),
         re.compile(r"(?:or|and)\s+['\"]?\d+['\"]?\s*=\s*['\"]?\d+['\"]?", re.IGNORECASE),
         # XSS 模式

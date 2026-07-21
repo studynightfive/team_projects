@@ -78,7 +78,6 @@ class BertSensitiveFilter:
         logger.info("加载 BERT 模型用于敏感词过滤: %s", self.MODEL_NAME)
         try:
             from transformers import AutoModel, AutoTokenizer  # type: ignore[import-untyped]
-            import torch  # type: ignore[import-untyped]
 
             self._tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME)
             self._model = AutoModel.from_pretrained(self.MODEL_NAME)

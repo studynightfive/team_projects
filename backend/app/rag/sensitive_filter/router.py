@@ -14,7 +14,7 @@ from app.auth.dependencies import get_current_user, require_any_permission
 from app.common.database import get_db
 from app.common.models import User
 from app.common.schemas import APIResponse, ErrorCode, get_error_message
-from app.rag.sensitive_filter.service import FilterVerdict, check_sensitive
+from app.rag.sensitive_filter.service import check_sensitive
 
 router = APIRouter(prefix="/api/v1", tags=["sensitive-filter"])
 logger = structlog.get_logger()
