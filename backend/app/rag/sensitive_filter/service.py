@@ -9,14 +9,15 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from enum import Enum
+
+import structlog
 
 from app.rag.sensitive_filter.bert_filter import check_bert
 from app.rag.sensitive_filter.regex_filter import check_regex
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class FilterVerdict(str, Enum):

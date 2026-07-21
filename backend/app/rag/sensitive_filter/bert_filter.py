@@ -9,11 +9,12 @@
 from __future__ import annotations
 
 import logging
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import numpy as np
+import numpy.typing as npt
 
-logger = logging.getLogger(__name__)
+MODULE_LOGGER = logging.getLogger(__name__)
 
 
 class BertSensitiveFilter:
@@ -65,23 +66,23 @@ class BertSensitiveFilter:
                        默认 0.62 经过调优，兼顾准确率和召回率。
         """
         self._threshold = threshold
-        self._model: object | None = None
-        self._tokenizer: object | None = None
-        self._sensitive_embeddings: np.ndarray | None = None
-        self._normal_embeddings: np.ndarray | None = None
+        self._model: Any = None  # transformers AutoModel
+        self._tokenizer: Any = None  # transformers AutoTokenizer
+        self._sensitive_embeddings: npt.NDArray[np.float32] | None = None
+        self._normal_embeddings: npt.NDArray[np.float32] | None = None
 
     def _lazy_load(self) -> None:
         """延迟加载 BERT 模型和预计算锚点嵌入"""
         if self._model is not None:
             return
 
-        logger.info("加载 BERT 模型用于敏感词过滤: %s", self.MODEL_NAME)
+        MODULE_LOGGER.info("加载 BERT 模型用于敏感词过滤: %s", self.MODEL_NAME)
         try:
-            from transformers import AutoModel, AutoTokenizer  # type: ignore[import-untyped]
+            from transformers import AutoModel, AutoTokenizer
 
             self._tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME)
             self._model = AutoModel.from_pretrained(self.MODEL_NAME)
-            self._model.eval()  # type: ignore[union-attr]
+            self._model.eval()
 
             # 预计算所有锚点嵌入
             all_anchors = self.SENSITIVE_ANCHORS + self.NORMAL_ANCHORS
@@ -90,25 +91,25 @@ class BertSensitiveFilter:
             self._sensitive_embeddings = embeddings[:n_sensitive]
             self._normal_embeddings = embeddings[n_sensitive:]
 
-            logger.info("BERT 模型加载完成，锚点嵌入已预计算")
+            MODULE_LOGGER.info("BERT 模型加载完成，锚点嵌入已预计算")
         except ImportError:
-            logger.warning(
+            MODULE_LOGGER.warning(
                 "transformers/torch 未安装，BERT 过滤器不可用。"
                 "请安装: pip install transformers torch"
             )
             raise
         except Exception as exc:
-            logger.error("BERT 模型加载失败: %s", exc)
+            MODULE_LOGGER.error("BERT 模型加载失败: %s", exc)
             raise
 
-    def _encode_batch(self, texts: list[str]) -> np.ndarray:
+    def _encode_batch(self, texts: list[str]) -> npt.NDArray[np.float32]:
         """批量编码文本为句子嵌入（mean pooling）
 
         使用 mean pooling 将所有 token 的输出取平均作为句子级嵌入。
         """
-        import torch  # type: ignore[import-untyped]
+        import torch
 
-        encoded = self._tokenizer(  # type: ignore[union-attr]
+        encoded = self._tokenizer(
             texts,
             padding=True,
             truncation=True,
@@ -116,11 +117,11 @@ class BertSensitiveFilter:
             return_tensors="pt",
         )
         with torch.no_grad():
-            outputs = self._model(**encoded)  # type: ignore[union-attr]
+            outputs = self._model(**encoded)
 
         # Mean pooling
         attention_mask = encoded["attention_mask"]
-        token_embeddings = outputs.last_hidden_state  # type: ignore[union-attr]
+        token_embeddings = outputs.last_hidden_state
         mask_expanded = (
             attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
         )
@@ -131,7 +132,9 @@ class BertSensitiveFilter:
         return mean_embeddings.numpy()
 
     @staticmethod
-    def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    def _cosine_similarity(
+        a: npt.NDArray[np.float32], b: npt.NDArray[np.float32]
+    ) -> float:
         """计算两个向量的余弦相似度"""
         dot = np.dot(a, b)
         norm_a = np.linalg.norm(a)
@@ -153,13 +156,15 @@ class BertSensitiveFilter:
                 - matched_label (str): 最匹配的敏感意图描述
         """
         self._lazy_load()
+        assert self._sensitive_embeddings is not None
+        assert self._normal_embeddings is not None
 
         # 编码问题
         question_emb = self._encode_batch([text])[0]
 
         # 计算与敏感锚点和正常锚点质心的相似度
-        sensitive_centroid = self._sensitive_embeddings.mean(axis=0)  # type: ignore[union-attr]
-        normal_centroid = self._normal_embeddings.mean(axis=0)  # type: ignore[union-attr]
+        sensitive_centroid = self._sensitive_embeddings.mean(axis=0)
+        normal_centroid = self._normal_embeddings.mean(axis=0)
 
         sensitive_sim = self._cosine_similarity(question_emb, sensitive_centroid)
         normal_sim = self._cosine_similarity(question_emb, normal_centroid)
@@ -168,7 +173,7 @@ class BertSensitiveFilter:
         best_idx = max(
             range(len(self.SENSITIVE_ANCHORS)),
             key=lambda i: self._cosine_similarity(
-                question_emb, self._sensitive_embeddings[i]  # type: ignore[index]
+                question_emb, self._sensitive_embeddings[i]
             ),
         )
         matched_label = f"敏感意图: {self.SENSITIVE_ANCHORS[best_idx]}"
@@ -180,10 +185,14 @@ class BertSensitiveFilter:
 
         confidence = float(sensitive_sim)
 
-        logger.debug(
+        MODULE_LOGGER.debug(
             "BERT敏感检查: text_len=%d sensitive_sim=%.4f normal_sim=%.4f "
             "threshold=%.2f is_sensitive=%s",
-            len(text), sensitive_sim, normal_sim, self._threshold, is_sensitive,
+            len(text),
+            sensitive_sim,
+            normal_sim,
+            self._threshold,
+            is_sensitive,
         )
 
         return is_sensitive, confidence, matched_label
@@ -214,6 +223,5 @@ def check_bert(text: str) -> tuple[bool, float, str]:
         return bert.check(text)
     except (ImportError, Exception) as exc:
         # BERT 不可用时降级：仅依赖 Layer 1
-        logger = logging.getLogger(__name__)
-        logger.warning("BERT 过滤器不可用，跳过 Layer 2 检查: %s", exc)
+        MODULE_LOGGER.warning("BERT 过滤器不可用，跳过 Layer 2 检查: %s", exc)
         return False, 0.0, f"BERT不可用({type(exc).__name__})"
