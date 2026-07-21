@@ -158,13 +158,15 @@ class BertSensitiveFilter:
         self._lazy_load()
         assert self._sensitive_embeddings is not None
         assert self._normal_embeddings is not None
+        sensitive_emb = self._sensitive_embeddings
+        normal_emb = self._normal_embeddings
 
         # 编码问题
         question_emb = self._encode_batch([text])[0]
 
         # 计算与敏感锚点和正常锚点质心的相似度
-        sensitive_centroid = self._sensitive_embeddings.mean(axis=0)
-        normal_centroid = self._normal_embeddings.mean(axis=0)
+        sensitive_centroid = sensitive_emb.mean(axis=0)
+        normal_centroid = normal_emb.mean(axis=0)
 
         sensitive_sim = self._cosine_similarity(question_emb, sensitive_centroid)
         normal_sim = self._cosine_similarity(question_emb, normal_centroid)
@@ -173,7 +175,7 @@ class BertSensitiveFilter:
         best_idx = max(
             range(len(self.SENSITIVE_ANCHORS)),
             key=lambda i: self._cosine_similarity(
-                question_emb, self._sensitive_embeddings[i]
+                question_emb, sensitive_emb[i]
             ),
         )
         matched_label = f"敏感意图: {self.SENSITIVE_ANCHORS[best_idx]}"
