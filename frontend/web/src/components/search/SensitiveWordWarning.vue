@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, ShieldAlert, X } from "../icons";
+import { ShieldX, TriangleAlert, X } from "../icons";
 
 defineProps<{
   open: boolean;
@@ -29,7 +29,7 @@ const emit = defineEmits<{
       <div class="sensitive-dialog">
         <header class="sensitive-dialog-header">
           <div class="sensitive-dialog-icon">
-            <ShieldAlert :size="28" aria-hidden="true" />
+            <ShieldX :size="28" aria-hidden="true" />
           </div>
           <div class="sensitive-dialog-title-group">
             <h2>内容安全提醒</h2>
@@ -71,7 +71,7 @@ const emit = defineEmits<{
               <span class="sensitive-info-label">匹配规则</span>
               <ul class="sensitive-matches">
                 <li v-for="match in regexMatches" :key="match">
-                  <AlertTriangle :size="14" aria-hidden="true" />
+                  <TriangleAlert :size="14" aria-hidden="true" />
                   {{ match }}
                 </li>
               </ul>
