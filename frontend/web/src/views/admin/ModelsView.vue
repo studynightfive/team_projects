@@ -6,6 +6,8 @@ import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { isRealApiMode } from "../../config/runtime";
+import { useSessionStore } from "../../stores/session";
 import {
   createModel,
   deleteModel,
@@ -19,6 +21,7 @@ import {
 } from "../../services/admin";
 
 const { message, modal } = AntApp.useApp();
+const sessionStore = useSessionStore();
 const models = ref<readonly ModelItem[]>([]);
 const providers = ref<readonly ModelProvider[]>([]);
 const query = ref("");
@@ -29,14 +32,25 @@ const credential = ref("");
 const connectionResult = ref("");
 const loading = ref(false);
 const saving = ref(false);
+const initializingProvider = ref(false);
+const testingConnection = ref(false);
+const deletingModelId = ref<string>();
+const hasPermission = (permission: string): boolean =>
+  !isRealApiMode || sessionStore.hasAnyPermission([permission]);
+const canCreate = computed(() => hasPermission("admin.model.create"));
+const canEdit = computed(() => hasPermission("admin.model.edit"));
+const canDelete = computed(() => hasPermission("admin.model.delete"));
+const canSave = computed(() =>
+  isCreating.value ? canCreate.value : canEdit.value,
+);
 const editor = reactive({
-  providerCode: "deepseek",
+  providerCode: "",
   modelName: "deepseek-chat",
   kind: "chat",
   enabled: true,
   temperature: 0.2,
   maxTokens: 4096,
-  dimensions: 1024,
+  dimensions: 1536,
   distance: "cosine",
   topN: 10,
 });
@@ -105,7 +119,8 @@ const loadData = async (): Promise<void> => {
     ]);
     providers.value = providerItems;
     models.value = modelItems;
-    editor.providerCode = providerItems[0]?.code ?? "deepseek";
+    editor.providerCode =
+      providerItems.find((provider) => provider.enabled)?.code ?? "";
   } catch (err) {
     message.error(toPublicApiError(err).message);
   } finally {
@@ -114,6 +129,12 @@ const loadData = async (): Promise<void> => {
 };
 
 const ensureDeepSeekProvider = async (): Promise<void> => {
+  if (initializingProvider.value) return;
+  if (providers.value.some((provider) => provider.code === "deepseek")) {
+    message.info("DeepSeek 供应商已存在，不会覆盖现有地址配置");
+    return;
+  }
+  initializingProvider.value = true;
   try {
     await upsertModelProvider({
       code: "deepseek",
@@ -125,11 +146,19 @@ const ensureDeepSeekProvider = async (): Promise<void> => {
     await loadData();
   } catch (err) {
     message.error(toPublicApiError(err).message);
+  } finally {
+    initializingProvider.value = false;
   }
 };
 
 const startDeepSeekCreate = (): void => {
-  startCreate();
+  if (!startCreate()) return;
+  const deepSeekProvider = providers.value.find((item) => item.code === "deepseek");
+  if (deepSeekProvider === undefined) {
+    message.warning("请先初始化 DeepSeek 供应商");
+    closeEditor();
+    return;
+  }
   Object.assign(editor, {
     providerCode: "deepseek",
     modelName: "deepseek-chat",
@@ -141,31 +170,43 @@ const startDeepSeekCreate = (): void => {
 };
 
 const startEmbeddingCreate = (): void => {
-  startCreate();
+  if (!startCreate()) return;
   Object.assign(editor, {
-    providerCode: providers.value.some((item) => item.code === "dashscope")
+    providerCode: providers.value.some(
+      (item) => item.code === "dashscope" && item.enabled,
+    )
       ? "dashscope"
-      : providers.value[0]?.code ?? "deepseek",
-    modelName: "text-embedding-v4",
+      : providers.value.find((provider) => provider.enabled)?.code ?? "",
+    modelName: "text-embedding-v2",
     kind: "embedding",
-    dimensions: 1024,
+    dimensions: 1536,
     distance: "cosine",
     enabled: true,
   });
 };
 
-const startCreate = (): void => {
+const startCreate = (): boolean => {
+  if (providers.value.length === 0) {
+    message.warning("暂无可用供应商，请刷新页面或先初始化供应商");
+    return false;
+  }
+  if (!providers.value.some((provider) => provider.enabled)) {
+    message.warning("模型供应商均已停用，请先启用供应商");
+    return false;
+  }
   selectedModelId.value = undefined;
   isCreating.value = true;
   clearSensitiveState();
   Object.assign(editor, {
-    providerCode: providers.value[0]?.code ?? "deepseek",
+    providerCode:
+      providers.value.find((provider) => provider.enabled)?.code ?? "",
     modelName: "deepseek-chat",
     kind: "chat",
     enabled: true,
     temperature: 0.2,
     maxTokens: 4096,
   });
+  return true;
 };
 
 const startEdit = (id: string): void => {
@@ -188,7 +229,7 @@ const startEdit = (id: string): void => {
       typeof model.parameters.max_tokens === "number"
         ? model.parameters.max_tokens
         : 4096,
-    dimensions: model.dimensions ?? 1024,
+    dimensions: model.dimensions ?? 1536,
     distance: model.distance ?? "cosine",
     topN: model.top_n ?? 10,
   });
@@ -202,9 +243,11 @@ const closeEditor = (): void => {
 
 const testConnection = async (): Promise<void> => {
   if (selectedModel.value === undefined) {
-    connectionResult.value = "请先保存模型后再测试连通性。";
+    connectionResult.value = "请先保存配置；保存不会检查模型是否开通。";
     return;
   }
+  if (testingConnection.value) return;
+  testingConnection.value = true;
   try {
     const result = await testModel(selectedModel.value.id);
     if (!result.ok) {
@@ -212,14 +255,22 @@ const testConnection = async (): Promise<void> => {
       message.error(connectionResult.value);
       return;
     }
-    connectionResult.value = `连通性测试成功，耗时 ${result.latency_ms}ms。`;
-    message.success("连通性测试成功");
+    connectionResult.value = `供应商认证与连通性测试成功，耗时 ${result.latency_ms}ms。`;
+    message.success("供应商认证与连通性测试成功");
   } catch (err) {
     connectionResult.value = toPublicApiError(err).message;
+    message.error(connectionResult.value);
+  } finally {
+    testingConnection.value = false;
   }
 };
 
 const saveModel = async (): Promise<void> => {
+  if (saving.value) return;
+  if (providers.value.length === 0) {
+    message.warning("暂无可用供应商，请刷新页面后重试");
+    return;
+  }
   if (editor.providerCode === "" || editor.modelName.trim() === "") {
     message.warning("请选择供应商并填写模型标识");
     return;
@@ -271,15 +322,23 @@ const saveModel = async (): Promise<void> => {
 };
 
 const confirmDelete = (model: ModelItem): void => {
+  if (deletingModelId.value !== undefined) return;
   modal.confirm({
     title: "删除模型配置",
     content: `确认删除 ${model.model_name}？不会展示或返回任何密钥。`,
     okText: "确认删除",
     cancelText: "取消",
     onOk: async () => {
-      await deleteModel(model.id);
-      message.success("模型配置已删除");
-      await loadData();
+      deletingModelId.value = model.id;
+      try {
+        await deleteModel(model.id);
+        message.success("模型配置已删除");
+        await loadData();
+      } catch (err) {
+        message.error(toPublicApiError(err).message);
+      } finally {
+        deletingModelId.value = undefined;
+      }
     },
   });
 };
@@ -297,19 +356,33 @@ onBeforeUnmount(clearSensitiveState);
     >
       <template #actions>
         <button
+          v-if="canCreate"
           class="secondary-button"
           type="button"
+          :disabled="initializingProvider"
           @click="ensureDeepSeekProvider"
         >
-          初始化 DeepSeek
+          {{ initializingProvider ? "初始化中" : "初始化 DeepSeek" }}
         </button>
-        <button class="secondary-button" type="button" @click="startDeepSeekCreate">
+        <button
+          v-if="canCreate"
+          class="secondary-button"
+          type="button"
+          :disabled="loading || providers.length === 0"
+          @click="startDeepSeekCreate"
+        >
           新增 DeepSeek 模型
         </button>
-        <button class="secondary-button" type="button" @click="loadData">
-          刷新
+        <button class="secondary-button" type="button" :disabled="loading" @click="loadData">
+          {{ loading ? "刷新中" : "刷新" }}
         </button>
-        <button class="admin-primary-button" type="button" @click="startCreate">
+        <button
+          v-if="canCreate"
+          class="admin-primary-button"
+          type="button"
+          :disabled="loading || providers.length === 0"
+          @click="startCreate"
+        >
           新增模型
         </button>
       </template>
@@ -359,7 +432,13 @@ onBeforeUnmount(clearSensitiveState);
       description="RAG 检索回答会使用启用的聊天模型；向量检索会使用启用的 embedding 模型。密钥值永不展示。"
     >
       <template #actions>
-        <button class="secondary-button compact" type="button" @click="startEmbeddingCreate">
+        <button
+          v-if="canCreate"
+          class="secondary-button compact"
+          type="button"
+          :disabled="loading || providers.length === 0"
+          @click="startEmbeddingCreate"
+        >
           新增向量模型
         </button>
       </template>
@@ -389,10 +468,16 @@ onBeforeUnmount(clearSensitiveState);
         description="请稍候。"
       />
       <InlineState
+        v-else-if="providers.length === 0"
+        kind="empty"
+        title="没有可用的模型供应商"
+        description="请刷新页面；拥有创建权限的管理员也可以先初始化 DeepSeek 供应商。"
+      />
+      <InlineState
         v-else-if="filteredModels.length === 0"
         kind="empty"
         title="没有模型配置"
-        description="先初始化 DeepSeek 供应商，再新增模型配置。"
+        description="供应商已就绪，可以新增聊天或向量模型配置。"
       />
       <div v-else class="data-table-scroll" tabindex="0">
         <table class="data-table">
@@ -434,6 +519,7 @@ onBeforeUnmount(clearSensitiveState);
               <td>
                 <div class="table-actions">
                   <button
+                    v-if="canEdit"
                     class="text-button"
                     type="button"
                     @click="startEdit(model.id)"
@@ -441,12 +527,15 @@ onBeforeUnmount(clearSensitiveState);
                     配置
                   </button>
                   <button
+                    v-if="canDelete"
                     class="text-button"
                     type="button"
+                    :disabled="deletingModelId !== undefined"
                     @click="confirmDelete(model)"
                   >
-                    删除
+                    {{ deletingModelId === model.id ? "删除中" : "删除" }}
                   </button>
+                  <span v-if="!canEdit && !canDelete">仅查看</span>
                 </div>
               </td>
             </tr>
@@ -470,6 +559,7 @@ onBeforeUnmount(clearSensitiveState);
               v-for="provider in providers"
               :key="provider.code"
               :value="provider.code"
+              :disabled="!provider.enabled"
             >
               {{ provider.display_name }}
             </option>
@@ -558,8 +648,14 @@ onBeforeUnmount(clearSensitiveState);
             placeholder="留空则不修改已有密钥"
           />
         </label>
-        <button class="secondary-button" type="button" @click="testConnection">
-          测试连通性
+        <button
+          v-if="canEdit"
+          class="secondary-button"
+          type="button"
+          :disabled="testingConnection"
+          @click="testConnection"
+        >
+          {{ testingConnection ? "测试中" : "测试供应商认证与连通性" }}
         </button>
         <p v-if="connectionResult" class="preview-note" role="status">
           {{ connectionResult }}
@@ -568,8 +664,13 @@ onBeforeUnmount(clearSensitiveState);
           <button class="secondary-button" type="button" @click="closeEditor">
             取消并清空密钥
           </button>
-          <button class="admin-primary-button" type="submit" :disabled="saving">
-            {{ saving ? "保存中" : "保存" }}
+          <button
+            v-if="canSave"
+            class="admin-primary-button"
+            type="submit"
+            :disabled="saving || providers.length === 0"
+          >
+            {{ saving ? "保存中" : "保存配置" }}
           </button>
         </div>
       </form>

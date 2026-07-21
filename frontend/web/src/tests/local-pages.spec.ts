@@ -581,6 +581,32 @@ describe("M09-M14 管理页面真实 API 渲染", () => {
     expect(document.body.textContent).toContain("角色授权");
   });
 
+  it("新增模型后持久展示配置且不泄露密钥", async () => {
+    const { wrapper } = await renderAppAt("/admin/models");
+    await flushPromises();
+
+    await getButton(wrapper, "新增模型").trigger("click");
+    await flushPromises();
+    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"));
+    const modelName = inputs.find((input) => input.autocomplete === "off");
+    const credential = inputs.find((input) => input.autocomplete === "new-password");
+    expect(modelName).toBeDefined();
+    expect(credential).toBeDefined();
+    if (modelName === undefined || credential === undefined) return;
+
+    modelName.value = "deepseek-reasoner";
+    modelName.dispatchEvent(new Event("input", { bubbles: true }));
+    credential.value = "local-secret-placeholder";
+    credential.dispatchEvent(new Event("input", { bubbles: true }));
+    getDocumentButton("保存配置").click();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("deepseek-reasoner");
+    expect(document.body.textContent).not.toContain("local-secret-placeholder");
+    expect(localStorage).toHaveLength(0);
+    expect(sessionStorage).toHaveLength(0);
+  });
+
   it("模型密钥默认空、关闭即清空且不写入浏览器存储", async () => {
     const { wrapper } = await renderAppAt("/admin/models");
     await flushPromises();

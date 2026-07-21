@@ -10,7 +10,30 @@ interface ApiResponse<T> {
   readonly request_id: string;
 }
 
+interface MockModelProvider {
+  code: string;
+  display_name: string;
+  base_url: string;
+  enabled: boolean;
+}
+
+interface MockModel {
+  id: string;
+  provider_code: string;
+  model_name: string;
+  kind: string;
+  parameters: Record<string, unknown>;
+  api_key_set: boolean;
+  enabled: boolean;
+  dimensions: number | null;
+  distance: string | null;
+  top_n: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const now = "2026-07-19T12:00:00+08:00";
+let nextModelId = 1;
 
 type PermissionSeed = readonly [string, string, string, string];
 
@@ -25,7 +48,9 @@ const permissionSeeds: readonly PermissionSeed[] = [
   ["perm-document-upload", "document.upload", "上传文档", "document"],
   ["perm-retrieval", "retrieval.search", "知识检索", "retrieval"],
   ["perm-admin-model-view", "admin.model.view", "查看模型列表", "admin"],
+  ["perm-admin-model-create", "admin.model.create", "创建模型", "admin"],
   ["perm-admin-model-edit", "admin.model.edit", "编辑模型", "admin"],
+  ["perm-admin-model-delete", "admin.model.delete", "删除模型", "admin"],
   [
     "perm-admin-retrieval-test-run",
     "admin.retrieval_test.run",
@@ -242,16 +267,22 @@ const auditLogs = [
   },
 ];
 
-const providers = [
+const providers: MockModelProvider[] = [
   {
     code: "deepseek",
     display_name: "DeepSeek",
     base_url: "https://api.deepseek.com",
     enabled: true,
   },
+  {
+    code: "dashscope",
+    display_name: "阿里云 DashScope",
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    enabled: true,
+  },
 ];
 
-const models = [
+const models: MockModel[] = [
   {
     id: "model-deepseek",
     provider_code: "deepseek",
@@ -262,6 +293,20 @@ const models = [
     enabled: true,
     dimensions: null,
     distance: null,
+    top_n: null,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "model-dashscope-embedding",
+    provider_code: "dashscope",
+    model_name: "text-embedding-v2",
+    kind: "embedding",
+    parameters: { input_type: "document" },
+    api_key_set: false,
+    enabled: true,
+    dimensions: 1536,
+    distance: "cosine",
     top_n: null,
     created_at: now,
     updated_at: now,
@@ -307,6 +352,18 @@ const page = <T>(items: readonly T[]) => ({
   total: items.length,
 });
 
+const requestBody = (data: unknown): Record<string, unknown> => {
+  if (typeof data === "string") {
+    const parsed: unknown = JSON.parse(data);
+    return typeof parsed === "object" && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : {};
+  }
+  return typeof data === "object" && data !== null
+    ? (data as Record<string, unknown>)
+    : {};
+};
+
 export const mockAdapter: AxiosAdapter = (config) => {
   const method = (config.method ?? "get").toLowerCase();
   const url = config.url ?? "";
@@ -338,7 +395,76 @@ export const mockAdapter: AxiosAdapter = (config) => {
   if (method === "get" && url === "/v1/admin/documents") return Promise.resolve(ok(config, page(documents)));
   if (method === "get" && url === "/v1/admin/tasks") return Promise.resolve(ok(config, page(tasks)));
   if (method === "get" && url === "/v1/models/providers") return Promise.resolve(ok(config, providers));
+  if (method === "post" && url === "/v1/models/providers") {
+    const body = requestBody(config.data);
+    const code = String(body.code ?? "");
+    const existing = providers.find((item) => item.code === code);
+    const provider = {
+      code,
+      display_name: String(body.display_name ?? code),
+      base_url: String(body.base_url ?? ""),
+      enabled: body.enabled !== false,
+    };
+    if (existing === undefined) providers.push(provider);
+    else Object.assign(existing, provider);
+    return Promise.resolve(ok(config, provider));
+  }
   if (method === "get" && url === "/v1/models") return Promise.resolve(ok(config, models));
+  if (method === "post" && url === "/v1/models") {
+    const body = requestBody(config.data);
+    const model = {
+      id: `model-mock-${nextModelId++}`,
+      provider_code: String(body.provider_code ?? ""),
+      model_name: String(body.model_name ?? ""),
+      kind: String(body.kind ?? "chat"),
+      parameters:
+        typeof body.parameters === "object" && body.parameters !== null
+          ? (body.parameters as Record<string, unknown>)
+          : {},
+      api_key_set: typeof body.api_key === "string" && body.api_key !== "",
+      enabled: body.enabled !== false,
+      dimensions: typeof body.dimensions === "number" ? body.dimensions : null,
+      distance: typeof body.distance === "string" ? body.distance : null,
+      top_n: typeof body.top_n === "number" ? body.top_n : null,
+      created_at: now,
+      updated_at: now,
+    };
+    models.push(model);
+    return Promise.resolve(ok(config, model));
+  }
+  const modelMatch = /^\/v1\/models\/([^/]+)$/.exec(url);
+  if (modelMatch !== null && method === "patch") {
+    const model = models.find((item) => item.id === modelMatch[1]);
+    if (model === undefined) return Promise.reject(new AxiosError("模型不存在", "ERR_BAD_RESPONSE", config));
+    const body = requestBody(config.data);
+    if (typeof body.model_name === "string") model.model_name = body.model_name;
+    if (typeof body.parameters === "object" && body.parameters !== null) {
+      model.parameters = body.parameters as Record<string, unknown>;
+    }
+    if (typeof body.enabled === "boolean") model.enabled = body.enabled;
+    if (typeof body.api_key === "string") model.api_key_set = body.api_key !== "";
+    if (typeof body.dimensions === "number") model.dimensions = body.dimensions;
+    if (typeof body.distance === "string") model.distance = body.distance;
+    if (typeof body.top_n === "number") model.top_n = body.top_n;
+    model.updated_at = now;
+    return Promise.resolve(ok(config, model));
+  }
+  if (modelMatch !== null && method === "delete") {
+    const index = models.findIndex((item) => item.id === modelMatch[1]);
+    if (index >= 0) models.splice(index, 1);
+    return Promise.resolve(ok(config, null));
+  }
+  const modelTestMatch = /^\/v1\/models\/([^/]+)\/test$/.exec(url);
+  if (modelTestMatch !== null && method === "post") {
+    const model = models.find((item) => item.id === modelTestMatch[1]);
+    return Promise.resolve(ok(config, {
+      ok: model?.api_key_set === true,
+      latency_ms: 12,
+      model_info: model?.api_key_set === true ? { reachable: true } : null,
+      error_code: model?.api_key_set === true ? null : "authentication_failed",
+      error_message: model?.api_key_set === true ? null : "模型服务认证失败",
+    }));
+  }
   if (method === "get" && url === "/v1/retrieval-tests/datasets") return Promise.resolve(ok(config, page(datasets)));
   if (method === "get" && url === "/v1/retrieval-tests/runs") return Promise.resolve(ok(config, page(runs)));
   if (["post", "patch", "put", "delete"].includes(method)) {

@@ -10,7 +10,7 @@ import type {
 import { clearAccessToken, getAccessToken, setAccessToken } from "./session";
 import { isMockApiMode } from "../config/runtime";
 import { mockAdapter } from "../mocks/adapter";
-import type { ApiResponse } from "./contracts";
+import { ApiResponseError, type ApiResponse } from "./contracts";
 
 export interface PublicApiError {
   readonly message: string;
@@ -37,7 +37,17 @@ const publicStatusMessages: Readonly<Record<number, string>> = {
   401: "登录状态已失效，请重新登录。",
   403: "当前账号没有执行此操作的权限。",
   404: "请求的内容不存在或已被移除。",
-  409: "当前名称已存在，请换一个名称后重试。",
+};
+
+const apiEnvelopeMessage = (value: unknown): string | undefined => {
+  if (typeof value !== "object" || value === null) return undefined;
+  const envelope = value as Record<string, unknown>;
+  return typeof envelope.code === "number" &&
+    typeof envelope.message === "string" &&
+    typeof envelope.request_id === "string" &&
+    envelope.message.trim() !== ""
+    ? envelope.message
+    : undefined;
 };
 
 export const createApiClient = (
@@ -144,6 +154,9 @@ export const createApiClient = (
  * 只向界面暴露安全、稳定的信息，不透传服务端响应体、请求配置或内部堆栈。
  */
 export const toPublicApiError = (error: unknown): PublicApiError => {
+  if (error instanceof ApiResponseError) {
+    return { message: error.message || GENERIC_ERROR_MESSAGE };
+  }
   if (!axios.isAxiosError(error)) {
     return { message: GENERIC_ERROR_MESSAGE };
   }
@@ -155,7 +168,7 @@ export const toPublicApiError = (error: unknown): PublicApiError => {
         publicStatusMessages[status] ??
         (status >= 500
           ? "服务暂时不可用，请稍后重试。"
-          : GENERIC_ERROR_MESSAGE),
+          : apiEnvelopeMessage(error.response?.data) ?? GENERIC_ERROR_MESSAGE),
       status,
     };
   }

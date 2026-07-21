@@ -8,18 +8,20 @@ import {
 import { describe, expect, it, vi } from "vitest";
 
 import { createApiClient, toPublicApiError } from "../api/client";
+import { ApiResponseError } from "../api/contracts";
 import { clearAccessToken, setAccessToken } from "../api/session";
 import { MOCK_NOT_FOUND } from "../mocks/adapter";
 
 const createResponseError = (
   status: number,
   secretMarker: string,
+  data: unknown = { detail: secretMarker },
 ): AxiosError => {
   const config = {
     headers: new AxiosHeaders(),
   } as InternalAxiosRequestConfig;
   const response: AxiosResponse = {
-    data: { detail: secretMarker },
+    data,
     status,
     statusText: "Failure",
     headers: new AxiosHeaders(),
@@ -82,6 +84,25 @@ describe("M01 API Client 与 Mock Adapter", () => {
       toPublicApiError(new AxiosError("private host", "ERR_NETWORK")),
     ).toEqual({
       message: "网络连接失败，请检查网络后重试。",
+    });
+  });
+
+  it("只公开受信 API envelope 的业务错误消息", () => {
+    expect(toPublicApiError(new ApiResponseError("provider_code 不存在"))).toEqual({
+      message: "provider_code 不存在",
+    });
+
+    const validationError = toPublicApiError(
+      createResponseError(422, "DO_NOT_EXPOSE", {
+        code: 10001,
+        message: "provider_code 不存在",
+        data: null,
+        request_id: "request-422",
+      }),
+    );
+    expect(validationError).toEqual({
+      message: "provider_code 不存在",
+      status: 422,
     });
   });
 

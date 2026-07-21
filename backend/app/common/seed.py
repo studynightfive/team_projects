@@ -352,6 +352,45 @@ async def seed_default_knowledge_base(db: AsyncSession) -> KnowledgeBase:
     return kb
 
 
+def _chat_provider_display_name() -> str:
+    is_minimax = (
+        "minimax" in settings.deepseek_base_url.lower()
+        or settings.deepseek_chat_model.lower().startswith("minimax")
+    )
+    return "MiniMax" if is_minimax else "DeepSeek"
+
+
+async def seed_model_providers(db: AsyncSession) -> None:
+    """初始化模型供应商定义（幂等，不创建模型或写入 API Key）。"""
+    provider_specs = (
+        (
+            "deepseek",
+            _chat_provider_display_name(),
+            settings.deepseek_base_url,
+        ),
+        (
+            "dashscope",
+            "阿里云 DashScope",
+            settings.dashscope_base_url,
+        ),
+    )
+    for code, display_name, base_url in provider_specs:
+        provider = await db.get(ModelProvider, code)
+        if provider is not None:
+            continue
+        db.add(
+            ModelProvider(
+                code=code,
+                display_name=display_name,
+                base_url=base_url,
+                enabled=True,
+            )
+        )
+
+    await db.commit()
+    logger.info("model_providers_seeded", providers=[item[0] for item in provider_specs])
+
+
 async def seed_default_embedding_model(db: AsyncSession) -> None:
     """配置默认 Qwen embedding 模型（幂等）。"""
     provider = await db.get(ModelProvider, "dashscope")
@@ -412,10 +451,7 @@ async def seed_default_embedding_model(db: AsyncSession) -> None:
 
 async def seed_default_chat_model(db: AsyncSession) -> None:
     """配置默认 RAG 聊天模型（幂等；经 DEEPSEEK_* 注入，可指向 MiniMax 等 OpenAI 兼容端点）。"""
-    is_minimax = "minimax" in settings.deepseek_base_url.lower() or settings.deepseek_chat_model.lower().startswith(
-        "minimax"
-    )
-    provider_display = "MiniMax" if is_minimax else "DeepSeek"
+    provider_display = _chat_provider_display_name()
     provider = await db.get(ModelProvider, "deepseek")
     if provider is None:
         provider = ModelProvider(
