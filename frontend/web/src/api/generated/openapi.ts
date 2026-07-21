@@ -995,6 +995,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sensitive-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 敏感词检查
+         * @description 对用户输入的问题进行两层敏感词过滤
+         */
+        post: operations["sensitive_check_endpoint_api_v1_sensitive_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/notifications": {
         parameters: {
             query?: never;
@@ -1050,6 +1070,134 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminDocumentItem */
+        AdminDocumentItem: {
+            /** Id */
+            id: string;
+            /** Knowledge Base Id */
+            knowledge_base_id: string;
+            /** Title */
+            title: string;
+            /** Original Filename */
+            original_filename: string;
+            /** Folder Path */
+            folder_path: string;
+            /** Extension */
+            extension: string;
+            /** Mime Type */
+            mime_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Content Hash */
+            content_hash: string;
+            /** Version */
+            version: number;
+            /** Status */
+            status: string;
+            /** Parser Name */
+            parser_name?: string | null;
+            /** Page Count */
+            page_count?: number | null;
+            /** Error Code */
+            error_code?: number | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Knowledge Base Name */
+            knowledge_base_name: string;
+        };
+        /** AdminTaskItem */
+        AdminTaskItem: {
+            /** Task Id */
+            task_id: string;
+            /** Task Type */
+            task_type: string;
+            /** Status */
+            status: string;
+            /** Stage */
+            stage: string;
+            /** Progress */
+            progress: number;
+            /** Retry Count */
+            retry_count: number;
+            /** Error Code */
+            error_code?: number | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Request Id */
+            request_id: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Document Id */
+            document_id: string;
+            /** Document Title */
+            document_title: string;
+            /** Knowledge Base Id */
+            knowledge_base_id: string;
+            /** Knowledge Base Name */
+            knowledge_base_name: string;
+            /** Started At */
+            started_at?: string | null;
+        };
+        /**
+         * APIErrorResponse
+         * @description 所有非健康检查 API 的统一错误响应。
+         */
+        APIErrorResponse: {
+            code: number;
+            message: string;
+            data: null;
+            request_id: string;
+        };
+        /** APIResponse[dict[str, int]] */
+        APIResponse_dict_str__int__: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            /** Data */
+            data?: {
+                [key: string]: number;
+            } | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
+        /** APIResponse[dict[str, object]] */
+        APIResponse_dict_str__object__: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
         /** APIResponse[DocumentDetail] */
         APIResponse_DocumentDetail_: {
             /**
@@ -1101,6 +1249,48 @@ export interface components {
              */
             message: string;
             data?: components["schemas"]["KnowledgeBaseSummary"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
+        /** APIResponse[list[ChunkItem]] */
+        APIResponse_list_ChunkItem__: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            /** Data */
+            data?: components["schemas"]["ChunkItem"][] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
+        /** APIResponse[list[dict[str, object]]] */
+        APIResponse_list_dict_str__object___: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            }[] | null;
             /**
              * Request Id
              * @default
@@ -1241,6 +1431,26 @@ export interface components {
              */
             request_id: string;
         };
+        /** APIResponse[SensitiveCheckResponse] */
+        APIResponse_SensitiveCheckResponse_: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            /** Data */
+            data?: unknown | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
         /** APIResponse[TaskResponse] */
         APIResponse_TaskResponse_: {
             /**
@@ -1278,166 +1488,6 @@ export interface components {
              * @default
              */
             request_id: string;
-        };
-        /** APIResponse[dict[str, int]] */
-        APIResponse_dict_str__int__: {
-            /**
-             * Code
-             * @default 0
-             */
-            code: number;
-            /**
-             * Message
-             * @default success
-             */
-            message: string;
-            /** Data */
-            data?: {
-                [key: string]: number;
-            } | null;
-            /**
-             * Request Id
-             * @default
-             */
-            request_id: string;
-        };
-        /** APIResponse[dict[str, object]] */
-        APIResponse_dict_str__object__: {
-            /**
-             * Code
-             * @default 0
-             */
-            code: number;
-            /**
-             * Message
-             * @default success
-             */
-            message: string;
-            /** Data */
-            data?: {
-                [key: string]: unknown;
-            } | null;
-            /**
-             * Request Id
-             * @default
-             */
-            request_id: string;
-        };
-        /** APIResponse[list[ChunkItem]] */
-        APIResponse_list_ChunkItem__: {
-            /**
-             * Code
-             * @default 0
-             */
-            code: number;
-            /**
-             * Message
-             * @default success
-             */
-            message: string;
-            /** Data */
-            data?: components["schemas"]["ChunkItem"][] | null;
-            /**
-             * Request Id
-             * @default
-             */
-            request_id: string;
-        };
-        /** APIResponse[list[dict[str, object]]] */
-        APIResponse_list_dict_str__object___: {
-            /**
-             * Code
-             * @default 0
-             */
-            code: number;
-            /**
-             * Message
-             * @default success
-             */
-            message: string;
-            /** Data */
-            data?: {
-                [key: string]: unknown;
-            }[] | null;
-            /**
-             * Request Id
-             * @default
-             */
-            request_id: string;
-        };
-        /** AdminDocumentItem */
-        AdminDocumentItem: {
-            /** Id */
-            id: string;
-            /** Knowledge Base Id */
-            knowledge_base_id: string;
-            /** Title */
-            title: string;
-            /** Original Filename */
-            original_filename: string;
-            /** Folder Path */
-            folder_path: string;
-            /** Extension */
-            extension: string;
-            /** Mime Type */
-            mime_type: string;
-            /** Size Bytes */
-            size_bytes: number;
-            /** Content Hash */
-            content_hash: string;
-            /** Version */
-            version: number;
-            /** Status */
-            status: string;
-            /** Parser Name */
-            parser_name?: string | null;
-            /** Page Count */
-            page_count?: number | null;
-            /** Error Code */
-            error_code?: number | null;
-            /** Error Message */
-            error_message?: string | null;
-            /** Created At */
-            created_at?: string | null;
-            /** Updated At */
-            updated_at?: string | null;
-            /** Knowledge Base Name */
-            knowledge_base_name: string;
-        };
-        /** AdminTaskItem */
-        AdminTaskItem: {
-            /** Task Id */
-            task_id: string;
-            /** Task Type */
-            task_type: string;
-            /** Status */
-            status: string;
-            /** Stage */
-            stage: string;
-            /** Progress */
-            progress: number;
-            /** Retry Count */
-            retry_count: number;
-            /** Error Code */
-            error_code?: number | null;
-            /** Error Message */
-            error_message?: string | null;
-            /** Request Id */
-            request_id: string;
-            /** Created At */
-            created_at?: string | null;
-            /** Finished At */
-            finished_at?: string | null;
-            /** Document Id */
-            document_id: string;
-            /** Document Title */
-            document_title: string;
-            /** Knowledge Base Id */
-            knowledge_base_id: string;
-            /** Knowledge Base Name */
-            knowledge_base_name: string;
-            /** Started At */
-            started_at?: string | null;
         };
         /** Body_upload_documents_api_v1_knowledge_bases__kb_id__documents_post */
         Body_upload_documents_api_v1_knowledge_bases__kb_id__documents_post: {
@@ -1774,11 +1824,6 @@ export interface components {
             /** Tags */
             tags?: string[] | null;
         };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
         /**
          * HealthCheckResponse
          * @description 健康检查响应模型
@@ -1788,6 +1833,11 @@ export interface components {
             status: string;
             /** Timestamp */
             timestamp: string;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
         };
         JsonValue: unknown;
         /** KnowledgeBaseCreate */
@@ -2202,6 +2252,44 @@ export interface components {
             /** Embedding Model Id */
             embedding_model_id?: string | null;
         };
+        /** SensitiveCheckRequest */
+        SensitiveCheckRequest: {
+            /**
+             * Question
+             * @description 待检查的问题文本
+             */
+            question: string;
+        };
+        /** SensitiveCheckResponse */
+        SensitiveCheckResponse: {
+            /**
+             * Passed
+             * @description 是否通过检查
+             */
+            passed: boolean;
+            /**
+             * Verdict
+             * @description 过滤判定: pass / regex / bert
+             */
+            verdict: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /** Regex Matches */
+            regex_matches?: string[];
+            /**
+             * Bert Confidence
+             * @default 0
+             */
+            bert_confidence: number;
+            /**
+             * Bert Label
+             * @default
+             */
+            bert_label: string;
+        };
         /**
          * SetRolePermissionsRequest
          * @description 设置角色权限请求
@@ -2290,16 +2378,6 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
-        };
-        /**
-         * APIErrorResponse
-         * @description 所有非健康检查 API 的统一错误响应。
-         */
-        APIErrorResponse: {
-            code: number;
-            message: string;
-            data: null;
-            request_id: string;
         };
     };
     responses: never;
@@ -5850,6 +5928,57 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    sensitive_check_endpoint_api_v1_sensitive_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SensitiveCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_SensitiveCheckResponse_"];
                 };
             };
             /** @description 未登录、Token 无效或已过期 */
