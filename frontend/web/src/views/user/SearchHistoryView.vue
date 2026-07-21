@@ -22,6 +22,11 @@ import {
   updateConversationTitle,
   type ConversationRecord,
 } from "../../services/conversations";
+import {
+  createFavorite,
+  deleteFavorite,
+  listFavorites,
+} from "../../services/favorites";
 import type {
   SearchHistory,
   SearchMode,
@@ -57,6 +62,7 @@ const favoriteOnly = ref(false);
 const hiddenIds = ref<ReadonlySet<string>>(new Set());
 const titleOverrides = ref<Record<string, string>>({});
 const favoriteOverrides = ref<Record<string, boolean>>({});
+const favoriteIdBySource = ref<Record<string, string>>({});
 const editingId = ref<string>();
 const editTitle = ref("");
 const realConversations = ref<readonly ConversationRecord[]>([]);
@@ -159,7 +165,53 @@ const saveRename = async (): Promise<void> => {
   void message.success("搜索名称已在当前页面更新，刷新后恢复模拟数据");
 };
 
-const toggleFavorite = (item: SearchHistory): void => {
+const toggleFavorite = async (item: SearchHistory): Promise<void> => {
+  if (isRealApiMode) {
+    try {
+      if (isFavorite(item)) {
+        const favoriteId = favoriteIdBySource.value[item.id];
+        if (favoriteId !== undefined) {
+          await deleteFavorite(favoriteId);
+          const nextIds = { ...favoriteIdBySource.value };
+          delete nextIds[item.id];
+          favoriteIdBySource.value = nextIds;
+        }
+        favoriteOverrides.value = {
+          ...favoriteOverrides.value,
+          [item.id]: false,
+        };
+        void message.success("已取消收藏");
+        return;
+      }
+
+      const favorite = await createFavorite({
+        type: "query",
+        title: getTitle(item),
+        summary: `搜索模式：${modeLabels[item.mode]}`,
+        tags: ["搜索历史"],
+        note: "",
+        source_id: item.id,
+        source_payload: {
+          conversationId: item.id,
+          mode: item.mode,
+          sources: [...item.sources],
+        },
+      });
+      favoriteIdBySource.value = {
+        ...favoriteIdBySource.value,
+        [item.id]: favorite.id,
+      };
+      favoriteOverrides.value = {
+        ...favoriteOverrides.value,
+        [item.id]: true,
+      };
+      void message.success("已保存到真实收藏");
+    } catch (error: unknown) {
+      void message.error(toPublicApiError(error).message);
+    }
+    return;
+  }
+
   const nextValue = !isFavorite(item);
   favoriteOverrides.value = {
     ...favoriteOverrides.value,
@@ -284,7 +336,21 @@ const loadRealHistory = async (): Promise<void> => {
   loadError.value = "";
 
   try {
-    realConversations.value = await listConversations(controller.signal);
+    const [conversations, favorites] = await Promise.all([
+      listConversations(controller.signal),
+      listFavorites(controller.signal),
+    ]);
+    realConversations.value = conversations;
+
+    const nextFavoriteIds: Record<string, string> = {};
+    const nextFavoriteOverrides: Record<string, boolean> = {};
+    for (const favorite of favorites) {
+      if (favorite.type !== "query" || favorite.sourceId.length === 0) continue;
+      nextFavoriteIds[favorite.sourceId] = favorite.id;
+      nextFavoriteOverrides[favorite.sourceId] = true;
+    }
+    favoriteIdBySource.value = nextFavoriteIds;
+    favoriteOverrides.value = nextFavoriteOverrides;
     loadState.value = "success";
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") return;

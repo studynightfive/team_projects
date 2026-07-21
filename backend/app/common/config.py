@@ -72,10 +72,12 @@ class Settings(BaseSettings):
     deepseek_chat_model: str = "deepseek-chat"
     dashscope_api_key: str = ""
     dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    qwen_embedding_model: str = "text-embedding-v4"
-    qwen_embedding_dimensions: int = 1024
+    qwen_embedding_model: str = "text-embedding-v2"
+    qwen_embedding_dimensions: int = 1536
     rag_answer_max_context_chars: int = 12000
     rag_answer_max_tokens: int = 1200
+    rag_answer_cache_enabled: bool = True
+    rag_answer_cache_ttl_seconds: int = Field(default=604800, ge=60, le=2592000)
 
     # ============================================================
     # 文档处理（员工 4）
@@ -145,6 +147,35 @@ class Settings(BaseSettings):
     chat_sse_keepalive_seconds: int = 15
     chat_stream_flush_every_tokens: int = 20
     chat_auto_retry_max: int = 1
+
+    # ============================================================
+    # 员工5 扩展配置：Query Rewriting / Intent / Embeddings（提示词 02/06）
+    # ============================================================
+    # Query Rewriting (backend/app/rag/query_rewrite.py)
+    rag_query_rewrite_enabled: bool = True
+    rag_query_rewrite_model_id: str | None = None
+    rag_query_rewrite_max_variants: int = 3
+
+    # Intent Recognition (backend/app/rag/intent.py)
+    rag_intent_llm_enabled: bool = True
+    rag_intent_model_id: str | None = None
+
+    # Embeddings 抽象层 (backend/app/rag/embeddings.py)
+    indexing_embedding_model_id: str | None = None
+
+    # ============================================================
+    # 员工5 扩展配置：Vector Store 抽象（提示词 02 + 新增 Milvus 支持）
+    # ============================================================
+    # pgvector (默认) / milvus / dual (pgvector + milvus 双写)
+    vector_backend: str = "pgvector"
+    # Milvus
+    milvus_uri: str = "http://localhost:19530"
+    milvus_token: str = ""
+    milvus_collection: str = "chunks"
+    milvus_embedding_dim: int = 1536
+    milvus_hnsw_m: int = 16
+    milvus_hnsw_ef_construction: int = 64
+    milvus_hnsw_ef_search: int = 64
 
     # ============================================================
     # 员工5 扩展配置：命中率测试（提示词 06）

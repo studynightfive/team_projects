@@ -918,7 +918,7 @@ export const aiSearchMockData = {
       id: "quick-upload",
       label: "上传文档并提问",
       description: "选择本地文档并限定问答范围。",
-      to: "/?action=upload",
+      to: "/knowledge?action=upload",
       icon: "upload",
     },
     {

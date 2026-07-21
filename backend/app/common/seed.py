@@ -370,6 +370,8 @@ async def seed_default_embedding_model(db: AsyncSession) -> None:
 
     legacy_names = {
         settings.qwen_embedding_model,
+        "text-embedding-v2",
+        "text-embedding-v4",
         "qwen3-embedding-0.6b",
         "Qwen3-Embedding-0.6B",
     }
@@ -409,18 +411,22 @@ async def seed_default_embedding_model(db: AsyncSession) -> None:
 
 
 async def seed_default_chat_model(db: AsyncSession) -> None:
-    """配置默认 DeepSeek RAG 聊天模型（幂等）。"""
+    """配置默认 RAG 聊天模型（幂等；经 DEEPSEEK_* 注入，可指向 MiniMax 等 OpenAI 兼容端点）。"""
+    is_minimax = "minimax" in settings.deepseek_base_url.lower() or settings.deepseek_chat_model.lower().startswith(
+        "minimax"
+    )
+    provider_display = "MiniMax" if is_minimax else "DeepSeek"
     provider = await db.get(ModelProvider, "deepseek")
     if provider is None:
         provider = ModelProvider(
             code="deepseek",
-            display_name="DeepSeek",
+            display_name=provider_display,
             base_url=settings.deepseek_base_url,
             enabled=True,
         )
         db.add(provider)
     else:
-        provider.display_name = "DeepSeek"
+        provider.display_name = provider_display
         provider.base_url = settings.deepseek_base_url
         provider.enabled = True
 
@@ -428,6 +434,7 @@ async def seed_default_chat_model(db: AsyncSession) -> None:
         settings.deepseek_chat_model,
         "deepseek-chat",
         "deepseek-v4-pro",
+        "MiniMax-M3",
     }
     result = await db.execute(
         select(Model).where(

@@ -48,6 +48,9 @@ def _address_is_allowed(
 ) -> bool:
     if address.is_link_local or address.is_multicast or address.is_unspecified:
         return False
+    # Clash / 部分代理的 fake-ip 段；开发/测试环境放行，生产仍拒绝。
+    if address in ipaddress.ip_network("198.18.0.0/15"):
+        return settings.app_environment != "production"
     if provider_code != "ollama":
         return address.is_global
     if scheme == "http":
