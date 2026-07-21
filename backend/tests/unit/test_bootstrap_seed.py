@@ -11,6 +11,7 @@ from app.auth.router import register_endpoint
 from app.auth.schemas import RegisterRequest
 from app.common.exceptions import AppException
 from app.common.models import Permission, Role, User
+from app.models.repository import ModelProvider
 
 
 def _result(value: object) -> MagicMock:
@@ -140,6 +141,75 @@ async def test_demo_upsert_resets_existing_password(monkeypatch) -> None:
     assert updated.password_hash == "new-hash"
     assert updated.status == "active"
     assert updated.roles == [role]
+
+
+async def test_seed_model_providers_creates_configured_definitions(monkeypatch) -> None:
+    monkeypatch.setattr(seed_module.settings, "deepseek_base_url", "https://api.minimax.io/v1")
+    monkeypatch.setattr(seed_module.settings, "deepseek_chat_model", "MiniMax-M3")
+    monkeypatch.setattr(
+        seed_module.settings,
+        "dashscope_base_url",
+        "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
+    db = MagicMock(spec=AsyncSession)
+    db.get = AsyncMock(side_effect=[None, None])
+    db.commit = AsyncMock()
+
+    await seed_module.seed_model_providers(db)
+
+    added = [call.args[0] for call in db.add.call_args_list]
+    assert [(item.code, item.display_name, item.base_url) for item in added] == [
+        ("deepseek", "MiniMax", "https://api.minimax.io/v1"),
+        (
+            "dashscope",
+            "阿里云 DashScope",
+            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        ),
+    ]
+    assert all(isinstance(item, ModelProvider) and item.enabled for item in added)
+    db.commit.assert_awaited_once()
+    db.execute.assert_not_called()
+
+
+async def test_seed_model_providers_preserves_existing_definitions(monkeypatch) -> None:
+    deepseek = ModelProvider(
+        code="deepseek",
+        display_name="旧名称",
+        base_url="https://old.example.com",
+        enabled=False,
+    )
+    dashscope = ModelProvider(
+        code="dashscope",
+        display_name="旧名称",
+        base_url="https://old.example.com",
+        enabled=False,
+    )
+    monkeypatch.setattr(seed_module.settings, "deepseek_base_url", "https://api.deepseek.com")
+    monkeypatch.setattr(seed_module.settings, "deepseek_chat_model", "deepseek-chat")
+    monkeypatch.setattr(
+        seed_module.settings,
+        "dashscope_base_url",
+        "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
+    db = MagicMock(spec=AsyncSession)
+    db.get = AsyncMock(side_effect=[deepseek, dashscope])
+    db.commit = AsyncMock()
+
+    await seed_module.seed_model_providers(db)
+
+    assert (deepseek.display_name, deepseek.base_url, deepseek.enabled) == (
+        "旧名称",
+        "https://old.example.com",
+        False,
+    )
+    assert (dashscope.display_name, dashscope.base_url, dashscope.enabled) == (
+        "旧名称",
+        "https://old.example.com",
+        False,
+    )
+    db.add.assert_not_called()
+    db.commit.assert_awaited_once()
+    db.execute.assert_not_called()
 
 
 async def test_register_returns_503_when_default_role_is_missing() -> None:

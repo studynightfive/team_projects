@@ -243,6 +243,13 @@ class OpenAICompatibleProvider:
         self, *, model_name: str, api_key: str, base_url: str
     ) -> dict[str, object]:
         start = time.time()
+        if self.provider_code != "ollama" and not api_key.strip():
+            return {
+                "ok": False,
+                "latency_ms": 0,
+                "error_code": "missing_api_key",
+                "error_message": "请先保存 API Key 后再测试供应商认证",
+            }
         try:
             await self._validate_resolved_host()
             client = httpx.AsyncClient(
@@ -257,7 +264,13 @@ class OpenAICompatibleProvider:
                     return {
                         "ok": True,
                         "latency_ms": latency_ms,
-                        "model_info": {"reachable": True, "status_code": r.status_code},
+                        "model_info": {
+                            "reachable": True,
+                            "authenticated": True,
+                            "model_name": model_name,
+                            "model_entitlement_checked": False,
+                            "status_code": r.status_code,
+                        },
                     }
                 authentication_failed = r.status_code in (401, 403)
                 return {

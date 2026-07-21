@@ -31,6 +31,7 @@ from app.common.seed import (
     seed_default_embedding_model,
     seed_default_knowledge_base,
     seed_demo_accounts,
+    seed_model_providers,
 )
 from app.documents.router import router as documents_router
 
@@ -71,6 +72,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     )
     async with async_session_factory() as db:
         await seed_builtin_authorization(db)
+        await seed_model_providers(db)
         if settings.auto_seed_demo_data:
             await seed_demo_accounts(db)
             await seed_default_knowledge_base(db)

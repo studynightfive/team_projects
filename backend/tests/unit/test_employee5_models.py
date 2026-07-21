@@ -81,6 +81,20 @@ class TestProviderTest:
         assert result["ok"] is True
         assert result["latency_ms"] >= 0
         assert result["model_info"]["status_code"] == 200
+        assert result["model_info"]["authenticated"] is True
+        assert result["model_info"]["model_name"] == "gpt-4o-mini"
+        assert result["model_info"]["model_entitlement_checked"] is False
+
+    @pytest.mark.asyncio
+    async def test_missing_api_key_does_not_send_request(self):
+        p = OpenAICompatibleProvider("openai", "https://api.openai.com/v1", "")
+        with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+            result = await p.test(
+                model_name="gpt-4o-mini", api_key="", base_url="https://api.openai.com/v1"
+            )
+        assert result["ok"] is False
+        assert result["error_code"] == "missing_api_key"
+        mock_get.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_returns_authentication_failure_on_401(self):
