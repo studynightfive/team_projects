@@ -74,6 +74,28 @@
 - 默认 `WORKER_INLINE=false`；Compose 始终使用独立 Worker，测试可显式设为 `true`；ARQ 任务 `process_document_task`
 - 向量链路已增加真实 pgvector 字段 `document_chunks.embedding_vector vector(1024)`；配置 `DASHSCOPE_API_KEY` 后新上传文档会写入 `text-embedding-v4` 向量，旧 `embedding_json` deterministic stub 仅作为无外部模型时的处理兜底。
 
+## 2026-07-21 RAG 检索与问答缓存
+
+- 中文自然语言问题不能用整句 `ILIKE`；关键词检索改为拆词（中文 bigram + 英文 token）后再 OR 匹配。
+- 问答缓存：Redis 键 `rag:answer_cache:*`，按用户 + 知识库 + 规范化问题命中，TTL 默认 7 天（`RAG_ANSWER_CACHE_TTL_SECONDS`）。
+- 本机 Clash fake-ip（`198.18.0.0/15`）会导致 Provider SSRF 校验误杀；开发/测试环境放行该网段，生产仍拒绝。
+- 当前 embedding Key 调用失败时仍会退回 keyword；向量为空时 hybrid 依赖关键词。MiniMax 若返回 401，需核对 Key 与 `DEEPSEEK_BASE_URL`。
+
+## 2026-07-20 Embedding 切换为 text-embedding-v2
+
+- 默认 embedding 改为 DashScope `text-embedding-v2`，维度 **1536**；迁移 `0015_embedding_vector_1536` 重建 `document_chunks.embedding_vector`（旧 1024 向量清空，需重新处理文档）。
+- 聊天模型继续经 `DEEPSEEK_*` 注入，可指向 MiniMax `MiniMax-M3`（`https://api.minimax.io/v1`）。密钥只存在本地 `deploy/env/.env`，禁止提交。
+
+## 2026-07-20 本地开发库数据目录
+
+- 本地 RAG 联调 compose [`deploy/docker-compose.dev.yml`](deploy/docker-compose.dev.yml) 将 Postgres/Redis 数据 bind 到 `D:/docker-data/kb-platform/{postgres,redis}`；镜像层仍在 Docker Desktop WSL 虚拟盘，整盘迁 D: 需在 Docker Desktop Settings → Disk image location 手动改。
+- 验准 hybrid/vector RAG 与问答前，`deploy/env/.env` 必须配置合法 `SECRET_KEY`（≥32）、`DEEPSEEK_API_KEY`、`DASHSCOPE_API_KEY`；缺 Key 时检索会退回 keyword、问答不可用。
+
+## 2026-07-20 前端真实 API 未接线项补齐
+
+- 真实模式下会话重命名调用 `PATCH /conversations/{id}`；搜索结果文档收藏与历史「收藏」调用 `/favorites`（`document` / `query`）；答案导出与文档详情导出创建 `/exports` 任务，不再仅用本地 Blob。
+- `loadRealHome` 不再依赖 `aiSearchMockData`；搜索模式/范围/建议/快捷入口改为前端常量，模型列表仍来自真实聊天模型接口。帮助中心、偏好设置、搜索设置在无后端偏好/CMS 契约前保持静态本地交互。
+
 ## 2026-07-20 全项目审计后的长期决定
 
 - 运行时 FastAPI OpenAPI 是接口事实来源，`docs/api/openapi.yaml` 由脚本生成，前端 `generated/openapi.ts` 由固定版本 `openapi-typescript@7.13.0` 生成；CI 必须验证生成后无差异，已有 OpenAPI component 不再在前端服务重复手写。

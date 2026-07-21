@@ -14,16 +14,79 @@ import {
   type ApiResponse,
   type ApiSchema,
 } from "../api/contracts";
-import { aiSearchMockData } from "../mocks/ai-search";
 import type {
   AiAnswer,
   AiSearchHomeData,
   AiSearchResponse,
   CitationSource,
   ModelOption,
+  QuickAction,
+  SearchModeOption,
   SearchRequest,
   SearchResultItem,
+  SearchScopeOption,
 } from "../types/ai-search";
+
+/** 真实模式下仍由前端提供的 UI 选项（无对应后端配置接口） */
+const REAL_MODE_OPTIONS = [
+  {
+    value: "smart",
+    label: "智能搜索",
+    description: "综合多个企业数据源生成带引用的答案。",
+  },
+  {
+    value: "precise",
+    label: "精确检索",
+    description: "优先返回原始文档和高匹配度内容。",
+  },
+  {
+    value: "document",
+    label: "文档问答",
+    description: "仅依据当前选择或上传的文档回答。",
+  },
+] as const satisfies readonly SearchModeOption[];
+
+const REAL_SCOPE_OPTIONS = [
+  {
+    value: "knowledge",
+    label: "企业知识库",
+    description: "检索经过整理和维护的企业知识内容。",
+    sources: ["knowledge"],
+  },
+] as const satisfies readonly SearchScopeOption[];
+
+const REAL_SUGGESTIONS = [
+  "查询最新的员工差旅报销标准。",
+  "汇总本季度重点项目进展。",
+  "查找产品上线流程和负责人。",
+  "对比两个版本的合同条款。",
+  "整理最近一个月的客户反馈。",
+  "查找信息安全相关管理制度。",
+] as const;
+
+const REAL_QUICK_ACTIONS = [
+  {
+    id: "quick-upload",
+    label: "上传文档并提问",
+    description: "选择本地文档并限定问答范围。",
+    to: "/knowledge?action=upload",
+    icon: "upload",
+  },
+  {
+    id: "quick-space",
+    label: "进入知识空间",
+    description: "按部门和主题浏览维护中的知识。",
+    to: "/spaces",
+    icon: "space",
+  },
+  {
+    id: "quick-favorite",
+    label: "查看收藏内容",
+    description: "集中查看答案、文档、问题和空间。",
+    to: "/favorites",
+    icon: "favorite",
+  },
+] as const satisfies readonly QuickAction[];
 
 // ============================================================
 // 后端请求/响应类型（与 backend/app/rag/search/schemas.py 对齐）
@@ -66,6 +129,7 @@ interface BackendRagAnswerResponse {
   model: string | null;
   conversation_id: string | null;
   generated: boolean;
+  from_cache?: boolean;
 }
 
 // ============================================================
@@ -219,8 +283,9 @@ export const runRealSearch = async (
     sections: [],
     citations,
     relatedQuestions: [],
-    disclaimer:
-      searchData.generated && searchData.model
+    disclaimer: searchData.from_cache
+      ? `命中问答缓存（未再次检索文档），原模型：${searchData.model ?? "未知"}。`
+      : searchData.generated && searchData.model
         ? `答案由 ${searchData.model} 基于当前账号有权访问的知识库引用生成。`
         : "未调用生成模型；请确认知识库已有可检索内容。",
     createdAt: new Date().toISOString(),
@@ -257,11 +322,11 @@ export const loadRealHome = async (
       notice: "已接入真实后端 API，搜索结果来自当前账号有权访问的知识库。",
       lastUpdated: new Date().toISOString(),
     },
-    modeOptions: aiSearchMockData.modeOptions,
-    scopeOptions: aiSearchMockData.scopeOptions,
+    modeOptions: REAL_MODE_OPTIONS,
+    scopeOptions: REAL_SCOPE_OPTIONS,
     modelOptions,
-    suggestions: aiSearchMockData.suggestions,
-    quickActions: aiSearchMockData.quickActions,
+    suggestions: REAL_SUGGESTIONS,
+    quickActions: REAL_QUICK_ACTIONS,
     recentSearches: [],
     knowledgeSpaces: [],
     dataSources: [],

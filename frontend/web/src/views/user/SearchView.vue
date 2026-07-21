@@ -23,6 +23,7 @@ import { isRealApiMode } from "../../config/runtime";
 import { aiSearchMockData } from "../../mocks/ai-search";
 import { runAiSearch } from "../../services/ai-search";
 import { listRealChatModelOptions } from "../../services/ai-search-real";
+import { createExportTask } from "../../services/downloads";
 import { createFavorite, deleteFavorite } from "../../services/favorites";
 import { listKnowledgeBases } from "../../services/knowledge";
 import type {
@@ -272,7 +273,7 @@ const copyAnswer = async (): Promise<void> => {
   }
 };
 
-const exportAnswer = (): void => {
+const downloadAnswerMarkdownLocally = (): void => {
   if (response.value === undefined) return;
   const blob = new Blob([response.value.answer.markdown], {
     type: "text/markdown;charset=utf-8",
@@ -283,7 +284,102 @@ const exportAnswer = (): void => {
   anchor.download = `AI搜索结果-${apiModeLabel.value}.md`;
   anchor.click();
   URL.revokeObjectURL(url);
-  void message.info(`已导出${apiModeLabel.value}答案`);
+};
+
+const exportAnswer = async (): Promise<void> => {
+  if (response.value === undefined) return;
+
+  if (!isRealApiMode) {
+    downloadAnswerMarkdownLocally();
+    void message.info("已导出本地预览答案");
+    return;
+  }
+
+  const documentIds = [
+    ...new Set(
+      response.value.results
+        .map((item) => item.documentId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  ];
+
+  if (documentIds.length === 0) {
+    downloadAnswerMarkdownLocally();
+    void message.warning("当前结果没有可导出的文档 ID，已改为本地下载答案 Markdown");
+    return;
+  }
+
+  try {
+    await createExportTask({
+      format: "markdown",
+      document_ids: documentIds,
+    });
+    void message.success("已创建导出任务，可在「我的下载」中查看并下载");
+  } catch (error: unknown) {
+    void message.error(toPublicApiError(error).message);
+  }
+};
+
+const favoriteDocumentResult = async (
+  result: SearchResultItem | CitationSource,
+): Promise<void> => {
+  if (!isRealApiMode) {
+    void message.info("文档已加入本地收藏");
+    return;
+  }
+
+  const documentId =
+    "documentId" in result && typeof result.documentId === "string"
+      ? result.documentId
+      : result.id;
+  if (documentId.length === 0) {
+    void message.warning("当前结果缺少文档标识，无法收藏");
+    return;
+  }
+
+  try {
+    await createFavorite({
+      type: "document",
+      title: result.title,
+      summary: result.snippet,
+      tags: ["文档", "搜索结果"],
+      note: "",
+      source_id: documentId,
+      source_payload: {
+        documentId,
+        knowledgeBaseId:
+          "knowledgeBaseId" in result ? result.knowledgeBaseId : undefined,
+        sourceName: result.sourceName,
+      },
+    });
+    void message.success("文档已保存到真实收藏");
+  } catch (error: unknown) {
+    void message.error(toPublicApiError(error).message);
+  }
+};
+
+const favoriteResultById = async (resultId: string): Promise<void> => {
+  const result = response.value?.results.find((item) => item.id === resultId);
+  if (result === undefined) {
+    void message.warning("未找到对应检索结果");
+    return;
+  }
+  await favoriteDocumentResult(result);
+};
+
+const favoritePreviewDocument = async (documentId: string): Promise<void> => {
+  const preview = previewDocument.value;
+  if (preview === undefined) {
+    void message.warning("当前没有可收藏的预览文档");
+    return;
+  }
+  await favoriteDocumentResult({
+    ...preview,
+    documentId:
+      "documentId" in preview && typeof preview.documentId === "string"
+        ? preview.documentId
+        : documentId,
+  });
 };
 
 const runRelatedSearch = (question: string): void => {
@@ -637,7 +733,7 @@ onBeforeUnmount(() => {
             <SourceResultsPanel
               :results="response.results"
               @preview="openPreview"
-              @favorite="showLocalNotice('文档已加入本地收藏')"
+              @favorite="favoriteResultById"
             />
           </div>
         </template>
@@ -661,7 +757,7 @@ onBeforeUnmount(() => {
       v-model:open="isPreviewOpen"
       :document="previewDocument"
       :return-focus-to="previewTrigger"
-      @favorite="showLocalNotice('文档已加入本地收藏')"
+      @favorite="favoritePreviewDocument"
       @notice="showLocalNotice"
     />
   </div>

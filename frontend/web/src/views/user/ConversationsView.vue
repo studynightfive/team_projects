@@ -13,6 +13,7 @@ import { localPageData } from "../../data/local-pages";
 import {
   deleteConversation,
   listConversations,
+  updateConversationTitle,
   type ConversationRecord,
 } from "../../services/conversations";
 
@@ -105,23 +106,36 @@ const startRename = (item: DisplayConversation): void => {
   editTitle.value = getConversationTitle(item);
 };
 
-const saveRename = (): void => {
+const saveRename = async (): Promise<void> => {
   if (!editingId.value) return;
 
+  const conversationId = editingId.value;
   const nextTitle = editTitle.value.trim();
   if (nextTitle.length === 0) {
     void message.warning("会话名称不能为空");
     return;
   }
 
+  if (isRealApiMode) {
+    try {
+      const updated = await updateConversationTitle(conversationId, nextTitle);
+      realConversations.value = realConversations.value.map((item) =>
+        item.id === conversationId ? updated : item,
+      );
+      editingId.value = undefined;
+      void message.success("会话名称已更新");
+    } catch (error: unknown) {
+      void message.error(toPublicApiError(error).message);
+    }
+    return;
+  }
+
   titleOverrides.value = {
     ...titleOverrides.value,
-    [editingId.value]: nextTitle,
+    [conversationId]: nextTitle,
   };
   editingId.value = undefined;
-  void message.success(
-    isRealApiMode ? "当前版本暂不支持重命名真实会话" : "本地预览名称已更新，刷新后恢复固定数据",
-  );
+  void message.success("本地预览名称已更新，刷新后恢复固定数据");
 };
 
 const requestDelete = (conversationId: string): void => {

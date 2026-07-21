@@ -16,6 +16,7 @@ import {
   getDocumentMarkdown,
   type DocumentDetailRecord,
 } from "../../services/knowledge";
+import { createExportTask } from "../../services/downloads";
 
 const route = useRoute();
 const { message } = AntApp.useApp();
@@ -163,22 +164,22 @@ watch(
   { immediate: true },
 );
 
-const previewExport = (): void => {
+const previewExport = async (): Promise<void> => {
   if (isRealApiMode) {
-    if (markdownContent.value === "") {
-      void message.warning("当前文档尚未生成可导出的 Markdown 预览");
+    const id = documentId.value;
+    if (id.length === 0) {
+      void message.warning("当前文档缺少标识，无法创建导出任务");
       return;
     }
-    const blob = new Blob([markdownContent.value], {
-      type: "text/markdown;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${documentTitle.value || "文档预览"}.md`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    void message.success("已导出当前 Markdown 预览");
+    try {
+      await createExportTask({
+        format: "markdown",
+        document_ids: [id],
+      });
+      void message.success("已创建导出任务，可在「我的下载」中查看并下载");
+    } catch (error: unknown) {
+      void message.error(toPublicApiError(error).message);
+    }
     return;
   }
   void message.info("已打开导出本地预览；鉴权任务接口接入前不会生成文件");

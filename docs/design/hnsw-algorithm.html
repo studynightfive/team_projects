@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HNSW 算法图解 · Hierarchical Navigable Small World</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020617;
+      --panel: #0f172a;
+      --muted: #94a3b8;
+      --cyan: #22d3ee;
+      --emerald: #34d399;
+      --violet: #a78bfa;
+      --amber: #fbbf24;
+      --rose: #fb7185;
+      --orange: #fb923c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      background: var(--bg);
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    header {
+      padding: 28px 32px 8px;
+      border-bottom: 1px solid #1e293b;
+    }
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 920px;
+      line-height: 1.6;
+    }
+    .wrap {
+      padding: 24px 32px 48px;
+      display: grid;
+      gap: 28px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 16px 16px 8px;
+      overflow: auto;
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--cyan);
+      font-weight: 600;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot {
+      width: 10px; height: 10px; border-radius: 999px; display: inline-block;
+    }
+    .notes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .note {
+      border: 1px dashed #334155;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #cbd5e1;
+    }
+    .note strong { color: var(--amber); }
+    footer {
+      padding: 0 32px 32px;
+      color: #64748b;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>HNSW 算法图解</h1>
+    <p>
+      Hierarchical Navigable Small World：多层邻近图近似最近邻索引。上层稀疏做“高速公路”粗定位，
+      下层稠密做精细搜索。本仓库 Milvus 后端默认使用 HNSW + COSINE（参数 M / efConstruction / ef）。
+    </p>
+  </header>
+
+  <div class="wrap">
+    <section class="card">
+      <h2>1. 多层图结构（Hierarchy）</h2>
+      <div class="legend">
+        <span><i class="dot" style="background:#22d3ee"></i>Layer 2（稀疏）</span>
+        <span><i class="dot" style="background:#34d399"></i>Layer 1</span>
+        <span><i class="dot" style="background:#a78bfa"></i>Layer 0（全量）</span>
+        <span><i class="dot" style="background:#fb7185"></i>查询入口 / 当前节点</span>
+        <span><i class="dot" style="background:#fbbf24"></i>候选近邻</span>
+      </div>
+      <svg viewBox="0 0 960 420" width="100%" role="img" aria-label="HNSW multilayer graph">
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#64748b"/>
+          </marker>
+        </defs>
+        <rect width="960" height="420" fill="url(#grid)"/>
+
+        <!-- Layer boxes -->
+        <rect x="40" y="30" width="880" height="100" rx="12" fill="none" stroke="#fbbf24" stroke-dasharray="8,4" stroke-width="1.5"/>
+        <text x="56" y="52" fill="#fbbf24" font-size="11">Layer 2 · 稀疏高速层（跳得远）</text>
+
+        <rect x="40" y="150" width="880" height="110" rx="12" fill="none" stroke="#fbbf24" stroke-dasharray="8,4" stroke-width="1.5"/>
+        <text x="56" y="172" fill="#fbbf24" font-size="11">Layer 1 · 中等密度</text>
+
+        <rect x="40" y="280" width="880" height="120" rx="12" fill="none" stroke="#fbbf24" stroke-dasharray="8,4" stroke-width="1.5"/>
+        <text x="56" y="302" fill="#fbbf24" font-size="11">Layer 0 · 全量节点（最精细）</text>
+
+        <!-- L2 nodes -->
+        <circle cx="180" cy="90" r="10" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+        <circle cx="420" cy="80" r="10" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+        <circle cx="680" cy="95" r="10" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+        <line x1="190" y1="90" x2="410" y2="80" stroke="#22d3ee" stroke-width="1.5"/>
+        <line x1="430" y1="80" x2="670" y2="95" stroke="#22d3ee" stroke-width="1.5"/>
+
+        <!-- L1 nodes -->
+        <circle cx="150" cy="210" r="9" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+        <circle cx="300" cy="200" r="9" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+        <circle cx="470" cy="215" r="9" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+        <circle cx="640" cy="205" r="9" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+        <circle cx="800" cy="220" r="9" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+        <line x1="159" y1="210" x2="291" y2="200" stroke="#34d399" stroke-width="1.2"/>
+        <line x1="309" y1="200" x2="461" y2="215" stroke="#34d399" stroke-width="1.2"/>
+        <line x1="479" y1="215" x2="631" y2="205" stroke="#34d399" stroke-width="1.2"/>
+        <line x1="649" y1="205" x2="791" y2="220" stroke="#34d399" stroke-width="1.2"/>
+        <line x1="300" y1="200" x2="640" y2="205" stroke="#34d399" stroke-width="1" opacity="0.5"/>
+
+        <!-- L0 nodes denser -->
+        <g stroke="#a78bfa" stroke-width="1" fill="#0f172a">
+          <circle cx="120" cy="350" r="7" stroke-width="1.5"/><circle cx="200" cy="335" r="7" stroke-width="1.5"/>
+          <circle cx="280" cy="355" r="7" stroke-width="1.5"/><circle cx="360" cy="340" r="7" stroke-width="1.5"/>
+          <circle cx="440" cy="360" r="7" stroke-width="1.5"/><circle cx="520" cy="345" r="8" stroke="#fb7185" stroke-width="2"/>
+          <circle cx="600" cy="355" r="7" stroke-width="1.5"/><circle cx="680" cy="340" r="7" stroke="#fbbf24" stroke-width="2"/>
+          <circle cx="760" cy="360" r="7" stroke="#fbbf24" stroke-width="2"/><circle cx="840" cy="350" r="7" stroke-width="1.5"/>
+          <line x1="127" y1="350" x2="193" y2="335"/><line x1="207" y1="335" x2="273" y2="355"/>
+          <line x1="287" y1="355" x2="353" y2="340"/><line x1="367" y1="340" x2="433" y2="360"/>
+          <line x1="447" y1="360" x2="512" y2="345"/><line x1="528" y1="345" x2="593" y2="355"/>
+          <line x1="607" y1="355" x2="673" y2="340"/><line x1="687" y1="340" x2="753" y2="360"/>
+          <line x1="767" y1="360" x2="833" y2="350"/>
+          <line x1="280" y1="355" x2="520" y2="345" opacity="0.45"/>
+          <line x1="440" y1="360" x2="680" y2="340" opacity="0.45"/>
+          <line x1="520" y1="345" x2="760" y2="360" opacity="0.55"/>
+        </g>
+
+        <!-- vertical same-node links -->
+        <line x1="420" y1="90" x2="470" y2="206" stroke="#64748b" stroke-dasharray="3,3" marker-end="url(#arrow)"/>
+        <line x1="470" y1="224" x2="520" y2="337" stroke="#64748b" stroke-dasharray="3,3" marker-end="url(#arrow)"/>
+        <text x="490" y="160" fill="#94a3b8" font-size="10">同节点跨层下降</text>
+
+        <text x="500" y="330" fill="#fb7185" font-size="10">当前</text>
+        <text x="668" y="325" fill="#fbbf24" font-size="10">候选</text>
+      </svg>
+    </section>
+
+    <section class="card">
+      <h2>2. 搜索流程（贪心 + 候选集）</h2>
+      <svg viewBox="0 0 960 260" width="100%" role="img" aria-label="HNSW search flow">
+        <rect width="960" height="260" fill="url(#grid)"/>
+        <!-- steps -->
+        <rect x="40" y="70" width="150" height="70" rx="6" fill="#0f172a"/>
+        <rect x="40" y="70" width="150" height="70" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="115" y="100" text-anchor="middle" fill="#e2e8f0" font-size="12">1. 顶层入口</text>
+        <text x="115" y="118" text-anchor="middle" fill="#94a3b8" font-size="9">随机/固定 ep</text>
+
+        <line x1="190" y1="105" x2="230" y2="105" stroke="#64748b" marker-end="url(#arrow)"/>
+
+        <rect x="230" y="70" width="170" height="70" rx="6" fill="#0f172a"/>
+        <rect x="230" y="70" width="170" height="70" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="315" y="100" text-anchor="middle" fill="#e2e8f0" font-size="12">2. 上层贪心跳转</text>
+        <text x="315" y="118" text-anchor="middle" fill="#94a3b8" font-size="9">找更近邻居后下沉</text>
+
+        <line x1="400" y1="105" x2="440" y2="105" stroke="#64748b" marker-end="url(#arrow)"/>
+
+        <rect x="440" y="70" width="190" height="70" rx="6" fill="#0f172a"/>
+        <rect x="440" y="70" width="190" height="70" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="535" y="100" text-anchor="middle" fill="#e2e8f0" font-size="12">3. Layer0 精细搜索</text>
+        <text x="535" y="118" text-anchor="middle" fill="#94a3b8" font-size="9">ef 控制候选队列宽度</text>
+
+        <line x1="630" y1="105" x2="670" y2="105" stroke="#64748b" marker-end="url(#arrow)"/>
+
+        <rect x="670" y="70" width="170" height="70" rx="6" fill="#0f172a"/>
+        <rect x="670" y="70" width="170" height="70" rx="6" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="755" y="100" text-anchor="middle" fill="#e2e8f0" font-size="12">4. 返回 Top-K</text>
+        <text x="755" y="118" text-anchor="middle" fill="#94a3b8" font-size="9">COSINE / IP / L2</text>
+
+        <text x="40" y="190" fill="#94a3b8" font-size="12">关键参数</text>
+        <text x="40" y="214" fill="#cbd5e1" font-size="11">M：每层最大出边数（图连通度）</text>
+        <text x="40" y="234" fill="#cbd5e1" font-size="11">efConstruction：建索引时候选宽度（质量↑ / 建库慢）</text>
+        <text x="480" y="214" fill="#cbd5e1" font-size="11">ef（efSearch）：查询时候选宽度（召回↑ / 延迟↑）</text>
+        <text x="480" y="234" fill="#cbd5e1" font-size="11">本项目默认：M=16, efConstruction=200, ef=64</text>
+      </svg>
+    </section>
+
+    <section class="card">
+      <h2>3. 插入流程（随机层高）</h2>
+      <svg viewBox="0 0 960 220" width="100%" role="img" aria-label="HNSW insert flow">
+        <rect width="960" height="220" fill="url(#grid)"/>
+        <rect x="50" y="50" width="160" height="64" rx="6" fill="#0f172a"/>
+        <rect x="50" y="50" width="160" height="64" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="130" y="78" text-anchor="middle" fill="#e2e8f0" font-size="12">新向量 q</text>
+        <text x="130" y="96" text-anchor="middle" fill="#94a3b8" font-size="9">采样层高 L</text>
+
+        <line x1="210" y1="82" x2="250" y2="82" stroke="#64748b" marker-end="url(#arrow)"/>
+
+        <rect x="250" y="50" width="200" height="64" rx="6" fill="#0f172a"/>
+        <rect x="250" y="50" width="200" height="64" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="350" y="78" text-anchor="middle" fill="#e2e8f0" font-size="12">自上而下定位</text>
+        <text x="350" y="96" text-anchor="middle" fill="#94a3b8" font-size="9">与搜索相同的贪心路径</text>
+
+        <line x1="450" y1="82" x2="490" y2="82" stroke="#64748b" marker-end="url(#arrow)"/>
+
+        <rect x="490" y="50" width="200" height="64" rx="6" fill="#0f172a"/>
+        <rect x="490" y="50" width="200" height="64" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="590" y="78" text-anchor="middle" fill="#e2e8f0" font-size="12">各层选邻居连边</text>
+        <text x="590" y="96" text-anchor="middle" fill="#94a3b8" font-size="9">受 M 限制，可启发式剪枝</text>
+
+        <line x1="690" y1="82" x2="730" y2="82" stroke="#64748b" marker-end="url(#arrow)"/>
+
+        <rect x="730" y="50" width="170" height="64" rx="6" fill="#0f172a"/>
+        <rect x="730" y="50" width="170" height="64" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="815" y="78" text-anchor="middle" fill="#e2e8f0" font-size="12">写入完成</text>
+        <text x="815" y="96" text-anchor="middle" fill="#94a3b8" font-size="9">可并发读</text>
+
+        <text x="50" y="160" fill="#94a3b8" font-size="11">层高通常按指数分布采样：大部分点只出现在 Layer0，少数点升到高层 → 形成小世界“高速公路”。</text>
+        <text x="50" y="182" fill="#94a3b8" font-size="11">与 IVF/Flat 对比：HNSW 适合中高维、高 QPS；内存占用高于压缩型索引，但召回/延迟平衡好。</text>
+      </svg>
+    </section>
+
+    <section class="notes">
+      <div class="note">
+        <strong>与本仓库的关系</strong><br/>
+        默认向量后端仍是 PostgreSQL + pgvector。设置 <code>VECTOR_BACKEND=milvus|dual</code> 时，
+        Milvus collection 使用 HNSW + COSINE，参数见 <code>MILVUS_HNSW_*</code>。
+      </div>
+      <div class="note">
+        <strong>调参直觉</strong><br/>
+        召回不足 → 增大 ef / efConstruction；内存或建库慢 → 减小 M；
+        延迟过高 → 减小 ef，或先用 dual 旁路验证再切 milvus。
+      </div>
+      <div class="note">
+        <strong>为何多层</strong><br/>
+        单层 NSW 容易陷入局部最优。分层后上层“跳得远”，下层“搜得细”，
+        复杂度近似对数级，适合大规模向量检索。
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    智能知识库平台 · docs/design/hnsw-algorithm.html · 仅作算法说明，不包含运行时依赖
+  </footer>
+</body>
+</html>

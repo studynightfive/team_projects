@@ -1,0 +1,37 @@
+# 本地 RAG 联调：只起 Postgres(pgvector) + Redis，数据目录绑定到 D 盘
+# 用法（仓库根目录）：
+#   docker compose -f deploy/docker-compose.dev.yml --env-file deploy/env/.env up -d
+name: knowledge-base-dev
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: kb-postgres-dev
+    environment:
+      POSTGRES_DB: knowledge_base
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - D:/docker-data/kb-platform/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d knowledge_base"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4.9-alpine
+    container_name: kb-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - D:/docker-data/kb-platform/redis:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped

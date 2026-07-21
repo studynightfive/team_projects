@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { isRealApiMode } from "../../config/runtime";
@@ -197,6 +197,7 @@ const loadRealDetail = async (): Promise<void> => {
     realDocuments.value = documents;
     selectedDocumentIds.value = [];
     loadState.value = "idle";
+    await consumeUploadActionQuery();
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") return;
     loadError.value = toPublicApiError(error).message;
@@ -210,6 +211,20 @@ const openUploadPicker = (): void => {
     return;
   }
   uploadInputRef.value?.click();
+};
+
+const consumeUploadActionQuery = async (): Promise<void> => {
+  if (String(route.query.action ?? "") !== "upload") return;
+  if (!isRealApiMode || !canUploadKnowledge.value) return;
+  if (knowledgeBase.value === undefined) return;
+  await nextTick();
+  openUploadPicker();
+  const nextQuery = { ...route.query };
+  delete nextQuery.action;
+  await router.replace({
+    path: route.path,
+    query: nextQuery,
+  });
 };
 
 const handleUpload = async (event: Event): Promise<void> => {
@@ -237,6 +252,15 @@ watch(
   () => route.params.kb_id,
   () => {
     void loadRealDetail();
+  },
+);
+
+watch(
+  () => route.query.action,
+  () => {
+    if (loadState.value === "idle") {
+      void consumeUploadActionQuery();
+    }
   },
 );
 
