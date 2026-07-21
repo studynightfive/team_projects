@@ -6305,7 +6305,7 @@
           "data": {
             "anyOf": [
               {
-                "": "#/components/schemas/SensitiveCheckResponse"
+                "$ref": "#/components/schemas/SensitiveCheckResponse"
               },
               {
                 "type": "null"
@@ -8565,24 +8565,28 @@
           "reason": {
             "type": "string",
             "default": "",
-            "title": "Reason"
+            "title": "Reason",
+            "description": "拦截原因（仅 blocked 时有值）"
           },
           "regex_matches": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Regex Matches"
+            "title": "Regex Matches",
+            "description": "Layer 1 正则匹配结果"
           },
           "bert_confidence": {
             "type": "number",
             "default": 0.0,
-            "title": "Bert Confidence"
+            "title": "Bert Confidence",
+            "description": "Layer 2 BERT 置信度 (0.0-1.0)"
           },
           "bert_label": {
             "type": "string",
             "default": "",
-            "title": "Bert Label"
+            "title": "Bert Label",
+            "description": "BERT 匹配的敏感意图标签"
           }
         },
         "required": [

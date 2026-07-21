@@ -1444,7 +1444,7 @@ export interface components {
              */
             message: string;
             /** Data */
-            data?: unknown | null;
+            data?: components["schemas"]["SensitiveCheckResponse"] | null;
             /**
              * Request Id
              * @default
@@ -2274,18 +2274,24 @@ export interface components {
             verdict: string;
             /**
              * Reason
+             * @description 拦截原因（仅 blocked 时有值）
              * @default
              */
             reason: string;
-            /** Regex Matches */
+            /**
+             * Regex Matches
+             * @description Layer 1 正则匹配结果
+             */
             regex_matches?: string[];
             /**
              * Bert Confidence
+             * @description Layer 2 BERT 置信度 (0.0-1.0)
              * @default 0
              */
             bert_confidence: number;
             /**
              * Bert Label
+             * @description BERT 匹配的敏感意图标签
              * @default
              */
             bert_label: string;
