@@ -6310,8 +6310,7 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Data"
+            ]
           },
           "request_id": {
             "type": "string",

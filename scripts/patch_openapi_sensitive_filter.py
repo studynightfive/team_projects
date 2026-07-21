@@ -94,7 +94,6 @@ def main() -> None:
                     {"$ref": "#/components/schemas/SensitiveCheckResponse"},
                     {"type": "null"},
                 ],
-                "title": "Data",
             },
             "request_id": {
                 "type": "string",
