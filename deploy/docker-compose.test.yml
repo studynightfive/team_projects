@@ -48,6 +48,7 @@ services:
       - APP_VERSION=0.1.0
       # 测试模式：启用测试专用配置
       - TESTING=true
+      - LLM_GUARD_ENABLED=false
       - DEBUG=false
     depends_on:
       postgres:
@@ -74,6 +75,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=test-secret-key-not-for-production
       - TESTING=true
+      - LLM_GUARD_ENABLED=false
     depends_on:
       postgres:
         condition: service_healthy
@@ -137,6 +139,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=test-secret-key-not-for-production
       - TESTING=true
+      - LLM_GUARD_ENABLED=false
       - AUTO_SEED_DEMO_DATA=false
       - WORKER_INLINE=true
       - STORAGE_ROOT=/app/storage

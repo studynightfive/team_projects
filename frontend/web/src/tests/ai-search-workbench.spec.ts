@@ -54,9 +54,9 @@ describe("AI 搜索工作台关键链路", () => {
       sources: ["project"],
       modelId: "enterprise-general",
     });
-    const citationNumbers = [...response.answer.markdown.matchAll(/\[(\d+)\]/gu)].map(
-      (match) => Number(match[1]),
-    );
+    const citationNumbers = [
+      ...response.answer.markdown.matchAll(/\[(\d+)\]/gu),
+    ].map((match) => Number(match[1]));
 
     expect(response.answer.query).toBe(query);
     expect(response.answer.title).toContain(query);
@@ -113,22 +113,40 @@ describe("AI 搜索工作台关键链路", () => {
     expect(router.currentRoute.value.query).not.toHaveProperty("mode");
   });
 
+  it("问答导出提供 PDF、Word 与 Markdown 格式", async () => {
+    const { wrapper } = await renderAppAt("/search");
+    await vi.waitFor(() => {
+      expect(wrapper.find(".result-tabs").exists()).toBe(true);
+    });
+    const exportButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("导出结果"));
+    if (exportButton === undefined) throw new Error("缺少导出结果按钮");
+
+    await exportButton.trigger("click");
+    await flushPromises();
+
+    const modalText = document.body.textContent ?? "";
+    expect(modalText).toContain("导出问答结果");
+    expect(modalText).toContain("PDF");
+    expect(modalText).toContain("Word");
+    expect(modalText).toContain("Markdown");
+  });
+
   it("空间深链接选中目标空间，已删除的历史页面返回 404", async () => {
     const targetSpace = aiSearchMockData.knowledgeSpaces[2];
     if (targetSpace === undefined) throw new Error("缺少知识空间模拟数据");
 
     const spaces = await renderAppAt(`/spaces?space=${targetSpace.id}`);
-    expect(spaces.wrapper.get(".knowledge-space-grid article.selected").text()).toContain(
-      targetSpace.name,
-    );
+    expect(
+      spaces.wrapper.get(".knowledge-space-grid article.selected").text(),
+    ).toContain(targetSpace.name);
     expect(
       spaces.wrapper.get(".space-browser-layout > .space-detail-panel").text(),
     ).toContain(targetSpace.name);
     expect(spaces.wrapper.find(".lucide-arrow-up-right").exists()).toBe(false);
     expect(
-      spaces.wrapper.findAll(
-        ".knowledge-space-grid .lucide-chevron-right",
-      ),
+      spaces.wrapper.findAll(".knowledge-space-grid .lucide-chevron-right"),
     ).toHaveLength(aiSearchMockData.knowledgeSpaces.length);
     spaces.wrapper.unmount();
 

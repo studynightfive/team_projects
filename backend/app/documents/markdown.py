@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-import bleach  # type: ignore[import-untyped]
+import bleach  # type: ignore[import-untyped, unused-ignore]
 from pydantic import JsonValue
 
 from app.parsers.base import ParsedAsset, ParsedDocument

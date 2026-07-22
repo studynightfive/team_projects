@@ -1,6 +1,7 @@
 # 智能知识库平台 - FastAPI 应用入口
 # 负责创建 FastAPI 实例、注册中间件、加载路由、配置生命周期事件
 
+import asyncio
 import time
 import uuid
 from collections.abc import AsyncIterator
@@ -45,6 +46,7 @@ from app.models.api import router as models_router
 from app.notifications.router import router as notifications_router
 from app.rag.chat.all import router as chat_router
 from app.rag.conversations.all import router as conversations_router
+from app.rag.guard import preload_guard_models, shutdown_guard
 from app.rag.search.api import router as retrieval_router
 from app.rag.tests.all import router as retrieval_tests_router
 from app.users.dashboard_router import router as dashboard_router
@@ -72,6 +74,10 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         app_name=settings.app_name,
         version=settings.app_version,
     )
+    guard_preload_task = asyncio.create_task(
+        preload_guard_models(),
+        name="llm-guard-preload",
+    )
     async with async_session_factory() as db:
         await seed_builtin_authorization(db)
         await seed_model_providers(db)
@@ -85,6 +91,13 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        if not guard_preload_task.done():
+            guard_preload_task.cancel()
+        try:
+            await guard_preload_task
+        except asyncio.CancelledError:
+            pass
+        shutdown_guard()
         await engine.dispose()
         logger.info("application_shutting_down")
 

@@ -85,6 +85,7 @@ async def _retrieve_context(
             rerank_model_id=req.rerank_model_id,
             embedding_model_id=req.embedding_model_id,
         ),
+        guard_checked=True,
     )
     # 二次权限过滤（即使 search 内已过滤）
     hits_dicts: list[dict[str, object]] = [h.model_dump() for h in search_resp.hits]
@@ -353,7 +354,7 @@ async def chat_stream_endpoint(
     _perm: None = Depends(require_any_permission("chat.use", "chat:write")),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
-    ensure_safe_query(payload.question)
+    await ensure_safe_query(payload.question)
 
     async def event_gen() -> AsyncIterator[str]:
         try:

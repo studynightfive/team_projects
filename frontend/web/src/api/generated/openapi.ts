@@ -40,6 +40,7 @@ export interface paths {
          *     1. 数据库连接：执行 SELECT 1
          *     2. Redis 连接：执行 PING
          *     3. 文件存储：检查存储目录是否可读写
+         *     4. LLM Guard：启用预热时确认安全模型已经加载
          */
         get: operations["health_ready_api_v1_health_ready_get"];
         put?: never;
@@ -844,7 +845,7 @@ export interface paths {
         put?: never;
         /**
          * Export Answer Endpoint
-         * @description 即时导出当前 RAG 问答，不读取或打包参考文档正文。
+         * @description 导出当前 RAG 问答并保留可再次下载的任务记录。
          */
         post: operations["export_answer_endpoint_api_v1_exports_answer_post"];
         delete?: never;
@@ -1562,7 +1563,7 @@ export interface components {
              * @default markdown
              * @enum {string}
              */
-            format: "markdown" | "txt" | "docx";
+            format: "pdf" | "docx" | "markdown" | "txt";
             /** Question */
             question: string;
             /** Answer */
@@ -1935,6 +1936,13 @@ export interface components {
             status: "pending" | "running" | "done" | "failed" | "expired" | "cancelled";
             /** Progress */
             progress: number;
+            /**
+             * Source Type
+             * @enum {string}
+             */
+            source_type: "document" | "answer";
+            /** Filename */
+            filename?: string | null;
             /** File Size */
             file_size?: number | null;
             /** Download Url */
