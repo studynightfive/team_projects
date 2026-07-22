@@ -25,6 +25,7 @@ from app.common.schemas import APIResponse, PaginatedData
 from app.documents.permissions import user_can_access_kb
 from app.knowledge.models import KnowledgeBase
 from app.rag._shared.audit_helper import audit
+from app.rag.guard import ensure_safe_query
 
 
 # ============================================================
@@ -338,6 +339,7 @@ async def create_conversation_endpoint(
     _perm: None = Depends(require_any_permission("conversation:write", "chat.use")),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
+    await ensure_safe_query(payload.first_question)
     knowledge_base = await db.get(KnowledgeBase, payload.kb_id)
     if knowledge_base is None:
         raise NotFoundException(message="知识库不存在")
@@ -457,6 +459,8 @@ async def append_message_endpoint(
     if not isinstance(content, str):
         raise ValidationException(message="content 必须为字符串")
     role = cast(Role, role_value)
+    if role == "user":
+        await ensure_safe_query(content)
     msg = await append_message(db, conv_id=conv.id, role=role, content=content)
     await db.commit()
     return APIResponse(data=MessageResponse.model_validate(msg).model_dump()).model_dump()

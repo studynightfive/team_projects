@@ -10,9 +10,12 @@ import type { paths } from "../api/generated/openapi";
 type ExportOptions = Readonly<Required<ApiSchema<"ExportOptions">>>;
 type ExportCreateRequest =
   paths["/exports"]["post"]["requestBody"]["content"]["application/json"];
+type AnswerExportRequest =
+  paths["/exports/answer"]["post"]["requestBody"]["content"]["application/json"];
 
 export type ExportFormat = ExportCreateRequest["format"];
 export type ExportStatus = ApiSchema<"ExportTaskResponse">["status"];
+export type AnswerExportFormat = AnswerExportRequest["format"];
 
 export type ExportTaskRecord = Readonly<
   Omit<
@@ -118,9 +121,15 @@ export const createExportTask = async (
 export const downloadAnswerExport = async (payload: {
   readonly question: string;
   readonly answer: string;
-  readonly format?: "markdown" | "txt" | "docx";
-  readonly citations?: readonly Readonly<Record<string, string | number | null>>[];
-}): Promise<Blob> => {
+  readonly format?: AnswerExportFormat;
+  readonly citations?: readonly Readonly<
+    Record<string, string | number | null>
+  >[];
+}): Promise<{
+  readonly blob: Blob;
+  readonly filename?: string;
+  readonly exportId?: string;
+}> => {
   const response = await apiClient.post<Blob>(
     "/v1/exports/answer",
     {
@@ -131,7 +140,11 @@ export const downloadAnswerExport = async (payload: {
     },
     { responseType: "blob" },
   );
-  return response.data;
+  return {
+    blob: response.data,
+    filename: getFilenameFromHeader(response.headers["content-disposition"]),
+    exportId: response.headers["x-export-id"],
+  };
 };
 
 export const deleteExportTask = async (exportId: string): Promise<void> => {

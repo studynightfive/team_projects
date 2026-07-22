@@ -20,6 +20,10 @@ import {
   type ExportStatus,
   type ExportTaskRecord,
 } from "../../services/downloads";
+import {
+  prepareFileSave,
+  type PreparedFileSave,
+} from "../../services/file-save";
 
 const { message, modal } = AntApp.useApp();
 const query = ref("");
@@ -47,6 +51,7 @@ interface DownloadRow {
   readonly documentIds?: readonly string[];
   readonly rawFormat?: ExportFormat;
   readonly errorMessage?: string | null;
+  readonly sourceType?: "document" | "answer";
 }
 
 const statusLabels = {
@@ -79,7 +84,11 @@ const formatDateTime = (value: string | null): string => {
 
 const toRealDownloadRow = (item: ExportTaskRecord): DownloadRow => ({
   id: item.id,
-  name: `文档导出 ${item.id.slice(0, 8)}（${item.document_ids.length} 个文档）`,
+  name:
+    item.filename ??
+    (item.source_type === "answer"
+      ? `RAG 问答结果 ${item.id.slice(0, 8)}`
+      : `文档导出 ${item.id.slice(0, 8)}（${item.document_ids.length} 个文档）`),
   format: formatLabels[item.format],
   status: statusLabels[item.status],
   progress: item.progress,
@@ -89,10 +98,13 @@ const toRealDownloadRow = (item: ExportTaskRecord): DownloadRow => ({
   documentIds: item.document_ids,
   rawFormat: item.format,
   errorMessage: item.error_message,
+  sourceType: item.source_type,
 });
 
 const downloadRows = computed<readonly DownloadRow[]>(() =>
-  isRealApiMode ? realDownloads.value.map(toRealDownloadRow) : localPageData.downloads,
+  isRealApiMode
+    ? realDownloads.value.map(toRealDownloadRow)
+    : localPageData.downloads,
 );
 
 const statuses = computed(() => [
@@ -149,14 +161,29 @@ const loadRealDownloads = async (): Promise<void> => {
   }
 };
 
-const saveBlob = (blob: Blob, filename: string): void => {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-};
+const downloadFormatOptions = {
+  pdf: { mediaType: "application/pdf", extension: ".pdf", label: "PDF 文档" },
+  docx: {
+    mediaType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    extension: ".docx",
+    label: "Word 文档",
+  },
+  markdown: {
+    mediaType: "text/markdown",
+    extension: ".md",
+    label: "Markdown 文档",
+  },
+  csv: { mediaType: "text/csv", extension: ".csv", label: "CSV 文件" },
+  txt: { mediaType: "text/plain", extension: ".txt", label: "文本文件" },
+} as const satisfies Record<
+  ExportFormat,
+  {
+    readonly mediaType: string;
+    readonly extension: string;
+    readonly label: string;
+  }
+>;
 
 const requestDownload = async (item: DownloadRow): Promise<void> => {
   if (!isRealApiMode) {
@@ -169,14 +196,30 @@ const requestDownload = async (item: DownloadRow): Promise<void> => {
     return;
   }
 
+  const isZip = item.name.toLocaleLowerCase("zh-CN").endsWith(".zip");
+  const format =
+    item.rawFormat === undefined
+      ? downloadFormatOptions.pdf
+      : downloadFormatOptions[item.rawFormat];
+  let destination: PreparedFileSave | undefined;
+  try {
+    destination = await prepareFileSave({
+      suggestedName: item.name,
+      description: isZip ? "ZIP 压缩包" : format.label,
+      mediaType: isZip ? "application/zip" : format.mediaType,
+      extensions: [isZip ? ".zip" : format.extension],
+    });
+  } catch (error: unknown) {
+    void message.error(toPublicApiError(error).message);
+    return;
+  }
+  if (destination === undefined) return;
+
   busyTaskId.value = item.id;
   try {
     const result = await downloadExportBlob(item.downloadUrl);
-    saveBlob(
-      result.blob,
-      result.filename ?? `${item.name}.${item.format.toLocaleLowerCase("zh-CN")}`,
-    );
-    void message.success("下载已通过鉴权接口开始。");
+    await destination.save(result.blob, result.filename);
+    void message.success("文件已通过鉴权接口保存。");
   } catch (error: unknown) {
     void message.error(toPublicApiError(error).message);
   } finally {
@@ -216,7 +259,9 @@ const recreateExport = async (item: DownloadRow): Promise<void> => {
 
 const requestDelete = (downloadId: string): void => {
   modal.confirm({
-    title: isRealApiMode ? "确认删除这条导出任务？" : "确认删除这条本地任务记录？",
+    title: isRealApiMode
+      ? "确认删除这条导出任务？"
+      : "确认删除这条本地任务记录？",
     content: isRealApiMode
       ? "会删除服务端导出任务记录和已生成文件。"
       : "不会请求服务端，刷新后固定任务会恢复。",
@@ -371,7 +416,8 @@ onBeforeUnmount(() => {
                   </button>
                   <button
                     v-else-if="
-                      item.status === '失败' || item.status === '已过期'
+                      (item.status === '失败' || item.status === '已过期') &&
+                        item.sourceType !== 'answer'
                     "
                     class="table-action"
                     type="button"
@@ -381,6 +427,14 @@ onBeforeUnmount(() => {
                     <RefreshCw :size="15" aria-hidden="true" />
                     重新创建
                   </button>
+                  <span
+                    v-else-if="
+                      item.status === '失败' || item.status === '已过期'
+                    "
+                    class="pending-copy"
+                  >
+                    请重新导出
+                  </span>
                   <span v-else class="pending-copy">等待完成</span>
                   <button
                     class="delete-action"

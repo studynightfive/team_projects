@@ -33,7 +33,7 @@
           "health"
         ],
         "summary": "Health Ready",
-        "description": "就绪检查端点\n检查内容：\n1. 数据库连接：执行 SELECT 1\n2. Redis 连接：执行 PING\n3. 文件存储：检查存储目录是否可读写",
+        "description": "就绪检查端点\n检查内容：\n1. 数据库连接：执行 SELECT 1\n2. Redis 连接：执行 PING\n3. 文件存储：检查存储目录是否可读写\n4. LLM Guard：启用预热时确认安全模型已经加载",
         "operationId": "health_ready_api_v1_health_ready_get",
         "responses": {
           "200": {
@@ -4159,7 +4159,7 @@
           "exports"
         ],
         "summary": "Export Answer Endpoint",
-        "description": "即时导出当前 RAG 问答，不读取或打包参考文档正文。",
+        "description": "导出当前 RAG 问答并保留可再次下载的任务记录。",
         "operationId": "export_answer_endpoint_api_v1_exports_answer_post",
         "requestBody": {
           "content": {
@@ -6672,9 +6672,10 @@
           "format": {
             "type": "string",
             "enum": [
+              "pdf",
+              "docx",
               "markdown",
-              "txt",
-              "docx"
+              "txt"
             ],
             "title": "Format",
             "default": "markdown"
@@ -7722,6 +7723,25 @@
             "type": "integer",
             "title": "Progress"
           },
+          "source_type": {
+            "type": "string",
+            "enum": [
+              "document",
+              "answer"
+            ],
+            "title": "Source Type"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
           "file_size": {
             "anyOf": [
               {
@@ -7805,6 +7825,7 @@
           "options",
           "status",
           "progress",
+          "source_type",
           "expires_at"
         ],
         "title": "ExportTaskResponse"

@@ -25,6 +25,7 @@ jobs:
       TESTING: "true"
       AUTO_SEED_DEMO_DATA: "false"
       WORKER_INLINE: "true"
+      LLM_GUARD_ENABLED: "false"
 
     services:
       postgres:

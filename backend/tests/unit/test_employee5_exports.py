@@ -365,3 +365,128 @@ class TestZipPacker:
 
 import asyncio  # noqa: E402
 import os  # noqa: E402
+
+
+class TestAnswerExportTask:
+    @pytest.mark.parametrize(
+        ("export_format", "extension"),
+        [("pdf", ".pdf"), ("docx", ".docx"), ("markdown", ".md")],
+    )
+    @pytest.mark.asyncio
+    async def test_answer_export_persists_downloadable_task(
+        self,
+        tmp_path,
+        monkeypatch,
+        export_format,
+        extension,
+    ):
+        from datetime import datetime, timezone
+
+        from starlette.requests import Request
+
+        from app.common.config import settings
+        from app.exports import all as exports
+
+        added_tasks = []
+
+        def add_task(task):
+            task.id = "answer-task-1"
+            task.created_at = datetime.now(timezone.utc)
+            added_tasks.append(task)
+
+        db = SimpleNamespace(add=add_task, commit=AsyncMock())
+        monkeypatch.setattr(settings, "export_storage_root", str(tmp_path / "exports"))
+        monkeypatch.setattr(exports, "audit", AsyncMock())
+        response = await exports.export_answer_endpoint(
+            request=Request(
+                {
+                    "type": "http",
+                    "method": "POST",
+                    "path": "/api/v1/exports/answer",
+                    "headers": [],
+                }
+            ),
+            payload=exports.AnswerExportRequest(
+                format=export_format,
+                question="医院信息平台如何规划？",
+                answer="应先完成数据标准和接口治理。",
+                citations=[{"doc_id": "doc-1", "chunk_id": "chunk-1", "score": 0.9}],
+            ),
+            user=SimpleNamespace(id="user-1"),
+            _perm=None,
+            db=db,
+        )
+
+        task = added_tasks[0]
+        exported = Path(response.path)
+        assert task.user_id == "user-1"
+        assert task.document_ids == []
+        assert task.status == "done"
+        assert task.progress == 100
+        assert exported.suffix == extension
+        assert exported.exists()
+        assert exported.stat().st_size > 0
+        assert response.headers["x-export-id"] == task.id
+        assert db.commit.await_count >= 3
+
+        record = exports._task_to_response(task)
+        assert record.source_type == "answer"
+        assert record.filename == exported.name
+        assert record.download_url is not None
+
+    @pytest.mark.asyncio
+    async def test_answer_export_failure_keeps_failed_record(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        from datetime import datetime, timezone
+
+        from starlette.requests import Request
+
+        from app.common.config import settings
+        from app.common.exceptions import AppException
+        from app.exports import all as exports
+
+        class FailedExporter:
+            format_name = "markdown"
+
+            async def export(self, content, output_path, options):
+                raise RuntimeError("renderer failed")
+
+        added_tasks = []
+
+        def add_task(task):
+            task.id = "failed-answer-task"
+            task.created_at = datetime.now(timezone.utc)
+            added_tasks.append(task)
+
+        db = SimpleNamespace(add=add_task, commit=AsyncMock())
+        monkeypatch.setattr(settings, "export_storage_root", str(tmp_path / "exports"))
+        monkeypatch.setitem(exports.EXPORTERS, "markdown", FailedExporter())
+
+        with pytest.raises(AppException) as exc_info:
+            await exports.export_answer_endpoint(
+                request=Request(
+                    {
+                        "type": "http",
+                        "method": "POST",
+                        "path": "/api/v1/exports/answer",
+                        "headers": [],
+                    }
+                ),
+                payload=exports.AnswerExportRequest(
+                    format="markdown",
+                    question="问题",
+                    answer="答案",
+                ),
+                user=SimpleNamespace(id="user-1"),
+                _perm=None,
+                db=db,
+            )
+
+        task = added_tasks[0]
+        assert exc_info.value.status_code == 500
+        assert task.status == "failed"
+        assert task.error_code == "export_failed"
+        assert not (tmp_path / "exports" / task.id).exists()

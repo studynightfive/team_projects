@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { App as AntApp } from "ant-design-vue";
+import { App as AntApp, Modal as AntModal, Segmented } from "ant-design-vue";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -23,7 +23,14 @@ import { isRealApiMode } from "../../config/runtime";
 import { aiSearchMockData } from "../../mocks/ai-search";
 import { runAiSearch } from "../../services/ai-search";
 import { listRealChatModelOptions } from "../../services/ai-search-real";
-import { downloadAnswerExport } from "../../services/downloads";
+import {
+  downloadAnswerExport,
+  type AnswerExportFormat,
+} from "../../services/downloads";
+import {
+  prepareFileSave,
+  type PreparedFileSave,
+} from "../../services/file-save";
 import { createFavorite, deleteFavorite } from "../../services/favorites";
 import { listKnowledgeBases } from "../../services/knowledge";
 import type {
@@ -66,6 +73,49 @@ const answerFavoriteId = ref<string>();
 const contextTrigger = ref<HTMLElement>();
 const answerTabRef = ref<HTMLButtonElement>();
 const resultsTabRef = ref<HTMLButtonElement>();
+const isExportDialogOpen = ref(false);
+const isExporting = ref(false);
+
+type VisibleAnswerExportFormat = Exclude<AnswerExportFormat, "txt">;
+
+const answerExportFormat = ref<VisibleAnswerExportFormat>("pdf");
+const answerExportFormats = {
+  pdf: {
+    label: "PDF",
+    extension: ".pdf",
+    description: "PDF 文档",
+    mediaType: "application/pdf",
+  },
+  docx: {
+    label: "Word",
+    extension: ".docx",
+    description: "Word 文档",
+    mediaType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  },
+  markdown: {
+    label: "Markdown",
+    extension: ".md",
+    description: "Markdown 文档",
+    mediaType: "text/markdown",
+  },
+} as const satisfies Record<
+  VisibleAnswerExportFormat,
+  {
+    readonly label: string;
+    readonly extension: string;
+    readonly description: string;
+    readonly mediaType: string;
+  }
+>;
+const answerExportOptions: Array<{
+  label: string;
+  value: VisibleAnswerExportFormat;
+}> = [
+  { label: "PDF", value: "pdf" },
+  { label: "Word", value: "docx" },
+  { label: "Markdown", value: "markdown" },
+];
 
 let searchController: AbortController | undefined;
 let desktopContextQuery: MediaQueryList | undefined;
@@ -80,7 +130,9 @@ const selectedKnowledgeBaseLabel = computed(() => {
   const selected = knowledgeBaseOptions.value.find(
     (item) => item.id === workspaceId.value,
   );
-  return selected?.name ?? knowledgeBaseOptions.value[0]?.name ?? "暂无可用知识库";
+  return (
+    selected?.name ?? knowledgeBaseOptions.value[0]?.name ?? "暂无可用知识库"
+  );
 });
 const selectedKnowledgeBase = computed(() =>
   knowledgeBaseOptions.value.find((item) => item.id === workspaceId.value),
@@ -252,17 +304,41 @@ const downloadAnswerMarkdownLocally = (): void => {
   URL.revokeObjectURL(url);
 };
 
-const exportAnswer = async (): Promise<void> => {
+const openAnswerExport = (): void => {
+  if (response.value === undefined) return;
+  answerExportFormat.value = isRealApiMode ? "pdf" : "markdown";
+  isExportDialogOpen.value = true;
+};
+
+const confirmAnswerExport = async (): Promise<void> => {
   if (response.value === undefined) return;
 
   if (!isRealApiMode) {
     downloadAnswerMarkdownLocally();
+    isExportDialogOpen.value = false;
     void message.info("已导出本地预览答案");
     return;
   }
 
+  const format = answerExportFormats[answerExportFormat.value];
+  let destination: PreparedFileSave | undefined;
   try {
-    const blob = await downloadAnswerExport({
+    destination = await prepareFileSave({
+      suggestedName: `RAG问答结果${format.extension}`,
+      description: format.description,
+      mediaType: format.mediaType,
+      extensions: [format.extension],
+    });
+  } catch (error: unknown) {
+    void message.error(toPublicApiError(error).message);
+    return;
+  }
+  if (destination === undefined) return;
+
+  isExporting.value = true;
+  try {
+    const result = await downloadAnswerExport({
+      format: answerExportFormat.value,
       question: query.value,
       answer: response.value.answer.markdown,
       citations: response.value.answer.citations.map((citation) => ({
@@ -271,15 +347,13 @@ const exportAnswer = async (): Promise<void> => {
         score: citation.relevance,
       })),
     });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "RAG问答结果.md";
-    anchor.click();
-    URL.revokeObjectURL(url);
-    void message.success("答案已下载");
+    await destination.save(result.blob, result.filename);
+    isExportDialogOpen.value = false;
+    void message.success("答案已保存，并已记录到「我的下载」");
   } catch (error: unknown) {
     void message.error(toPublicApiError(error).message);
+  } finally {
+    isExporting.value = false;
   }
 };
 
@@ -446,10 +520,7 @@ const openContext = (trigger: HTMLElement): void => {
   isContextOpen.value = true;
 };
 
-const selectResultTab = (
-  tab: "answer" | "results",
-  focus = false,
-): void => {
+const selectResultTab = (tab: "answer" | "results", focus = false): void => {
   activeTab.value = tab;
   if (focus) {
     const target = tab === "answer" ? answerTabRef.value : resultsTabRef.value;
@@ -541,8 +612,8 @@ onBeforeUnmount(() => {
         <button
           class="secondary-button compact"
           type="button"
-          :disabled="response === undefined"
-          @click="exportAnswer"
+          :disabled="response === undefined || isExporting"
+          @click="openAnswerExport"
         >
           <Download :size="16" aria-hidden="true" />
           导出结果
@@ -718,6 +789,40 @@ onBeforeUnmount(() => {
       @favorite="favoritePreviewDocument"
       @notice="showLocalNotice"
     />
+
+    <AntModal
+      v-model:open="isExportDialogOpen"
+      title="导出问答结果"
+      ok-text="导出并选择位置"
+      cancel-text="取消"
+      :confirm-loading="isExporting"
+      :closable="!isExporting"
+      :mask-closable="!isExporting"
+      :cancel-button-props="{ disabled: isExporting }"
+      centered
+      @ok="confirmAnswerExport"
+    >
+      <div class="answer-export-form">
+        <label for="answer-export-format">文件格式</label>
+        <Segmented
+          id="answer-export-format"
+          v-model:value="answerExportFormat"
+          :options="answerExportOptions"
+          :disabled="isExporting || !isRealApiMode"
+          block
+        />
+        <dl class="answer-export-summary">
+          <div>
+            <dt>内容</dt>
+            <dd>当前问题、生成答案与引用摘要</dd>
+          </div>
+          <div>
+            <dt>格式</dt>
+            <dd>{{ answerExportFormats[answerExportFormat].label }}</dd>
+          </div>
+        </dl>
+      </div>
+    </AntModal>
   </div>
 </template>
 
@@ -895,6 +1000,42 @@ onBeforeUnmount(() => {
   color: var(--color-text-muted);
   background: var(--color-surface-subtle);
   font-size: var(--font-size-12);
+}
+
+.answer-export-form {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+}
+
+.answer-export-form > label {
+  color: var(--color-text);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
+}
+
+.answer-export-summary {
+  display: grid;
+  margin: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.answer-export-summary > div {
+  display: grid;
+  min-height: 42px;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.answer-export-summary dt,
+.answer-export-summary dd {
+  margin: 0;
+  font-size: var(--font-size-13);
+}
+
+.answer-export-summary dt {
+  color: var(--color-text-muted);
 }
 
 @media (min-width: 1440px) {

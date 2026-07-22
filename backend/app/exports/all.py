@@ -7,8 +7,6 @@
 from __future__ import annotations
 
 import os
-import shutil
-import tempfile
 import zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -24,7 +22,6 @@ from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, func, selec
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
-from starlette.background import BackgroundTask
 
 from app.auth.dependencies import get_current_user, require_any_permission, require_permission
 from app.common.config import settings
@@ -108,7 +105,7 @@ class CreateExportRequest(BaseModel):
 
 
 class AnswerExportRequest(BaseModel):
-    format: Literal["markdown", "txt", "docx"] = "markdown"
+    format: Literal["pdf", "docx", "markdown", "txt"] = "markdown"
     question: str = Field(min_length=1, max_length=2000)
     answer: str = Field(min_length=1, max_length=100_000)
     citations: list[dict[str, JsonValue]] = Field(default_factory=list, max_length=50)
@@ -122,6 +119,8 @@ class ExportTaskResponse(BaseModel):
     options: ExportOptions
     status: ExportStatus
     progress: int
+    source_type: Literal["document", "answer"]
+    filename: str | None = None
     file_size: int | None = None
     download_url: str | None = None
     expires_at: datetime
@@ -478,6 +477,8 @@ def _task_to_response(task: ExportTask) -> ExportTaskResponse:
             "options": task.options or {},
             "status": task.status,
             "progress": task.progress,
+            "source_type": "answer" if not task.document_ids else "document",
+            "filename": Path(task.file_path).name if task.file_path else None,
             "file_size": task.file_size,
             "download_url": download_url,
             "expires_at": task.expires_at,
@@ -497,12 +498,28 @@ async def export_answer_endpoint(
     _perm: None = Depends(require_any_permission("export:write", "export.create")),
     db: AsyncSession = Depends(get_db),
 ) -> FileResponse:
-    """即时导出当前 RAG 问答，不读取或打包参考文档正文。"""
-    export_root = root()
-    export_root.mkdir(parents=True, exist_ok=True)
-    temporary_dir = Path(tempfile.mkdtemp(prefix="answer-", dir=export_root))
+    """导出当前 RAG 问答并保留可再次下载的任务记录。"""
+    options = ExportOptions(
+        include_citations=bool(payload.citations),
+        include_assets=False,
+        include_toc=False,
+    )
+    task = ExportTask(
+        user_id=user.id,
+        format=payload.format,
+        document_ids=[],
+        options=options.model_dump(),
+        status="running",
+        progress=0,
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(hours=settings.export_default_ttl_hours),
+    )
+    db.add(task)
+    await db.commit()
+
     extension = "md" if payload.format == "markdown" else payload.format
-    output_path = temporary_dir / f"rag-answer.{extension}"
+    filename = f"RAG-answer-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.{extension}"
+    output_path = task_file_path(task.id, filename)
     content = ExportContent(
         document_id="rag-answer",
         title="RAG 问答结果",
@@ -516,29 +533,51 @@ async def export_answer_endpoint(
         await EXPORTERS[payload.format].export(
             content,
             str(output_path),
-            ExportOptions(include_citations=bool(payload.citations), include_assets=False),
+            options,
         )
-    except Exception:
-        shutil.rmtree(temporary_dir, ignore_errors=True)
-        raise
+        task.file_path = str(output_path)
+        task.file_size = os.path.getsize(output_path)
+        task.status = "done"
+        task.progress = 100
+        task.finished_at = datetime.now(timezone.utc)
+        await db.commit()
+    except Exception as exc:
+        delete_task_dir(task.id)
+        task.status = "failed"
+        task.error_code = "export_failed"
+        task.error_message = "问答结果导出失败"
+        task.finished_at = datetime.now(timezone.utc)
+        await db.commit()
+        logger.warning(
+            "answer_export_failed",
+            task_id=task.id,
+            format=payload.format,
+            error_type=type(exc).__name__,
+        )
+        raise AppException(
+            code=ErrorCode.EXPORT_FAILED,
+            message="问答结果导出失败，请稍后重试",
+            status_code=500,
+        ) from exc
     await audit(
         db,
         action="answer_export",
         user_id=user.id,
         resource_type="rag_answer",
+        resource_id=task.id,
         request=request,
     )
     await db.commit()
-    filename = f"RAG-answer-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.{extension}"
     return FileResponse(
         path=output_path,
         filename=filename,
         media_type={
+            "pdf": "application/pdf",
             "markdown": "text/markdown; charset=utf-8",
             "txt": "text/plain; charset=utf-8",
             "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         }[payload.format],
-        background=BackgroundTask(shutil.rmtree, temporary_dir, ignore_errors=True),
+        headers={"X-Export-Id": task.id},
     )
 
 

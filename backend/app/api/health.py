@@ -16,6 +16,7 @@ from sqlalchemy import text
 
 from app.common.config import settings
 from app.common.database import engine
+from app.rag.guard import guard_readiness_status
 
 router = APIRouter(tags=["health"])
 
@@ -101,7 +102,7 @@ async def health_live() -> HealthCheckResponse:
 # ============================================================
 # 就绪检查：GET /api/v1/health/ready
 # 用于 Kubernetes 或 Docker 的 readiness probe
-# 检查数据库、Redis 和文件存储是否可用
+# 检查数据库、Redis、文件存储和输入安全模型是否可用
 # 全部通过返回 200，任一失败返回 503
 # ============================================================
 @router.get("/health/ready", response_model=ReadyCheckResponse)
@@ -112,6 +113,7 @@ async def health_ready() -> ReadyCheckResponse | JSONResponse:
     1. 数据库连接：执行 SELECT 1
     2. Redis 连接：执行 PING
     3. 文件存储：检查存储目录是否可读写
+    4. LLM Guard：启用预热时确认安全模型已经加载
     """
     database_status, redis_status = await asyncio.gather(
         _run_async_check(_check_database),
@@ -121,6 +123,7 @@ async def health_ready() -> ReadyCheckResponse | JSONResponse:
         "database": database_status,
         "redis": redis_status,
         "storage": _run_storage_check(),
+        "llm_guard": guard_readiness_status(),
     }
 
     # 判断整体状态

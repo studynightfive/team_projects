@@ -37,6 +37,8 @@ dependencies = [
     "PyJWT[crypto]==2.10.1",      # PyJWT：JWT Token 生成与验证
     "argon2-cffi==25.1.0",        # Argon2：密码哈希（方案第5.3节要求）
     "python-multipart==0.0.20",   # python-multipart：文件上传解析
+    "llm-guard==0.3.16",          # Protect AI：输入主题与提示词注入扫描
+    "torch==2.7.1",               # PyTorch CPU：固定 LLM Guard 推理运行时
     # ============================================================
     # HTTP 客户端与序列化
     # ============================================================
@@ -89,6 +91,21 @@ build-backend = "hatchling.build"
 # 告诉 hatchling Python 包位于 app/ 目录下
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.uv]
+# llm-guard 0.3.16 的未使用 Presidio 扫描器声明 cryptography<44.1。
+# 本项目只加载 BanTopics/PromptInjection，保留已验证的 Fernet 版本，禁止安全降级。
+override-dependencies = [
+    "cryptography==46.0.3",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 # 工具配置
 [tool.ruff]

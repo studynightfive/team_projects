@@ -429,8 +429,10 @@ async def search(
     *,
     user: User,
     req: SearchRequest,
+    guard_checked: bool = False,
 ) -> SearchResponse:
-    ensure_safe_query(req.query)
+    if not guard_checked:
+        await ensure_safe_query(req.query)
     start = time.time()
     if req.metadata_filter:
         raise ValidationException(message="metadata_filter 尚未接入，不能静默忽略筛选条件")
@@ -609,6 +611,7 @@ async def answer(
     req: RagAnswerRequest,
 ) -> RagAnswerResponse:
     start = time.time()
+    await ensure_safe_query(req.query)
     cached = await get_cached_answer(
         user_id=user.id,
         kb_id=req.kb_id,
@@ -619,7 +622,7 @@ async def answer(
         logger.info("rag_answer_cache_hit", kb_id=req.kb_id)
         return cached
 
-    search_resp = await search(db, user=user, req=req)
+    search_resp = await search(db, user=user, req=req, guard_checked=True)
 
     if not search_resp.hits:
         return RagAnswerResponse(

@@ -133,3 +133,17 @@
 - AI 搜索辅助信息的引用来源按 `documentId` 去重，缺少 ID 时按来源名与标题组合兜底；多个 Chunk 命中同一文档不能重复展示，也不在引用概览显示“待确认”。
 - `samples/documents/**` 按原始字节管理，不做 Git 文本换行转换；样本清单的大小和 SHA256 必须同时通过 Windows 工作区与 Linux Docker 校验。
 - 统一分页在移动端必须保证页码、前后翻页和每页数量选择器至少 44px；浏览器验收路由清单必须随页面增删同步维护，已下线路由的截图不能继续作为有效证据。
+
+## 2026-07-22 答案导出与输入安全模型
+
+- RAG 答案导出是持久化 `ExportTask`，支持 PDF、DOCX、Markdown 和后端兼容的 TXT；
+  前端正式入口展示 PDF、Word、Markdown，导出成功后必须进入“我的下载”并继续走
+  鉴权签名下载，不把参考文档正文打包成答案文件。
+- 浏览器支持 `showSaveFilePicker` 时，必须在发送导出请求前获取文件句柄，保留用户
+  激活上下文并允许取消；不支持时回退到标准下载，不能声称已强制选择宿主机路径。
+- FastAPI 输入守卫只加载 `BanTopics` 与 `PromptInjection` 两套模型，实例为进程单例，
+  同步推理使用专用线程池并串行化。中文规则层先处理确定性涉黄赌毒表达，BanTopics
+  补充语义覆盖，PromptInjection 独立处理提示词注入；日志禁止记录用户原文。
+- 启用后台预热时，`/api/v1/health/ready` 必须在模型加载完成前返回 503，并以
+  `checks.llm_guard=warming` 标识。模型缓存使用独立持久卷；生产每个 API 副本建议
+  至少 6 GiB 内存、2 vCPU，并保持单容器单 Uvicorn Worker。
