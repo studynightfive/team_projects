@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,9 +13,10 @@ from app.common.exceptions import (
     ValidationException,
 )
 from app.common.models import KnowledgeBasePermission, User
+from app.common.organization import can_manage_department, is_super_admin
 from app.common.schemas import ErrorCode
+from app.departments.models import Department
 from app.documents.models import Document, DocumentChunk, DocumentStatus
-from app.documents.permissions import user_permission_codes
 from app.knowledge.models import KnowledgeBase
 from app.knowledge.schemas import (
     KnowledgeBaseCreate,
@@ -24,52 +25,57 @@ from app.knowledge.schemas import (
 )
 
 
-def _is_admin(user: User) -> bool:
-    permissions = user_permission_codes(user)
-    return any(
-        code in permissions
-        for code in {
-            "admin.knowledge_base.view",
-            "admin.document.view",
-            "admin.document.upload",
-        }
-    )
-
-
-def _has_permission(user: User, code: str) -> bool:
-    return code in user_permission_codes(user)
-
-
-def _require_permission(user: User, code: str) -> None:
-    if not _has_permission(user, code):
-        raise ForbiddenException(message="当前账号没有管理知识库的权限")
-
-
 async def _accessible_kb_ids(db: AsyncSession, user: User) -> set[str] | None:
-    if _is_admin(user):
-        return None
-
-    role_ids = [role.id for role in user.roles if role.status == "active"]
-    kb_ids: set[str] = set()
-
-    user_rows = await db.execute(
-        select(KnowledgeBasePermission.kb_id).where(
-            KnowledgeBasePermission.subject_type == "user",
-            KnowledgeBasePermission.subject_id == user.id,
+    clauses = [KnowledgeBase.owner_user_id == user.id]
+    if is_super_admin(user):
+        clauses.append(KnowledgeBase.kind == "enterprise")
+    elif user.department_id is not None:
+        clauses.append(
+            (KnowledgeBase.kind == "enterprise")
+            & (KnowledgeBase.department_id == user.department_id)
         )
+    rows = await db.execute(
+        select(KnowledgeBase.id).where(or_(*clauses))
     )
-    kb_ids.update(row[0] for row in user_rows.fetchall())
+    return {row[0] for row in rows.fetchall()}
 
-    if role_ids:
-        role_rows = await db.execute(
-            select(KnowledgeBasePermission.kb_id).where(
-                KnowledgeBasePermission.subject_type == "role",
-                KnowledgeBasePermission.subject_id.in_(role_ids),
+
+async def ensure_personal_knowledge_base(
+    db: AsyncSession, user: User
+) -> KnowledgeBase:
+    existing = (
+        await db.execute(
+            select(KnowledgeBase).where(
+                KnowledgeBase.kind == "personal",
+                KnowledgeBase.owner_user_id == user.id,
             )
         )
-        kb_ids.update(row[0] for row in role_rows.fetchall())
+    ).scalar_one_or_none()
+    if existing is not None:
+        return existing
 
-    return kb_ids
+    department_id = user.department_id or "00000000-0000-0000-0000-000000000001"
+    if await db.get(Department, department_id) is None:
+        raise ValidationException(message="创建个人知识库前必须先分配有效部门")
+    item = KnowledgeBase(
+        name=f"{user.display_name}的个人知识库",
+        description="用于存放个人文档，仅本人可访问",
+        department_id=department_id,
+        kind="personal",
+        owner_user_id=user.id,
+    )
+    db.add(item)
+    await db.flush()
+    db.add(
+        KnowledgeBasePermission(
+            subject_type="user",
+            subject_id=user.id,
+            kb_id=item.id,
+            access_level="admin",
+        )
+    )
+    await db.flush()
+    return item
 
 
 def _normalize_name(name: str) -> str:
@@ -77,9 +83,15 @@ def _normalize_name(name: str) -> str:
 
 
 async def _ensure_name_available(
-    db: AsyncSession, name: str, *, exclude_id: str | None = None
+    db: AsyncSession,
+    name: str,
+    *,
+    department_id: str,
+    exclude_id: str | None = None,
 ) -> None:
     stmt = select(KnowledgeBase.id).where(
+        KnowledgeBase.kind == "enterprise",
+        KnowledgeBase.department_id == department_id,
         func.lower(func.trim(KnowledgeBase.name)) == name.lower()
     )
     if exclude_id is not None:
@@ -100,6 +112,17 @@ async def _summaries(
         return []
 
     kb_ids = [item.id for item in knowledge_bases]
+    department_ids = {item.department_id for item in knowledge_bases}
+    department_names = {
+        row[0]: row[1]
+        for row in (
+            await db.execute(
+                select(Department.id, Department.name).where(
+                    Department.id.in_(department_ids)
+                )
+            )
+        ).all()
+    }
     doc_rows = await db.execute(
         select(
             Document.knowledge_base_id,
@@ -132,9 +155,11 @@ async def _summaries(
             id=item.id,
             name=item.name,
             description=item.description,
+            department_id=item.department_id,
+            department_name=department_names.get(item.department_id, "未知部门"),
+            kind=item.kind,
+            owner_user_id=item.owner_user_id,
             status=item.status,
-            chunk_size=item.chunk_size,
-            chunk_overlap=item.chunk_overlap,
             document_count=doc_counts.get(item.id, {}).get("document_count", 0),
             ready_document_count=doc_counts.get(item.id, {}).get(
                 "ready_document_count", 0
@@ -178,17 +203,24 @@ async def create_knowledge_base(
     user: User,
     payload: KnowledgeBaseCreate,
 ) -> KnowledgeBaseSummary:
-    _require_permission(user, "admin.knowledge_base.create")
+    department_id = payload.department_id or user.department_id
+    if department_id is None:
+        raise ValidationException(message="创建知识库前必须先分配部门")
+    department = await db.get(Department, department_id)
+    if department is None:
+        raise NotFoundException(message="部门不存在")
+    if not await can_manage_department(db, user, department_id):
+        raise ForbiddenException(message="只有超级管理员或本部门管理员可以创建知识库")
     name = _normalize_name(payload.name)
     if name == "":
         raise ValidationException(message="知识库名称不能为空")
-    await _ensure_name_available(db, name)
+    await _ensure_name_available(db, name, department_id=department_id)
 
     item = KnowledgeBase(
         name=name,
         description=payload.description,
-        chunk_size=payload.chunk_size,
-        chunk_overlap=payload.chunk_overlap,
+        department_id=department_id,
+        kind="enterprise",
     )
     db.add(item)
     await db.flush()
@@ -218,12 +250,12 @@ async def update_knowledge_base(
     kb_id: str,
     payload: KnowledgeBaseUpdate,
 ) -> KnowledgeBaseSummary:
-    _require_permission(user, "admin.knowledge_base.edit")
     item = await db.get(KnowledgeBase, kb_id)
     if item is None:
         raise NotFoundException(message="知识库不存在")
-    accessible = await _accessible_kb_ids(db, user)
-    if accessible is not None and kb_id not in accessible:
+    if item.kind == "personal":
+        raise ForbiddenException(message="个人知识库不支持在管理端修改")
+    if not await can_manage_department(db, user, item.department_id):
         raise ForbiddenException(message="无权修改该知识库")
 
     update = payload.model_dump(exclude_unset=True)
@@ -231,16 +263,20 @@ async def update_knowledge_base(
         name = _normalize_name(str(update["name"]))
         if name == "":
             raise ValidationException(message="知识库名称不能为空")
-        await _ensure_name_available(db, name, exclude_id=kb_id)
+        target_department_id = str(update.get("department_id") or item.department_id)
+        await _ensure_name_available(
+            db,
+            name,
+            department_id=target_department_id,
+            exclude_id=kb_id,
+        )
         update["name"] = name
-    chunk_size = update.get("chunk_size")
-    chunk_overlap = update.get("chunk_overlap")
-    final_chunk_size = chunk_size if isinstance(chunk_size, int) else item.chunk_size
-    final_chunk_overlap = (
-        chunk_overlap if isinstance(chunk_overlap, int) else item.chunk_overlap
-    )
-    if final_chunk_overlap >= final_chunk_size:
-        raise ValidationException(message="chunk_overlap 必须小于 chunk_size")
+    if "department_id" in update and update["department_id"] is not None:
+        target_department_id = str(update["department_id"])
+        if not is_super_admin(user):
+            raise ForbiddenException(message="只有超级管理员可以调整知识库所属部门")
+        if await db.get(Department, target_department_id) is None:
+            raise NotFoundException(message="部门不存在")
     for field, value in update.items():
         if value is not None:
             setattr(item, field, value)

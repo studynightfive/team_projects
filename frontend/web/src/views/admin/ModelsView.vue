@@ -4,8 +4,10 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import { isRealApiMode } from "../../config/runtime";
 import { useSessionStore } from "../../stores/session";
 import {
@@ -55,6 +57,16 @@ const editor = reactive({
   topN: 10,
 });
 
+const providerPresets = [
+  { code: "deepseek", display_name: "DeepSeek", base_url: "https://api.deepseek.com" },
+  { code: "dashscope", display_name: "阿里云 DashScope", base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1" },
+  { code: "moonshot", display_name: "Kimi / Moonshot", base_url: "https://api.moonshot.cn/v1" },
+  { code: "zhipu", display_name: "智谱 BigModel", base_url: "https://open.bigmodel.cn/api/paas/v4" },
+  { code: "minimax", display_name: "MiniMax", base_url: "https://api.minimax.io/v1" },
+  { code: "volcengine", display_name: "火山引擎豆包", base_url: "https://ark.cn-beijing.volces.com/api/v3" },
+  { code: "qianfan", display_name: "百度千帆", base_url: "https://qianfan.baidubce.com/v2" },
+] as const;
+
 const selectedModel = computed(() =>
   models.value.find((model) => model.id === selectedModelId.value),
 );
@@ -75,6 +87,12 @@ const filteredModels = computed(() => {
     );
   });
 });
+const {
+  page: modelsPage,
+  pageSize: modelsPageSize,
+  pagedItems: pagedModels,
+  setPage: setModelsPage,
+} = useListPagination(filteredModels);
 
 const providerLabel = (code: string): string =>
   providers.value.find((provider) => provider.code === code)?.display_name ??
@@ -95,9 +113,7 @@ const enabledEmbeddingModels = computed(() =>
   embeddingModels.value.filter((model) => model.enabled),
 );
 const defaultChatModel = computed(
-  () =>
-    enabledChatModels.value.find((model) => model.provider_code === "deepseek") ??
-    enabledChatModels.value[0],
+  () => enabledChatModels.value[0],
 );
 const defaultEmbeddingModel = computed(
   () =>
@@ -128,21 +144,23 @@ const loadData = async (): Promise<void> => {
   }
 };
 
-const ensureDeepSeekProvider = async (): Promise<void> => {
+const ensureCommonProviders = async (): Promise<void> => {
   if (initializingProvider.value) return;
-  if (providers.value.some((provider) => provider.code === "deepseek")) {
-    message.info("DeepSeek 供应商已存在，不会覆盖现有地址配置");
+  const missing = providerPresets.filter(
+    (preset) => !providers.value.some((provider) => provider.code === preset.code),
+  );
+  if (missing.length === 0) {
+    message.info("常用模型供应商已经初始化");
     return;
   }
   initializingProvider.value = true;
   try {
-    await upsertModelProvider({
-      code: "deepseek",
-      display_name: "DeepSeek",
-      base_url: "https://api.deepseek.com",
-      enabled: true,
-    });
-    message.success("DeepSeek 供应商已初始化");
+    await Promise.all(
+      missing.map((preset) =>
+        upsertModelProvider({ ...preset, enabled: true }),
+      ),
+    );
+    message.success(`已初始化 ${missing.length} 个常用供应商`);
     await loadData();
   } catch (err) {
     message.error(toPublicApiError(err).message);
@@ -151,17 +169,11 @@ const ensureDeepSeekProvider = async (): Promise<void> => {
   }
 };
 
-const startDeepSeekCreate = (): void => {
+const startChatCreate = (): void => {
   if (!startCreate()) return;
-  const deepSeekProvider = providers.value.find((item) => item.code === "deepseek");
-  if (deepSeekProvider === undefined) {
-    message.warning("请先初始化 DeepSeek 供应商");
-    closeEditor();
-    return;
-  }
   Object.assign(editor, {
-    providerCode: "deepseek",
-    modelName: "deepseek-chat",
+    providerCode: providers.value.find((item) => item.enabled)?.code ?? "",
+    modelName: "",
     kind: "chat",
     temperature: 0.2,
     maxTokens: 1200,
@@ -360,18 +372,18 @@ onBeforeUnmount(clearSensitiveState);
           class="secondary-button"
           type="button"
           :disabled="initializingProvider"
-          @click="ensureDeepSeekProvider"
+          @click="ensureCommonProviders"
         >
-          {{ initializingProvider ? "初始化中" : "初始化 DeepSeek" }}
+          {{ initializingProvider ? "初始化中" : "初始化常用供应商" }}
         </button>
         <button
           v-if="canCreate"
           class="secondary-button"
           type="button"
           :disabled="loading || providers.length === 0"
-          @click="startDeepSeekCreate"
+          @click="startChatCreate"
         >
-          新增 DeepSeek 模型
+          新增聊天模型
         </button>
         <button class="secondary-button" type="button" :disabled="loading" @click="loadData">
           {{ loading ? "刷新中" : "刷新" }}
@@ -395,7 +407,7 @@ onBeforeUnmount(clearSensitiveState);
         <p>
           {{
             defaultChatModel === undefined
-              ? "请新增 DeepSeek 聊天模型；未配置时后端会尝试使用环境变量兜底。"
+              ? "请新增任一启用的聊天模型；未选择时后端才使用环境变量兜底。"
               : `${providerLabel(defaultChatModel.provider_code)} · ${
                 defaultChatModel.api_key_set ? "密钥已配置" : "密钥未配置"
               }`
@@ -408,7 +420,7 @@ onBeforeUnmount(clearSensitiveState);
         <p>
           {{
             defaultEmbeddingModel === undefined
-              ? "请新增 Qwen embedding 模型；否则向量检索会退回兜底向量。"
+              ? "请新增 1536 维 embedding 模型；否则向量检索会退回关键词。"
               : `${providerLabel(defaultEmbeddingModel.provider_code)} · ${
                 defaultEmbeddingModel.dimensions ?? "-"
               } 维`
@@ -492,7 +504,7 @@ onBeforeUnmount(clearSensitiveState);
             </tr>
           </thead>
           <tbody>
-            <tr v-for="model in filteredModels" :key="model.id">
+            <tr v-for="model in pagedModels" :key="model.id">
               <td>
                 <strong>{{ providerLabel(model.provider_code) }}</strong>
                 <small>{{ model.model_name }}</small>
@@ -542,6 +554,13 @@ onBeforeUnmount(clearSensitiveState);
           </tbody>
         </table>
       </div>
+      <ListPagination
+        v-if="filteredModels.length > 0"
+        :page="modelsPage"
+        :page-size="modelsPageSize"
+        :total="filteredModels.length"
+        @change="setModelsPage"
+      />
     </ResourcePanel>
 
     <Drawer
@@ -568,6 +587,7 @@ onBeforeUnmount(clearSensitiveState);
         <label>
           <span>模型标识</span>
           <input
+            id="model-name-input"
             v-model="editor.modelName"
             type="text"
             autocomplete="off"

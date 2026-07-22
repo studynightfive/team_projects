@@ -55,6 +55,7 @@ class Chunker:
         *,
         chunk_size: int | None = None,
         overlap: int | None = None,
+        strategy: str = "format",
     ) -> list[Chunk]:
         metadata = metadata or {}
         size = chunk_size or int(metadata.get("chunk_size") or self.settings.chunk_size_default)
@@ -66,6 +67,21 @@ class Chunker:
         size, ov = self.validate_params(size, ov)
 
         normalized_markdown = markdown.replace("\r\n", "\n")
+        if strategy == "fixed":
+            return self._window_chunks(normalized_markdown, size=size, overlap=ov)
+        if strategy == "recursive":
+            parts = self._recursive_parts(normalized_markdown, size)
+            return self._parts_to_chunks(normalized_markdown, parts, size=size, overlap=ov)
+        if strategy == "semantic":
+            parts = [
+                part
+                for unit in self._split_units(normalized_markdown)
+                for part in self._recursive_parts(unit.text, size)
+            ]
+            return self._parts_to_chunks(normalized_markdown, parts, size=size, overlap=ov)
+        if strategy != "format":
+            raise ValidationException("不支持的切分策略")
+
         units = self._split_units(normalized_markdown)
         chunks: list[Chunk] = []
         current_heading: str | None = None
@@ -162,6 +178,96 @@ class Chunker:
                     token_estimate=max(1, len(normalized_markdown.strip()) // 4),
                 )
             )
+        return chunks
+
+    def _window_chunks(self, text: str, *, size: int, overlap: int) -> list[Chunk]:
+        chunks: list[Chunk] = []
+        step = max(1, size - overlap)
+        for start in range(0, len(text), step):
+            content = text[start : start + size].strip()
+            if content:
+                chunks.append(
+                    Chunk(
+                        chunk_no=len(chunks) + 1,
+                        content=content,
+                        heading=None,
+                        section_no=None,
+                        page_no=None,
+                        char_start=start,
+                        char_end=min(start + size, len(text)),
+                        token_estimate=max(1, len(content) // 4),
+                    )
+                )
+            if start + size >= len(text):
+                break
+        return chunks
+
+    def _recursive_parts(self, text: str, size: int) -> list[str]:
+        def split_part(part: str, separators: list[str]) -> list[str]:
+            if len(part) <= size:
+                return [part]
+            if not separators:
+                return [part[index : index + size] for index in range(0, len(part), size)]
+            separator, *remaining = separators
+            pieces = part.split(separator)
+            if len(pieces) == 1:
+                return split_part(part, remaining)
+            result: list[str] = []
+            for index, piece in enumerate(pieces):
+                value = piece + (separator if index < len(pieces) - 1 else "")
+                result.extend(split_part(value, remaining))
+            return result
+
+        return split_part(text, ["\n\n", "\n", "。", "；", "，", " "])
+
+    def _parts_to_chunks(
+        self,
+        source: str,
+        parts: list[str],
+        *,
+        size: int,
+        overlap: int,
+    ) -> list[Chunk]:
+        grouped: list[str] = []
+        current = ""
+        for part in parts:
+            candidate = f"{current}{part}" if current else part
+            if current and len(candidate) > size:
+                grouped.append(current)
+                prefix = current[-overlap:] if overlap else ""
+                current = f"{prefix}{part}"
+            else:
+                current = candidate
+        if current:
+            grouped.append(current)
+
+        chunks: list[Chunk] = []
+        cursor = 0
+        current_heading: str | None = None
+        for content in grouped:
+            stripped = content.strip()
+            if not stripped:
+                continue
+            heading_match = _HEADING_RE.search(stripped)
+            if heading_match:
+                current_heading = heading_match.group(2).strip()
+            start = source.find(stripped, cursor)
+            if start < 0:
+                start = max(0, cursor - overlap)
+            end = min(start + len(stripped), len(source))
+            chunks.append(
+                Chunk(
+                    chunk_no=len(chunks) + 1,
+                    content=stripped,
+                    heading=current_heading,
+                    section_no=None,
+                    page_no=None,
+                    char_start=start,
+                    char_end=end,
+                    token_estimate=max(1, len(stripped) // 4),
+                )
+            )
+            cursor = end
         return chunks
 
     def _split_units(self, markdown: str) -> list[_MarkdownUnit]:

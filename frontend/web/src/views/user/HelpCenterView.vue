@@ -3,8 +3,10 @@ import { computed, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import {
   Bot,
   BookOpen,
@@ -33,6 +35,12 @@ const filteredTopics = computed(() => {
           .includes(normalizedKeyword)),
   );
 });
+const {
+  page: topicsPage,
+  pageSize: topicsPageSize,
+  pagedItems: pagedTopics,
+  setPage: setTopicsPage,
+} = useListPagination(filteredTopics);
 </script>
 
 <template>
@@ -101,7 +109,7 @@ const filteredTopics = computed(() => {
       </div>
 
       <div v-if="filteredTopics.length > 0" class="faq-list">
-        <details v-for="topic in filteredTopics" :key="topic.id">
+        <details v-for="topic in pagedTopics" :key="topic.id">
           <summary>
             <span>
               <small>{{ topic.category }}</small>
@@ -112,6 +120,13 @@ const filteredTopics = computed(() => {
           <p>{{ topic.answer }}</p>
         </details>
       </div>
+      <ListPagination
+        v-if="filteredTopics.length > 0"
+        :page="topicsPage"
+        :page-size="topicsPageSize"
+        :total="filteredTopics.length"
+        @change="setTopicsPage"
+      />
 
       <InlineState
         v-else

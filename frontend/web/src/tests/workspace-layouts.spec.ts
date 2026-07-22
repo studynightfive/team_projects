@@ -25,8 +25,8 @@ describe("M01 V2 工作区布局", () => {
     expect(userMobileNavigation.map((item) => item.shortLabel)).toEqual([
       "搜索",
       "知识库",
-      "会话",
-      "历史",
+      "空间",
+      "收藏",
     ]);
     expect(navigationLabels).not.toContain("搜索设置");
     await wrapper.get(".sidebar-profile-trigger").trigger("click");
@@ -39,9 +39,10 @@ describe("M01 V2 工作区布局", () => {
     expect(wrapper.findAll("h1")).toHaveLength(1);
     expect(wrapper.find("header.workspace-topbar").exists()).toBe(true);
     expect(wrapper.find("main.workspace-content").exists()).toBe(true);
-    expect(wrapper.findAll(".search-suggestion-list button")).toHaveLength(6);
+    expect(wrapper.find(".search-suggestion-list").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("常用问题");
     expect(wrapper.findAll(".quick-action-list button")).toHaveLength(2);
-    expect(wrapper.findAll(".recent-search-list button")).toHaveLength(4);
+    expect(wrapper.find(".recent-search-list").exists()).toBe(false);
     expect(wrapper.findAll(".knowledge-space-list a")).toHaveLength(3);
     expect(wrapper.text()).toContain("企业知识中心");
     expect(wrapper.text()).toContain("模拟数据");
@@ -63,7 +64,8 @@ describe("M01 V2 工作区布局", () => {
     expect(wrapper.findAll(".admin-stat-grid .sparkline")).toHaveLength(4);
     expect(wrapper.findAll(".sparkline-point")).toHaveLength(24);
     expect(wrapper.findAll(".dashboard-facts div")).toHaveLength(3);
-    expect(wrapper.findAll(".governance-list a")).toHaveLength(4);
+    expect(wrapper.find(".governance-list").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("快捷入口");
     expect(wrapper.findAll(".audit-table tbody tr")).toHaveLength(4);
     expect(wrapper.text()).toContain("真实后端聚合指标");
   });

@@ -4,20 +4,25 @@ import { computed, onMounted, reactive, ref } from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import {
   createAdminUser,
   listAdminRoles,
   listAdminUsers,
+  listDepartments,
   updateAdminUser,
   type AdminRole,
   type AdminUser,
+  type DepartmentRecord,
 } from "../../services/admin";
 
 const { message, modal } = AntApp.useApp();
 const users = ref<readonly AdminUser[]>([]);
 const roles = ref<readonly AdminRole[]>([]);
+const departments = ref<readonly DepartmentRecord[]>([]);
 const query = ref("");
 const statusFilter = ref("全部状态");
 const selectedUserId = ref<string>();
@@ -28,12 +33,20 @@ const editor = reactive({
   username: "",
   displayName: "",
   password: "",
-  roleIds: [] as string[],
+  roleId: "",
+  departmentId: "",
 });
+
+const assignableRoles = computed(() =>
+  roles.value.filter((role) => role.name !== "超级管理员"),
+);
 
 const selectedUser = computed(() =>
   users.value.find((user) => user.id === selectedUserId.value),
 );
+
+const isSuperAdmin = (user: AdminUser): boolean =>
+  user.roles.some((role) => role.name === "超级管理员");
 
 const filteredUsers = computed(() => {
   const keyword = query.value.trim().toLowerCase();
@@ -44,6 +57,7 @@ const filteredUsers = computed(() => {
         user.username,
         user.display_name,
         ...user.roles.map((role) => role.name),
+        user.department?.name ?? "",
       ].some((value) => value.toLowerCase().includes(keyword));
     const label = statusLabel(user.status);
     return (
@@ -52,6 +66,13 @@ const filteredUsers = computed(() => {
     );
   });
 });
+
+const {
+  page: usersPage,
+  pageSize: usersPageSize,
+  pagedItems: pagedUsers,
+  setPage: setUsersPage,
+} = useListPagination(filteredUsers);
 
 const statusLabel = (status: string): string =>
   status === "active" ? "正常" : "已停用";
@@ -65,14 +86,19 @@ const formatDate = (value: string | null): string =>
 const loadData = async (): Promise<void> => {
   loading.value = true;
   try {
-    const [userPage, rolePage] = await Promise.all([
+    const [userPage, rolePage, departmentItems] = await Promise.all([
       listAdminUsers(),
       listAdminRoles(),
+      listDepartments(),
     ]);
     users.value = userPage.items;
     roles.value = rolePage.items;
-    if (editor.roleIds.length === 0 && rolePage.items.length > 0) {
-      editor.roleIds = rolePage.items[0] === undefined ? [] : [rolePage.items[0].id];
+    departments.value = departmentItems;
+    const firstAssignableRole = rolePage.items.find(
+      (role) => role.name !== "超级管理员",
+    );
+    if (editor.roleId === "" && firstAssignableRole !== undefined) {
+      editor.roleId = firstAssignableRole.id;
     }
   } catch (err) {
     message.error(toPublicApiError(err).message);
@@ -88,17 +114,21 @@ const startCreate = (): void => {
     username: "",
     displayName: "",
     password: "",
-    roleIds: [
-      roles.value.find((role) => role.name === "普通用户")?.id ??
-        roles.value[0]?.id ??
-        "",
-    ].filter((roleId) => roleId !== ""),
+    roleId:
+      assignableRoles.value.find((role) => role.name === "普通用户")?.id ??
+      assignableRoles.value[0]?.id ??
+      "",
+    departmentId: departments.value[0]?.id ?? "",
   });
 };
 
 const startEdit = (id: string): void => {
   const user = users.value.find((item) => item.id === id);
   if (user === undefined) return;
+  if (isSuperAdmin(user)) {
+    message.warning("超级管理员账号不在用户管理中调整角色");
+    return;
+  }
 
   isCreating.value = false;
   selectedUserId.value = id;
@@ -106,7 +136,8 @@ const startEdit = (id: string): void => {
     username: user.username,
     displayName: user.display_name,
     password: "",
-    roleIds: user.roles.map((role) => role.id),
+    roleId: user.roles.find((role) => role.name !== "超级管理员")?.id ?? "",
+    departmentId: user.department?.id ?? "",
   });
 };
 
@@ -116,8 +147,12 @@ const closeEditor = (): void => {
 };
 
 const saveUser = async (): Promise<void> => {
-  if (editor.roleIds.length === 0) {
-    message.warning("请至少选择一个角色");
+  if (editor.roleId === "") {
+    message.warning("请选择角色");
+    return;
+  }
+  if (editor.departmentId === "") {
+    message.warning("请选择所属部门");
     return;
   }
   if (isCreating.value && editor.displayName.trim() === "") {
@@ -140,12 +175,14 @@ const saveUser = async (): Promise<void> => {
         username: editor.username.trim(),
         display_name: editor.displayName.trim(),
         password: editor.password,
-        role_ids: editor.roleIds,
+        role_ids: [editor.roleId],
+        department_id: editor.departmentId,
       });
       message.success("用户已创建");
     } else if (selectedUser.value !== undefined) {
       await updateAdminUser(selectedUser.value.id, {
-        role_ids: editor.roleIds,
+        role_ids: [editor.roleId],
+        department_id: editor.departmentId,
       });
       message.success("用户角色已保存");
     }
@@ -234,6 +271,7 @@ onMounted(loadData);
             <tr>
               <th scope="col">用户</th>
               <th scope="col">角色</th>
+              <th scope="col">部门</th>
               <th scope="col">状态</th>
               <th scope="col">最近登录</th>
               <th scope="col">创建时间</th>
@@ -241,12 +279,13 @@ onMounted(loadData);
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user.id">
+            <tr v-for="user in pagedUsers" :key="user.id">
               <td>
                 <strong>{{ user.display_name }}</strong>
                 <small>{{ user.username }}</small>
               </td>
               <td>{{ user.roles.map((role) => role.name).join("、") }}</td>
+              <td>{{ user.department?.name ?? "待分配" }}</td>
               <td>
                 <span class="status-chip" :class="statusTone(user.status)">
                   {{ statusLabel(user.status) }}
@@ -257,6 +296,7 @@ onMounted(loadData);
               <td>
                 <div class="table-actions">
                   <button
+                    v-if="!isSuperAdmin(user)"
                     class="text-button"
                     type="button"
                     @click="startEdit(user.id)"
@@ -276,6 +316,13 @@ onMounted(loadData);
           </tbody>
         </table>
       </div>
+      <ListPagination
+        v-if="filteredUsers.length > 0"
+        :page="usersPage"
+        :page-size="usersPageSize"
+        :total="filteredUsers.length"
+        @change="setUsersPage"
+      />
     </ResourcePanel>
 
     <Drawer
@@ -320,10 +367,31 @@ onMounted(loadData);
           />
         </label>
         <label>
-          <span>角色（可多选）</span>
-          <select v-model="editor.roleIds" multiple required>
-            <option v-for="role in roles" :key="role.id" :value="role.id">
+          <span>角色</span>
+          <select v-model="editor.roleId" required>
+            <option value="" disabled>请选择角色</option>
+            <option
+              v-for="role in assignableRoles"
+              :key="role.id"
+              :value="role.id"
+            >
               {{ role.name }}
+            </option>
+          </select>
+        </label>
+        <p class="preview-note">
+          知识库编辑者同时拥有普通用户的检索、问答、收藏和导出权限。
+        </p>
+        <label>
+          <span>所属部门</span>
+          <select v-model="editor.departmentId" required>
+            <option value="" disabled>请选择部门</option>
+            <option
+              v-for="department in departments"
+              :key="department.id"
+              :value="department.id"
+            >
+              {{ department.name }}
             </option>
           </select>
         </label>
@@ -331,7 +399,7 @@ onMounted(loadData);
           {{
             isCreating
               ? "保存会写入真实后端；账号 ID 由后端唯一约束兜底，不能重复。"
-              : "保存只会更新该用户的角色，不修改账号 ID 或姓名。"
+              : "保存只会更新该用户的角色和所属部门，不修改账号 ID 或姓名。"
           }}
         </p>
         <div class="drawer-actions">

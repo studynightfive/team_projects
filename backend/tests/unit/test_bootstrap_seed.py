@@ -152,19 +152,29 @@ async def test_seed_model_providers_creates_configured_definitions(monkeypatch) 
         "https://dashscope.aliyuncs.com/compatible-mode/v1",
     )
     db = MagicMock(spec=AsyncSession)
-    db.get = AsyncMock(side_effect=[None, None])
+    db.get = AsyncMock(return_value=None)
     db.commit = AsyncMock()
 
     await seed_module.seed_model_providers(db)
 
     added = [call.args[0] for call in db.add.call_args_list]
-    assert [(item.code, item.display_name, item.base_url) for item in added] == [
+    assert [(item.code, item.display_name, item.base_url) for item in added[:2]] == [
         ("deepseek", "MiniMax", "https://api.minimax.io/v1"),
         (
             "dashscope",
             "阿里云 DashScope",
             "https://dashscope.aliyuncs.com/compatible-mode/v1",
         ),
+    ]
+    assert [item.code for item in added] == [
+        "deepseek",
+        "dashscope",
+        "moonshot",
+        "zhipu",
+        "minimax",
+        "volcengine",
+        "qianfan",
+        "openai",
     ]
     assert all(isinstance(item, ModelProvider) and item.enabled for item in added)
     db.commit.assert_awaited_once()
@@ -191,8 +201,18 @@ async def test_seed_model_providers_preserves_existing_definitions(monkeypatch) 
         "dashscope_base_url",
         "https://dashscope.aliyuncs.com/compatible-mode/v1",
     )
+    providers = {
+        "deepseek": deepseek,
+        "dashscope": dashscope,
+        "moonshot": ModelProvider(code="moonshot", display_name="Moonshot"),
+        "zhipu": ModelProvider(code="zhipu", display_name="Zhipu"),
+        "minimax": ModelProvider(code="minimax", display_name="MiniMax"),
+        "volcengine": ModelProvider(code="volcengine", display_name="Volcengine"),
+        "qianfan": ModelProvider(code="qianfan", display_name="Qianfan"),
+        "openai": ModelProvider(code="openai", display_name="OpenAI"),
+    }
     db = MagicMock(spec=AsyncSession)
-    db.get = AsyncMock(side_effect=[deepseek, dashscope])
+    db.get = AsyncMock(side_effect=lambda _model, code: providers[code])
     db.commit = AsyncMock()
 
     await seed_module.seed_model_providers(db)

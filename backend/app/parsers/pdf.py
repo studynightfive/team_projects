@@ -163,7 +163,10 @@ def _limit_pdf_worker_memory() -> None:
         import resource
 
         limit = app_settings.pdf_parse_memory_limit_mb * 1024 * 1024
-        resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+        resource.setrlimit(  # type: ignore[attr-defined,unused-ignore]
+            resource.RLIMIT_AS,  # type: ignore[attr-defined,unused-ignore]
+            (limit, limit),
+        )
     except (ImportError, OSError, ValueError):
         # Windows 开发环境没有 resource；生产 Worker 运行于 Linux 容器。
         return

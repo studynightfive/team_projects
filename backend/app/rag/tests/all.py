@@ -1,7 +1,7 @@
 """命中率测试（提示词 06）—— schemas + repository + service + metrics + api 单文件版
 
 指标：hit_rate / MRR / NDCG@K / Recall@K / Precision@K / MAP@K
-可复现：固化 config_hash；缓存命中。
+可复现：固化 config_hash；每次运行都重新执行真实检索。
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ from app.common.database import Base, get_db
 from app.common.exceptions import NotFoundException, ValidationException
 from app.common.models import User
 from app.common.schemas import APIResponse, PaginatedData
+from app.documents.models import DocumentChunk
 from app.rag._shared.audit_helper import audit
 from app.rag.search import service as search_service
 from app.rag.search.schemas import SearchRequest
@@ -155,6 +156,21 @@ class RetrievalTestRequest(BaseModel):
     async_run: bool = False
 
 
+class SingleRetrievalTestRequest(BaseModel):
+    kb_id: str
+    question: str = Field(min_length=1, max_length=2000)
+    config: RetrievalTestConfig
+
+
+class SingleRetrievalTestResponse(BaseModel):
+    question: str
+    hit: bool
+    hit_rate: float
+    threshold: float
+    hits: list[dict[str, object]]
+    took_ms: int
+
+
 class RetrievalTestMetrics(BaseModel):
     hit_rate: float
     mrr: float
@@ -269,6 +285,45 @@ def _store_query(query: RetrievalTestQuery) -> StoredRetrievalTestQuery:
     }
 
 
+async def _resolve_relevant_chunk_ids(
+    db: AsyncSession, chunk_ids: list[str]
+) -> list[str]:
+    """把重处理前的标签精确映射到同一文档、相同内容的新活动分块。"""
+    rows = list(
+        (
+            await db.execute(
+                select(DocumentChunk).where(DocumentChunk.id.in_(chunk_ids))
+            )
+        ).scalars()
+    )
+    by_id = {str(row.id): row for row in rows}
+    resolved: list[str] = []
+    for chunk_id in chunk_ids:
+        old = by_id.get(chunk_id)
+        if old is None:
+            raise ValidationException(
+                message=f"测试标签分块 {chunk_id} 已不存在，请重新标注测试集"
+            )
+        if old.is_active:
+            resolved.append(str(old.id))
+            continue
+        replacement = (
+            await db.execute(
+                select(DocumentChunk.id).where(
+                    DocumentChunk.document_id == old.document_id,
+                    DocumentChunk.content == old.content,
+                    DocumentChunk.is_active.is_(True),
+                )
+            )
+        ).scalars().first()
+        if replacement is None:
+            raise ValidationException(
+                message="测试集标签已因文档重切分失效，请重新选择相关分块后再运行"
+            )
+        resolved.append(str(replacement))
+    return list(dict.fromkeys(resolved))
+
+
 # ============================================================
 # 数据集 CRUD
 # ============================================================
@@ -343,33 +398,20 @@ async def _run_evaluation(
     db.add(run)
     await db.commit()
 
-    # 检查缓存：同 dataset_id + config_hash 已有 done 则直接复用
-    cached = await db.execute(
-        select(RetrievalTestRun)
-        .where(
-            RetrievalTestRun.dataset_id == dataset.id,
-            RetrievalTestRun.config_hash == run.config_hash,
-            RetrievalTestRun.status == "done",
-            RetrievalTestRun.id != run.id,
-        )
-        .order_by(RetrievalTestRun.finished_at.desc())
-        .limit(1)
-    )
-    prev = cached.scalar_one_or_none()
-    if prev is not None and prev.metrics and prev.per_query:
-        run.metrics = prev.metrics
-        run.per_query = prev.per_query
-        run.status = "done"
-        run.progress = 100
-        run.finished_at = datetime.now(timezone.utc)
-        await db.commit()
-        return run
-
-    # 真正执行评估
+    # 每次运行都真实检索，config_hash 仅用于对比相同参数的历史结果。
     per_query_results: list[PerQueryResult] = []
     n = len(dataset.queries)
+    normalized_queries: list[StoredRetrievalTestQuery] = []
     for i, q in enumerate(dataset.queries, start=1):
-        relevant = set(q["relevant_chunk_ids"])
+        resolved_ids = await _resolve_relevant_chunk_ids(db, q["relevant_chunk_ids"])
+        relevant = set(resolved_ids)
+        normalized_queries.append(
+            {
+                "query": q["query"],
+                "relevant_chunk_ids": resolved_ids,
+                "notes": q.get("notes"),
+            }
+        )
         qtext = q["query"]
         start = datetime.now(timezone.utc)
         try:
@@ -391,7 +433,13 @@ async def _run_evaluation(
             retrieved = [h.chunk_id for h in resp.hits]
         except Exception as exc:
             logger.warning("test_query_failed", error_type=type(exc).__name__)
-            retrieved = []
+            run.status = "failed"
+            run.error_message = f"第 {i} 个问题检索失败：{type(exc).__name__}"
+            run.finished_at = datetime.now(timezone.utc)
+            await db.commit()
+            raise ValidationException(
+                message=f"第 {i} 个问题检索失败，请检查模型和知识库索引配置"
+            ) from exc
         latency = int((datetime.now(timezone.utc) - start).total_seconds() * 1000)
         k = config.top_k
         per_query_results.append(
@@ -411,6 +459,8 @@ async def _run_evaluation(
         run.progress = int(i / n * 100)
         await db.commit()
 
+    if normalized_queries != dataset.queries:
+        dataset.queries = normalized_queries
     run.metrics = _aggregate_metrics(per_query_results).model_dump()
     run.per_query = [p.model_dump() for p in per_query_results]
     run.status = "done"
@@ -554,6 +604,55 @@ async def run_test_endpoint(
             per_query=[PerQueryResult.model_validate(p) for p in (run.per_query or [])],
             started_at=run.started_at,
             finished_at=run.finished_at,
+        ).model_dump()
+    ).model_dump()
+
+
+@router.post("/single")
+async def run_single_test_endpoint(
+    request: Request,
+    payload: SingleRetrievalTestRequest,
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(require_permission("admin.retrieval_test.run")),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, object]:
+    response = await search_service.search(
+        db,
+        user=user,
+        req=SearchRequest(
+            query=payload.question,
+            mode=payload.config.mode,
+            kb_id=payload.kb_id,
+            top_k=payload.config.top_k,
+            threshold=payload.config.threshold,
+            metadata_filter=payload.config.metadata_filter,
+            rerank=payload.config.rerank,
+            rerank_model_id=payload.config.rerank_model_id,
+            embedding_model_id=payload.config.embedding_model_id,
+        ),
+    )
+    hit = len(response.hits) > 0
+    await audit(
+        db,
+        action="retrieval_test_single",
+        user_id=user.id,
+        resource_type="kb",
+        resource_id=payload.kb_id,
+        detail=(
+            f"mode={payload.config.mode} top_k={payload.config.top_k} "
+            f"threshold={payload.config.threshold} hit={hit}"
+        ),
+        request=request,
+    )
+    await db.commit()
+    return APIResponse(
+        data=SingleRetrievalTestResponse(
+            question=payload.question,
+            hit=hit,
+            hit_rate=1.0 if hit else 0.0,
+            threshold=payload.config.threshold,
+            hits=[item.model_dump() for item in response.hits],
+            took_ms=response.took_ms,
         ).model_dump()
     ).model_dump()
 

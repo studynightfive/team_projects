@@ -45,7 +45,10 @@ async def _start_libreoffice(*cmd: str) -> asyncio.subprocess.Process:
 async def _kill_libreoffice_tree(proc: asyncio.subprocess.Process) -> None:
     if os.name == "posix":
         with suppress(ProcessLookupError):
-            os.killpg(proc.pid, signal.SIGKILL)
+            os.killpg(  # type: ignore[attr-defined,unused-ignore]
+                proc.pid,
+                signal.SIGKILL,  # type: ignore[attr-defined,unused-ignore]
+            )
     elif os.name == "nt":
         try:
             killer = await asyncio.create_subprocess_exec(
@@ -231,7 +234,7 @@ class XlsxParser(DocumentParser):
         return extension == ".xlsx" or "spreadsheetml" in mime_type
 
     async def parse(self, source_path: str) -> ParsedDocument:
-        from openpyxl import load_workbook
+        from openpyxl import load_workbook  # type: ignore[import-untyped,unused-ignore]
 
         path = Path(source_path)
         wb = load_workbook(str(path), data_only=True, read_only=True)

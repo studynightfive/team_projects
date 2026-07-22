@@ -81,7 +81,7 @@ class EpubParser(DocumentParser):
 
     async def parse(self, source_path: str) -> ParsedDocument:
         from bs4 import BeautifulSoup
-        from ebooklib import epub
+        from ebooklib import epub  # type: ignore[import-untyped,unused-ignore]
 
         path = Path(source_path)
         book = epub.read_epub(str(path))

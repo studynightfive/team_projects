@@ -7,6 +7,8 @@
 from __future__ import annotations
 
 import os
+import shutil
+import tempfile
 import zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -22,6 +24,7 @@ from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, func, selec
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
+from starlette.background import BackgroundTask
 
 from app.auth.dependencies import get_current_user, require_any_permission, require_permission
 from app.common.config import settings
@@ -102,6 +105,13 @@ class CreateExportRequest(BaseModel):
     format: ExportFormat
     document_ids: list[str] = Field(min_length=1, max_length=50)
     options: ExportOptions = Field(default_factory=ExportOptions)
+
+
+class AnswerExportRequest(BaseModel):
+    format: Literal["markdown", "txt", "docx"] = "markdown"
+    question: str = Field(min_length=1, max_length=2000)
+    answer: str = Field(min_length=1, max_length=100_000)
+    citations: list[dict[str, JsonValue]] = Field(default_factory=list, max_length=50)
 
 
 class ExportTaskResponse(BaseModel):
@@ -226,7 +236,7 @@ class PdfExporter:
 
     async def export(self, content: ExportContent, output_path: str, options: ExportOptions) -> str:
         try:
-            from weasyprint import HTML
+            from weasyprint import HTML  # type: ignore[import-untyped,unused-ignore]
         except ImportError as exc:
             raise RuntimeError("weasyprint 未安装") from exc
         body_html = _markdown_to_html(content.markdown)
@@ -476,6 +486,59 @@ def _task_to_response(task: ExportTask) -> ExportTaskResponse:
             "created_at": task.created_at,
             "finished_at": task.finished_at,
         }
+    )
+
+
+@router.post("/answer")
+async def export_answer_endpoint(
+    request: Request,
+    payload: AnswerExportRequest,
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(require_any_permission("export:write", "export.create")),
+    db: AsyncSession = Depends(get_db),
+) -> FileResponse:
+    """即时导出当前 RAG 问答，不读取或打包参考文档正文。"""
+    export_root = root()
+    export_root.mkdir(parents=True, exist_ok=True)
+    temporary_dir = Path(tempfile.mkdtemp(prefix="answer-", dir=export_root))
+    extension = "md" if payload.format == "markdown" else payload.format
+    output_path = temporary_dir / f"rag-answer.{extension}"
+    content = ExportContent(
+        document_id="rag-answer",
+        title="RAG 问答结果",
+        markdown=(
+            f"## 问题\n\n{payload.question.strip()}\n\n"
+            f"## 答案\n\n{payload.answer.strip()}"
+        ),
+        citations=payload.citations,
+    )
+    try:
+        await EXPORTERS[payload.format].export(
+            content,
+            str(output_path),
+            ExportOptions(include_citations=bool(payload.citations), include_assets=False),
+        )
+    except Exception:
+        shutil.rmtree(temporary_dir, ignore_errors=True)
+        raise
+    await audit(
+        db,
+        action="answer_export",
+        user_id=user.id,
+        resource_type="rag_answer",
+        request=request,
+    )
+    await db.commit()
+    filename = f"RAG-answer-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.{extension}"
+    return FileResponse(
+        path=output_path,
+        filename=filename,
+        media_type={
+            "markdown": "text/markdown; charset=utf-8",
+            "txt": "text/plain; charset=utf-8",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        }[payload.format],
+        background=BackgroundTask(shutil.rmtree, temporary_dir, ignore_errors=True),
     )
 
 

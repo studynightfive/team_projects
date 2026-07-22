@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 
 import InlineState from "../components/InlineState.vue";
@@ -12,7 +12,6 @@ import {
   FileUp,
   FolderHeart,
   PanelRightOpen,
-  ScanSearch,
   SquareLibrary,
 } from "../components/icons";
 import { isRealApiMode } from "../config/runtime";
@@ -28,15 +27,9 @@ import type {
   SearchSourceType,
 } from "../types/ai-search";
 
-interface SearchBoxHandle {
-  focus: () => void;
-  openFilePicker: () => void;
-}
-
 const { message } = AntApp.useApp();
 const router = useRouter();
 const sessionStore = useSessionStore();
-const searchBoxRef = ref<SearchBoxHandle>();
 const homeData = ref<AiSearchHomeData>();
 const loadError = ref("");
 const query = ref("");
@@ -46,7 +39,6 @@ const workspaceId = ref<string>();
 const modelId = ref("enterprise-general");
 const knowledgeBaseOptions = ref<readonly KnowledgeBaseOption[]>([]);
 const isContextOpen = ref(false);
-const attachmentNames = ref<string[]>([]);
 const contextTrigger = ref<HTMLElement>();
 
 let loadController: AbortController | undefined;
@@ -83,14 +75,6 @@ const visibleQuickActions = computed(
 const apiModeLabel = computed(() =>
   homeData.value?.meta.apiRequestsAllowed === true ? "真实接口" : "模拟数据",
 );
-
-const formatDate = (value: string): string =>
-  new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
 
 const initializeHome = async (): Promise<void> => {
   loadController?.abort();
@@ -140,12 +124,10 @@ const submitSearch = (request: SearchRequest): void => {
       state: {
         initialSearch: {
           q: request.query,
-          mode: request.mode,
           sources: request.sources.join(","),
           workspaceId: request.workspaceId,
           modelId: request.modelId,
         },
-        attachmentNames: [...(request.attachmentIds ?? [])],
       },
     });
     return;
@@ -155,48 +137,8 @@ const submitSearch = (request: SearchRequest): void => {
     path: "/search",
     query: {
       q: request.query,
-      mode: request.mode,
       sources: request.sources.join(","),
       model: request.modelId,
-    },
-    state: { attachmentNames: [...(request.attachmentIds ?? [])] },
-  });
-};
-
-const fillSuggestion = async (suggestion: string): Promise<void> => {
-  query.value = suggestion;
-  await nextTick();
-  searchBoxRef.value?.focus();
-};
-
-const openRecentSearch = (historyId: string): void => {
-  const item = homeData.value?.recentSearches.find(
-    (history) => history.id === historyId,
-  );
-  if (item === undefined) return;
-
-  if (isRealApiMode) {
-    void router.push({
-      path: "/search",
-      state: {
-        initialSearch: {
-          q: item.query,
-          mode: item.mode,
-          sources: item.sources.join(","),
-          workspaceId: workspaceId.value,
-        },
-      },
-    });
-    return;
-  }
-
-  void router.push({
-    path: "/search",
-    query: {
-      q: item.query,
-      mode: item.mode,
-      sources: item.sources.join(","),
-      model: modelId.value,
     },
   });
 };
@@ -207,21 +149,16 @@ const runQuickAction = (action: QuickAction): void => {
       void message.warning("当前账号没有上传文档权限");
       return;
     }
-    // 真实 API 模式不支持搜索框附件检索，跳转到知识库上传并自动打开文件选择
-    if (isRealApiMode) {
-      const kbId = workspaceId.value ?? knowledgeBaseOptions.value[0]?.id;
-      if (kbId === undefined) {
-        void message.warning("暂无可用知识库，请先到企业知识库创建后再上传");
-        void router.push("/knowledge");
-        return;
-      }
-      void router.push({
-        path: `/knowledge/${kbId}`,
-        query: { action: "upload" },
-      });
+    const kbId = workspaceId.value ?? knowledgeBaseOptions.value[0]?.id;
+    if (kbId === undefined) {
+      void message.warning("暂无可用知识库，请先到企业知识库创建后再上传");
+      void router.push("/knowledge");
       return;
     }
-    searchBoxRef.value?.openFilePicker();
+    void router.push({
+      path: `/knowledge/${kbId}`,
+      query: { action: "upload" },
+    });
     return;
   }
   void router.push(action.to);
@@ -299,34 +236,17 @@ onBeforeUnmount(() => {
           </p>
 
           <AiSearchBox
-            ref="searchBoxRef"
             v-model:query="query"
-            v-model:mode="mode"
             v-model:sources="sources"
             v-model:workspace-id="workspaceId"
             v-model:model-id="modelId"
-            :mode-options="homeData.modeOptions"
+            :mode="mode"
             :model-options="homeData.modelOptions"
             :knowledge-base-options="knowledgeBaseOptions"
             :requires-workspace="isRealApiMode"
-            :attachments-enabled="!isRealApiMode"
-            @attachments-change="attachmentNames = $event"
             @submit="submitSearch"
             @notice="showNotice"
           />
-
-          <div class="search-suggestion-list" aria-label="快捷提问">
-            <span>常用问题</span>
-            <button
-              v-for="suggestion in homeData.suggestions"
-              :key="suggestion"
-              type="button"
-              @click="fillSuggestion(suggestion)"
-            >
-              <ScanSearch :size="15" aria-hidden="true" />
-              {{ suggestion }}
-            </button>
-          </div>
         </header>
 
         <section class="home-section" aria-labelledby="quick-action-title">
@@ -365,40 +285,6 @@ onBeforeUnmount(() => {
         </section>
 
         <div class="home-information-grid">
-          <section
-            class="home-section recent-search-section"
-            aria-labelledby="recent-search-title"
-          >
-            <header class="home-section-heading">
-              <div>
-                <span>继续工作</span>
-                <h2 id="recent-search-title">最近搜索</h2>
-              </div>
-              <RouterLink
-                class="secondary-button compact home-view-all-button"
-                to="/history"
-              >
-                查看全部
-                <ChevronRight :size="14" aria-hidden="true" />
-              </RouterLink>
-            </header>
-            <div class="recent-search-list">
-              <button
-                v-for="history in homeData.recentSearches"
-                :key="history.id"
-                type="button"
-                @click="openRecentSearch(history.id)"
-              >
-                <span>
-                  <strong>{{ history.query }}</strong>
-                  <small>{{ formatDate(history.createdAt) }} ·
-                    {{ history.resultCount }} 条结果</small>
-                </span>
-                <ChevronRight :size="16" aria-hidden="true" />
-              </button>
-            </div>
-          </section>
-
           <section
             class="home-section knowledge-space-section"
             aria-labelledby="knowledge-space-title"
@@ -443,7 +329,6 @@ onBeforeUnmount(() => {
         :knowledge-base-options="knowledgeBaseOptions"
         :model-label="modelLabel"
         :citations="[]"
-        :attachment-names="attachmentNames"
         :return-focus-to="contextTrigger"
         @close="isContextOpen = false"
       />
@@ -529,42 +414,6 @@ onBeforeUnmount(() => {
   color: var(--color-text-muted);
   font-size: var(--font-size-15, 15px);
   line-height: 1.75;
-}
-
-.search-suggestion-list {
-  display: flex;
-  max-width: 100%;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-  text-align: left;
-}
-
-.search-suggestion-list > span {
-  display: inline-flex;
-  min-height: 34px;
-  align-items: center;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-12);
-}
-
-.search-suggestion-list button {
-  display: inline-flex;
-  min-height: 34px;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-8);
-  color: var(--color-text-secondary);
-  background: var(--color-surface);
-  font-size: var(--font-size-12);
-}
-
-.search-suggestion-list button svg {
-  flex: 0 0 15px;
-  color: var(--color-primary);
 }
 
 .home-section {
@@ -785,23 +634,6 @@ onBeforeUnmount(() => {
 
   .search-hero-description {
     margin-bottom: var(--space-5);
-  }
-
-  .search-suggestion-list {
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-    margin-right: calc(var(--content-gutter) * -1);
-    padding-right: var(--content-gutter);
-    overflow-x: auto;
-  }
-
-  .search-suggestion-list > span {
-    display: none;
-  }
-
-  .search-suggestion-list button {
-    flex: 0 0 240px;
-    min-height: 44px;
   }
 
   .home-section {

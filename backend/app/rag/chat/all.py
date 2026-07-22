@@ -38,6 +38,7 @@ from app.rag.conversations.all import (
     get_conversation,
     regenerate_answer,
 )
+from app.rag.guard import ensure_safe_query
 from app.rag.search.schemas import SearchRequest
 from app.rag.search.service import search as search_rag
 
@@ -352,6 +353,8 @@ async def chat_stream_endpoint(
     _perm: None = Depends(require_any_permission("chat.use", "chat:write")),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
+    ensure_safe_query(payload.question)
+
     async def event_gen() -> AsyncIterator[str]:
         try:
             async for chunk in _chat_stream(db, user=user, req=payload):

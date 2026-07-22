@@ -243,6 +243,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/departments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Departments Endpoint */
+        get: operations["list_departments_endpoint_api_v1_departments_get"];
+        put?: never;
+        /** Create Department Endpoint */
+        post: operations["create_department_endpoint_api_v1_departments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/departments/{department_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Department Endpoint */
+        patch: operations["update_department_endpoint_api_v1_departments__department_id__patch"];
+        trace?: never;
+    };
     "/permissions": {
         parameters: {
             query?: never;
@@ -798,6 +833,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/exports/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export Answer Endpoint
+         * @description 即时导出当前 RAG 问答，不读取或打包参考文档正文。
+         */
+        post: operations["export_answer_endpoint_api_v1_exports_answer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/exports": {
         parameters: {
             query?: never;
@@ -961,6 +1016,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/retrieval-tests/single": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Single Test Endpoint */
+        post: operations["run_single_test_endpoint_api_v1_retrieval_tests_single_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/retrieval-tests/runs": {
         parameters: {
             query?: never;
@@ -1050,6 +1122,44 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** APIResponse[DepartmentListResponse] */
+        APIResponse_DepartmentListResponse_: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            data?: components["schemas"]["DepartmentListResponse"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
+        /** APIResponse[DepartmentResponse] */
+        APIResponse_DepartmentResponse_: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            data?: components["schemas"]["DepartmentResponse"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
         /** APIResponse[DocumentDetail] */
         APIResponse_DocumentDetail_: {
             /**
@@ -1391,6 +1501,12 @@ export interface components {
             status: string;
             /** Parser Name */
             parser_name?: string | null;
+            /** Chunk Strategy */
+            chunk_strategy: string;
+            /** Chunk Size */
+            chunk_size: number;
+            /** Chunk Overlap */
+            chunk_overlap: number;
             /** Page Count */
             page_count?: number | null;
             /** Error Code */
@@ -1439,6 +1555,23 @@ export interface components {
             /** Started At */
             started_at?: string | null;
         };
+        /** AnswerExportRequest */
+        AnswerExportRequest: {
+            /**
+             * Format
+             * @default markdown
+             * @enum {string}
+             */
+            format: "markdown" | "txt" | "docx";
+            /** Question */
+            question: string;
+            /** Answer */
+            answer: string;
+            /** Citations */
+            citations?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            }[];
+        };
         /** Body_upload_documents_api_v1_knowledge_bases__kb_id__documents_post */
         Body_upload_documents_api_v1_knowledge_bases__kb_id__documents_post: {
             /** Files */
@@ -1463,6 +1596,22 @@ export interface components {
              * @default new_version
              */
             duplicate_policy: string;
+            /**
+             * Chunk Strategy
+             * @default recursive
+             * @enum {string}
+             */
+            chunk_strategy: "fixed" | "semantic" | "recursive" | "format";
+            /**
+             * Chunk Size
+             * @default 800
+             */
+            chunk_size: number;
+            /**
+             * Chunk Overlap
+             * @default 120
+             */
+            chunk_overlap: number;
         };
         /** ChatStreamRequest */
         ChatStreamRequest: {
@@ -1571,11 +1720,64 @@ export interface components {
             display_name: string;
             /** Password */
             password: string;
+            /** Role Ids */
+            role_ids?: string[];
+            /** Department Id */
+            department_id?: string | null;
+        };
+        /** DepartmentCreate */
+        DepartmentCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Admin User Id */
+            admin_user_id: string;
+        };
+        /** DepartmentListResponse */
+        DepartmentListResponse: {
+            /** Items */
+            items: components["schemas"]["DepartmentResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** DepartmentResponse */
+        DepartmentResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Admin User Id */
+            admin_user_id?: string | null;
+            /** Admin Username */
+            admin_username?: string | null;
+            /** Admin Display Name */
+            admin_display_name?: string | null;
             /**
-             * Role Ids
-             * @default []
+             * User Count
+             * @default 0
              */
-            role_ids: string[];
+            user_count: number;
+            /**
+             * Knowledge Base Count
+             * @default 0
+             */
+            knowledge_base_count: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /** DepartmentUpdate */
+        DepartmentUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Admin User Id */
+            admin_user_id?: string | null;
         };
         /** DocumentDetail */
         DocumentDetail: {
@@ -1603,6 +1805,12 @@ export interface components {
             status: string;
             /** Parser Name */
             parser_name?: string | null;
+            /** Chunk Strategy */
+            chunk_strategy: string;
+            /** Chunk Size */
+            chunk_size: number;
+            /** Chunk Overlap */
+            chunk_overlap: number;
             /** Page Count */
             page_count?: number | null;
             /** Error Code */
@@ -1649,6 +1857,12 @@ export interface components {
             status: string;
             /** Parser Name */
             parser_name?: string | null;
+            /** Chunk Strategy */
+            chunk_strategy: string;
+            /** Chunk Size */
+            chunk_size: number;
+            /** Chunk Overlap */
+            chunk_overlap: number;
             /** Page Count */
             page_count?: number | null;
             /** Error Code */
@@ -1796,16 +2010,8 @@ export interface components {
             name: string;
             /** Description */
             description?: string | null;
-            /**
-             * Chunk Size
-             * @default 800
-             */
-            chunk_size: number;
-            /**
-             * Chunk Overlap
-             * @default 120
-             */
-            chunk_overlap: number;
+            /** Department Id */
+            department_id?: string | null;
         };
         /** KnowledgeBaseSummary */
         KnowledgeBaseSummary: {
@@ -1815,12 +2021,16 @@ export interface components {
             name: string;
             /** Description */
             description?: string | null;
+            /** Department Id */
+            department_id: string;
+            /** Department Name */
+            department_name: string;
+            /** Kind */
+            kind: string;
+            /** Owner User Id */
+            owner_user_id?: string | null;
             /** Status */
             status: string;
-            /** Chunk Size */
-            chunk_size: number;
-            /** Chunk Overlap */
-            chunk_overlap: number;
             /**
              * Document Count
              * @default 0
@@ -1849,10 +2059,8 @@ export interface components {
             description?: string | null;
             /** Status */
             status?: string | null;
-            /** Chunk Size */
-            chunk_size?: number | null;
-            /** Chunk Overlap */
-            chunk_overlap?: number | null;
+            /** Department Id */
+            department_id?: string | null;
         };
         /**
          * LoginRequest
@@ -1881,7 +2089,7 @@ export interface components {
              * Provider Code
              * @enum {string}
              */
-            provider_code: "openai" | "anthropic" | "deepseek" | "ollama" | "custom" | "dashscope";
+            provider_code: "openai" | "anthropic" | "deepseek" | "moonshot" | "zhipu" | "minimax" | "volcengine" | "qianfan" | "ollama" | "custom" | "dashscope";
             /** Model Name */
             model_name: string;
             /**
@@ -1916,7 +2124,7 @@ export interface components {
              * Code
              * @enum {string}
              */
-            code: "openai" | "anthropic" | "deepseek" | "ollama" | "custom" | "dashscope";
+            code: "openai" | "anthropic" | "deepseek" | "moonshot" | "zhipu" | "minimax" | "volcengine" | "qianfan" | "ollama" | "custom" | "dashscope";
             /** Display Name */
             display_name: string;
             /** Base Url */
@@ -2082,6 +2290,12 @@ export interface components {
             ocr_enabled?: boolean | null;
             /** Language */
             language?: string | null;
+            /** Chunk Strategy */
+            chunk_strategy?: ("fixed" | "semantic" | "recursive" | "format") | null;
+            /** Chunk Size */
+            chunk_size?: number | null;
+            /** Chunk Overlap */
+            chunk_overlap?: number | null;
             /**
              * From Stage
              * @description Optional safe restart stage; default rebuilds derived data
@@ -2213,6 +2427,14 @@ export interface components {
              */
             permission_ids: string[];
         };
+        /** SingleRetrievalTestRequest */
+        SingleRetrievalTestRequest: {
+            /** Kb Id */
+            kb_id: string;
+            /** Question */
+            question: string;
+            config: components["schemas"]["RetrievalTestConfig"];
+        };
         /** TaskResponse */
         TaskResponse: {
             /** Task Id */
@@ -2259,6 +2481,8 @@ export interface components {
             status?: string | null;
             /** Role Ids */
             role_ids?: string[] | null;
+            /** Department Id */
+            department_id?: string | null;
         };
         /** UploadResponse */
         UploadResponse: {
@@ -2734,6 +2958,157 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["APIResponse_NoneType_"];
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    list_departments_endpoint_api_v1_departments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_DepartmentListResponse_"];
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    create_department_endpoint_api_v1_departments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepartmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_DepartmentResponse_"];
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    update_department_endpoint_api_v1_departments__department_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                department_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepartmentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_DepartmentResponse_"];
                 };
             };
             /** @description 未登录、Token 无效或已过期 */
@@ -4953,6 +5328,57 @@ export interface operations {
             };
         };
     };
+    export_answer_endpoint_api_v1_exports_answer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswerExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
     list_exports_endpoint_api_v1_exports_get: {
         parameters: {
             query?: {
@@ -5735,6 +6161,59 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RetrievalTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    run_single_test_endpoint_api_v1_retrieval_tests_single_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SingleRetrievalTestRequest"];
             };
         };
         responses: {

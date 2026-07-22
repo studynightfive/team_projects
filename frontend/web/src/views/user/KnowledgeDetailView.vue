@@ -5,8 +5,10 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { isRealApiMode } from "../../config/runtime";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import { ChevronLeft, Download, Eye, FileUp } from "../../components/icons";
 import { localPageData } from "../../data/local-pages";
 import { toPublicApiError } from "../../api/client";
@@ -16,6 +18,7 @@ import {
   listDocuments,
   listKnowledgeBases,
   uploadDocuments,
+  type ChunkStrategy,
   type DocumentRecord,
   type KnowledgeBaseRecord,
 } from "../../services/knowledge";
@@ -34,7 +37,12 @@ const loadState = ref<"idle" | "loading" | "error">(
 );
 const loadError = ref("");
 const uploadInputRef = ref<HTMLInputElement>();
+const uploadZoneRef = ref<HTMLElement>();
 const isUploading = ref(false);
+const isDraggingUpload = ref(false);
+const chunkStrategy = ref<ChunkStrategy>("recursive");
+const chunkSize = ref(800);
+const chunkOverlap = ref(120);
 const isExporting = ref(false);
 
 let loadController: AbortController | undefined;
@@ -74,8 +82,9 @@ const pageDescription = computed(() => {
 });
 const canUploadKnowledge = computed(() => {
   const permissions = sessionStore.currentUser?.permissions ?? [];
-  return permissions.some((permission) =>
-    ["admin.document.upload", "document.upload"].includes(permission),
+  return (
+    realKnowledgeBase.value?.kind === "personal" &&
+    permissions.includes("personal.document.upload")
   );
 });
 
@@ -127,11 +136,17 @@ const filteredDocuments = computed(() => {
     return matchesKnowledgeBase && matchesStatus && matchesQuery;
   });
 });
+const {
+  page: documentsPage,
+  pageSize: documentsPageSize,
+  pagedItems: pagedDocuments,
+  setPage: setDocumentsPage,
+} = useListPagination(filteredDocuments);
 
 const allVisibleSelected = computed(
   () =>
-    filteredDocuments.value.length > 0 &&
-    filteredDocuments.value.every((item) =>
+    pagedDocuments.value.length > 0 &&
+    pagedDocuments.value.every((item) =>
       selectedDocumentIds.value.includes(item.id),
     ),
 );
@@ -144,7 +159,7 @@ const toggleDocument = (documentId: string): void => {
 
 const toggleAllVisible = (): void => {
   if (allVisibleSelected.value) {
-    const visibleIds = new Set(filteredDocuments.value.map((item) => item.id));
+    const visibleIds = new Set(pagedDocuments.value.map((item) => item.id));
     selectedDocumentIds.value = selectedDocumentIds.value.filter(
       (id) => !visibleIds.has(id),
     );
@@ -154,7 +169,7 @@ const toggleAllVisible = (): void => {
   selectedDocumentIds.value = [
     ...new Set([
       ...selectedDocumentIds.value,
-      ...filteredDocuments.value.map((item) => item.id),
+      ...pagedDocuments.value.map((item) => item.id),
     ]),
   ];
 };
@@ -213,12 +228,17 @@ const openUploadPicker = (): void => {
   uploadInputRef.value?.click();
 };
 
+const focusUploadZone = async (): Promise<void> => {
+  await nextTick();
+  uploadZoneRef.value?.scrollIntoView({ behavior: "smooth", block: "center" });
+  uploadZoneRef.value?.focus({ preventScroll: true });
+};
+
 const consumeUploadActionQuery = async (): Promise<void> => {
   if (String(route.query.action ?? "") !== "upload") return;
   if (!isRealApiMode || !canUploadKnowledge.value) return;
   if (knowledgeBase.value === undefined) return;
-  await nextTick();
-  openUploadPicker();
+  await focusUploadZone();
   const nextQuery = { ...route.query };
   delete nextQuery.action;
   await router.replace({
@@ -227,15 +247,20 @@ const consumeUploadActionQuery = async (): Promise<void> => {
   });
 };
 
-const handleUpload = async (event: Event): Promise<void> => {
-  const input = event.target as HTMLInputElement;
-  const files = Array.from(input.files ?? []);
-  input.value = "";
+const uploadFiles = async (files: File[]): Promise<void> => {
   if (!isRealApiMode || files.length === 0) return;
+  if (chunkOverlap.value >= chunkSize.value) {
+    message.warning("重叠字符必须小于切分大小");
+    return;
+  }
 
   isUploading.value = true;
   try {
-    const results = await uploadDocuments(String(route.params.kb_id ?? ""), files);
+    const results = await uploadDocuments(String(route.params.kb_id ?? ""), files, {
+      chunkStrategy: chunkStrategy.value,
+      chunkSize: chunkSize.value,
+      chunkOverlap: chunkOverlap.value,
+    });
     const readyCount = results.filter(
       (item) => item.document.status === "ready",
     ).length;
@@ -246,6 +271,18 @@ const handleUpload = async (event: Event): Promise<void> => {
   } finally {
     isUploading.value = false;
   }
+};
+
+const handleUpload = async (event: Event): Promise<void> => {
+  const input = event.target as HTMLInputElement;
+  const files = Array.from(input.files ?? []);
+  input.value = "";
+  await uploadFiles(files);
+};
+
+const handleUploadDrop = async (event: DragEvent): Promise<void> => {
+  isDraggingUpload.value = false;
+  await uploadFiles(Array.from(event.dataTransfer?.files ?? []));
 };
 
 watch(
@@ -285,16 +322,6 @@ onBeforeUnmount(() => {
           <ChevronLeft :size="17" aria-hidden="true" />
           返回知识库
         </RouterLink>
-        <button
-          v-if="isRealApiMode && knowledgeBase && canUploadKnowledge"
-          class="primary-button"
-          type="button"
-          :disabled="isUploading"
-          @click="openUploadPicker"
-        >
-          <FileUp :size="17" aria-hidden="true" />
-          {{ isUploading ? "正在上传" : "上传文档" }}
-        </button>
         <input
           ref="uploadInputRef"
           class="visually-hidden"
@@ -354,6 +381,47 @@ onBeforeUnmount(() => {
           isRealApiMode ? "真实接口" : "本地预览"
         }}</span>
       </template>
+
+      <div
+        v-if="isRealApiMode && canUploadKnowledge"
+        ref="uploadZoneRef"
+        class="upload-drop-zone"
+        :class="{ dragging: isDraggingUpload, uploading: isUploading }"
+        role="button"
+        tabindex="0"
+        :aria-disabled="isUploading"
+        @click="openUploadPicker"
+        @keydown.enter.prevent="openUploadPicker"
+        @keydown.space.prevent="openUploadPicker"
+        @dragenter.prevent="isDraggingUpload = true"
+        @dragover.prevent="isDraggingUpload = true"
+        @dragleave.prevent="isDraggingUpload = false"
+        @drop.prevent="handleUploadDrop"
+      >
+        <FileUp :size="30" aria-hidden="true" />
+        <strong>{{ isUploading ? "正在上传并处理文档" : "点击或拖拽文件到这里上传" }}</strong>
+        <span>支持 PDF、Word、Markdown、文本、表格、演示文稿等格式</span>
+      </div>
+
+      <div v-if="isRealApiMode && canUploadKnowledge" class="chunk-options">
+        <label>
+          <span>切分方法</span>
+          <select v-model="chunkStrategy">
+            <option value="fixed">固定长度</option>
+            <option value="semantic">语义</option>
+            <option value="recursive">递归</option>
+            <option value="format">格式</option>
+          </select>
+        </label>
+        <label>
+          <span>切分大小</span>
+          <input v-model.number="chunkSize" type="number" min="100" max="4000" />
+        </label>
+        <label>
+          <span>重叠字符</span>
+          <input v-model.number="chunkOverlap" type="number" min="0" max="1000" />
+        </label>
+      </div>
 
       <div class="filter-bar">
         <label class="filter-field grow">
@@ -417,7 +485,7 @@ onBeforeUnmount(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredDocuments" :key="item.id">
+            <tr v-for="item in pagedDocuments" :key="item.id">
               <td>
                 <input
                   type="checkbox"
@@ -455,6 +523,13 @@ onBeforeUnmount(() => {
           </tbody>
         </table>
       </div>
+      <ListPagination
+        v-if="filteredDocuments.length > 0"
+        :page="documentsPage"
+        :page-size="documentsPageSize"
+        :total="filteredDocuments.length"
+        @change="setDocumentsPage"
+      />
 
       <InlineState
         v-else
@@ -504,5 +579,61 @@ onBeforeUnmount(() => {
   font-weight: var(--font-weight-medium);
   text-decoration: none;
   white-space: nowrap;
+}
+
+.upload-drop-zone {
+  display: grid;
+  min-height: 148px;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-8);
+  color: var(--color-text-muted);
+  background: var(--color-surface-subtle);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.upload-drop-zone strong {
+  color: var(--color-text);
+  font-size: var(--font-size-16);
+}
+
+.upload-drop-zone span {
+  max-width: 560px;
+  font-size: var(--font-size-13);
+}
+
+.upload-drop-zone:hover,
+.upload-drop-zone:focus-visible,
+.upload-drop-zone.dragging {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  outline: none;
+}
+
+.upload-drop-zone.uploading {
+  cursor: progress;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.chunk-options {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) repeat(2, minmax(120px, 1fr));
+  gap: var(--space-3);
+}
+
+@media (max-width: 767px) {
+  .chunk-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>

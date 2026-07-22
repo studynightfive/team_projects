@@ -7,7 +7,19 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ProviderCode = Literal["openai", "anthropic", "deepseek", "ollama", "custom", "dashscope"]
+ProviderCode = Literal[
+    "openai",
+    "anthropic",
+    "deepseek",
+    "moonshot",
+    "zhipu",
+    "minimax",
+    "volcengine",
+    "qianfan",
+    "ollama",
+    "custom",
+    "dashscope",
+]
 ModelKind = Literal["chat", "embedding", "rerank"]
 Distance = Literal["cosine", "l2", "inner_product"]
 

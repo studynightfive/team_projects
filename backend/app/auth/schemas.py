@@ -8,6 +8,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.departments.schemas import DepartmentBrief
+
 
 # ============================================================
 # 请求模型
@@ -61,6 +63,7 @@ class MeData(BaseModel):
     id: str
     username: str
     display_name: str
+    department: DepartmentBrief | None = None
     roles: list[UserRoleData] = []
     permissions: list[str] = []
     knowledge_base_access: list[KnowledgeBaseAccessData] = []

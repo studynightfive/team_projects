@@ -23,7 +23,7 @@ import { isRealApiMode } from "../../config/runtime";
 import { aiSearchMockData } from "../../mocks/ai-search";
 import { runAiSearch } from "../../services/ai-search";
 import { listRealChatModelOptions } from "../../services/ai-search-real";
-import { createExportTask } from "../../services/downloads";
+import { downloadAnswerExport } from "../../services/downloads";
 import { createFavorite, deleteFavorite } from "../../services/favorites";
 import { listKnowledgeBases } from "../../services/knowledge";
 import type {
@@ -42,11 +42,6 @@ const { message } = AntApp.useApp();
 const route = useRoute();
 const router = useRouter();
 
-const allowedModes: readonly SearchMode[] = [
-  "smart",
-  "precise",
-  "document",
-];
 const defaultSources: readonly SearchSourceType[] = ["knowledge"];
 
 const defaultQuery = isRealApiMode ? "" : aiSearchMockData.answer.query;
@@ -68,7 +63,6 @@ const isPreviewOpen = ref(false);
 const previewTrigger = ref<HTMLElement>();
 const answerFavorite = ref(false);
 const answerFavoriteId = ref<string>();
-const attachmentNames = ref<string[]>([]);
 const contextTrigger = ref<HTMLElement>();
 const answerTabRef = ref<HTMLButtonElement>();
 const resultsTabRef = ref<HTMLButtonElement>();
@@ -77,11 +71,6 @@ let searchController: AbortController | undefined;
 let desktopContextQuery: MediaQueryList | undefined;
 let skipNextRouteSync = false;
 
-const modeLabel = computed(
-  () =>
-    aiSearchMockData.modeOptions.find((option) => option.value === mode.value)
-      ?.label ?? "智能搜索",
-);
 const modelLabel = computed(
   () =>
     modelOptions.value.find((option) => option.value === modelId.value)
@@ -100,11 +89,6 @@ const apiModeLabel = computed(() =>
   isRealApiMode || response.value?.isMock === false ? "真实接口" : "模拟数据",
 );
 
-const parseMode = (value: unknown): SearchMode =>
-  typeof value === "string" && allowedModes.includes(value as SearchMode)
-    ? (value as SearchMode)
-    : "smart";
-
 const parseSources = (value: unknown): SearchSourceType[] => {
   if (typeof value !== "string") return [...defaultSources];
   return value.split(",").includes("knowledge")
@@ -112,21 +96,9 @@ const parseSources = (value: unknown): SearchSourceType[] => {
     : [...defaultSources];
 };
 
-const readAttachmentNames = (): string[] => {
-  const state: unknown = router.options.history.state;
-  if (typeof state !== "object" || state === null) return [];
-
-  const names = (state as Record<string, unknown>).attachmentNames;
-  if (!Array.isArray(names)) return [];
-  return names
-    .filter((name): name is string => typeof name === "string")
-    .slice(0, 5);
-};
-
 const readInitialSearch = ():
   | {
       readonly q: string;
-      readonly mode?: string;
       readonly sources?: string;
       readonly workspaceId?: string;
       readonly modelId?: string;
@@ -144,7 +116,6 @@ const readInitialSearch = ():
   }
   return {
     q: value.q.trim(),
-    mode: typeof value.mode === "string" ? value.mode : undefined,
     sources: typeof value.sources === "string" ? value.sources : undefined,
     workspaceId:
       typeof value.workspaceId === "string" && value.workspaceId !== ""
@@ -170,7 +141,7 @@ const syncFromRoute = (): void => {
   } else {
     query.value = defaultQuery;
   }
-  mode.value = parseMode(initialSearch?.mode ?? route.query.mode);
+  mode.value = "smart";
   sources.value = parseSources(initialSearch?.sources ?? route.query.sources);
   workspaceId.value = initialSearch?.workspaceId;
   modelId.value =
@@ -179,7 +150,6 @@ const syncFromRoute = (): void => {
       ? route.query.model
       : modelOptions.value[0]?.value) ??
     "enterprise-general";
-  attachmentNames.value = readAttachmentNames();
 };
 
 const executeSearch = async (): Promise<void> => {
@@ -199,7 +169,6 @@ const executeSearch = async (): Promise<void> => {
         sources: sources.value,
         workspaceId: workspaceId.value,
         modelId: modelId.value,
-        attachmentIds: attachmentNames.value,
       },
       searchController.signal,
     );
@@ -216,10 +185,9 @@ const executeSearch = async (): Promise<void> => {
 };
 
 const submitSearch = (request: SearchRequest): void => {
-  attachmentNames.value = [...(request.attachmentIds ?? [])];
   if (isRealApiMode) {
     query.value = request.query;
-    mode.value = request.mode;
+    mode.value = "smart";
     sources.value = [...request.sources];
     workspaceId.value = request.workspaceId;
     modelId.value = request.modelId ?? modelId.value ?? "enterprise-general";
@@ -233,13 +201,11 @@ const submitSearch = (request: SearchRequest): void => {
 
   const nextQuery = {
     q: request.query,
-    mode: request.mode,
     sources: request.sources.join(","),
     model: request.modelId,
   };
   const unchanged =
     route.query.q === nextQuery.q &&
-    route.query.mode === nextQuery.mode &&
     route.query.sources === nextQuery.sources &&
     route.query.model === nextQuery.model;
 
@@ -249,7 +215,6 @@ const submitSearch = (request: SearchRequest): void => {
     void router.push({
       path: "/search",
       query: nextQuery,
-      state: { attachmentNames: attachmentNames.value },
     });
   }
 };
@@ -275,7 +240,8 @@ const copyAnswer = async (): Promise<void> => {
 
 const downloadAnswerMarkdownLocally = (): void => {
   if (response.value === undefined) return;
-  const blob = new Blob([response.value.answer.markdown], {
+  const content = `# RAG 问答结果\n\n## 问题\n\n${query.value}\n\n## 答案\n\n${response.value.answer.markdown}\n`;
+  const blob = new Blob([content], {
     type: "text/markdown;charset=utf-8",
   });
   const url = URL.createObjectURL(blob);
@@ -295,26 +261,23 @@ const exportAnswer = async (): Promise<void> => {
     return;
   }
 
-  const documentIds = [
-    ...new Set(
-      response.value.results
-        .map((item) => item.documentId)
-        .filter((id): id is string => typeof id === "string" && id.length > 0),
-    ),
-  ];
-
-  if (documentIds.length === 0) {
-    downloadAnswerMarkdownLocally();
-    void message.warning("当前结果没有可导出的文档 ID，已改为本地下载答案 Markdown");
-    return;
-  }
-
   try {
-    await createExportTask({
-      format: "markdown",
-      document_ids: documentIds,
+    const blob = await downloadAnswerExport({
+      question: query.value,
+      answer: response.value.answer.markdown,
+      citations: response.value.answer.citations.map((citation) => ({
+        doc_id: citation.documentId ?? citation.id,
+        chunk_id: citation.id,
+        score: citation.relevance,
+      })),
     });
-    void message.success("已创建导出任务，可在「我的下载」中查看并下载");
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "RAG问答结果.md";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    void message.success("答案已下载");
   } catch (error: unknown) {
     void message.error(toPublicApiError(error).message);
   }
@@ -599,7 +562,6 @@ onBeforeUnmount(() => {
 
     <div class="search-query-meta" aria-label="查询摘要">
       <SearchStatusBadge :status="status" />
-      <span>{{ modeLabel }}</span>
       <span>{{ selectedKnowledgeBaseLabel }}</span>
       <span>{{ response?.sourceCount ?? 0 }} 个知识来源</span>
       <span>{{ response?.elapsedLabel ?? "等待检索" }}</span>
@@ -615,18 +577,15 @@ onBeforeUnmount(() => {
 
     <AiSearchBox
       v-model:query="query"
-      v-model:mode="mode"
       v-model:sources="sources"
       v-model:workspace-id="workspaceId"
       v-model:model-id="modelId"
+      :mode="mode"
       compact
       :busy="status === 'searching'"
-      :mode-options="aiSearchMockData.modeOptions"
       :model-options="modelOptions"
       :knowledge-base-options="knowledgeBaseOptions"
       :requires-workspace="isRealApiMode"
-      :attachments-enabled="!isRealApiMode"
-      @attachments-change="attachmentNames = $event"
       @submit="submitSearch"
       @notice="showLocalNotice"
     />
@@ -746,7 +705,6 @@ onBeforeUnmount(() => {
         :knowledge-base-options="knowledgeBaseOptions"
         :model-label="modelLabel"
         :citations="response?.answer.citations ?? []"
-        :attachment-names="attachmentNames"
         :return-focus-to="contextTrigger"
         @close="isContextOpen = false"
         @preview="openPreview"

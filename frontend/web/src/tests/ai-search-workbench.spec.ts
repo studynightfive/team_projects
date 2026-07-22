@@ -1,19 +1,12 @@
-import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { describe, expect, it, vi } from "vitest";
 
 import SafeMarkdown from "../components/common/SafeMarkdown.vue";
+import SearchContextPanel from "../components/search/SearchContextPanel.vue";
 import { aiSearchMockData } from "../mocks/ai-search";
 import { runAiSearch } from "../services/ai-search";
 import { renderAppAt } from "./renderApp";
-
-const getButton = (wrapper: VueWrapper, label: string) => {
-  const button = wrapper
-    .findAll("button")
-    .find((candidate) => candidate.text().includes(label));
-  if (button === undefined) throw new Error(`未找到按钮：${label}`);
-  return button;
-};
 
 describe("AI 搜索工作台关键链路", () => {
   it("安全渲染 Markdown 并把有效引用标记转换为可点击按钮", async () => {
@@ -33,6 +26,24 @@ describe("AI 搜索工作台关键链路", () => {
     expect(citation.attributes("aria-label")).toBe("查看引用 1");
     await citation.trigger("click");
     expect(wrapper.emitted("citation")?.[0]?.[0]).toBe("citation-1");
+  });
+
+  it("引用来源概览按文档去重且不显示待确认状态", () => {
+    const citation = aiSearchMockData.answer.citations[0];
+    if (citation === undefined) throw new Error("缺少引用模拟数据");
+
+    const wrapper = mount(SearchContextPanel, {
+      props: {
+        open: true,
+        query: "医疗信息化系统有哪些核心模块？",
+        knowledgeBaseOptions: [],
+        modelLabel: "DeepSeek",
+        citations: [citation, { ...citation, id: "duplicate-citation" }],
+      },
+    });
+
+    expect(wrapper.findAll(".context-citation-list button")).toHaveLength(1);
+    expect(wrapper.text()).not.toContain("待确认");
   });
 
   it("非默认问题不会复用差旅结论，筛选后的引用编号与来源一致", async () => {
@@ -83,33 +94,26 @@ describe("AI 搜索工作台关键链路", () => {
     expect(document.activeElement).toBe(citation.element);
   });
 
-  it("附件名称随搜索进入上下文，但不写入查询字符串", async () => {
+  it("统一搜索不再展示附件和搜索模式控件", async () => {
     const { wrapper, router } = await renderAppAt("/");
     await vi.waitFor(() => {
       expect(wrapper.find("form.ai-search-box").exists()).toBe(true);
     });
 
-    await wrapper.get("#ai-search-query").setValue("总结附件中的发布风险");
-    const fileInput = wrapper.get<HTMLInputElement>('input[type="file"]');
-    Object.defineProperty(fileInput.element, "files", {
-      configurable: true,
-      value: [new File(["demo"], "发布风险清单.pdf", { type: "application/pdf" })],
-    });
-    await fileInput.trigger("change");
-    expect(wrapper.get(".attachment-chip").text()).toContain("发布风险清单.pdf");
+    expect(wrapper.find('input[type="file"]').exists()).toBe(false);
+    expect(wrapper.find('[title="选择搜索模式"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("智能搜索");
+    expect(wrapper.text()).not.toContain("附件检索");
+
+    await wrapper.get("#ai-search-query").setValue("总结发布风险");
 
     await wrapper.get("form.ai-search-box").trigger("submit");
     await flushPromises();
     expect(router.currentRoute.value.path).toBe("/search");
-    expect(router.currentRoute.value.fullPath).not.toContain("发布风险清单");
-
-    await getButton(wrapper, "搜索上下文").trigger("click");
-    expect(wrapper.get(".context-file-list").text()).toContain(
-      "发布风险清单.pdf",
-    );
+    expect(router.currentRoute.value.query).not.toHaveProperty("mode");
   });
 
-  it("空间深链接选中目标空间，历史重命名不改变原始查询", async () => {
+  it("空间深链接选中目标空间，已删除的历史页面返回 404", async () => {
     const targetSpace = aiSearchMockData.knowledgeSpaces[2];
     if (targetSpace === undefined) throw new Error("缺少知识空间模拟数据");
 
@@ -129,18 +133,7 @@ describe("AI 搜索工作台关键链路", () => {
     spaces.wrapper.unmount();
 
     const history = await renderAppAt("/history");
-    const originalQuery = history.wrapper.get(".history-list article h3").text();
-    await history.wrapper
-      .get('.history-list article button[aria-label^="重命名"]')
-      .trigger("click");
-    await history.wrapper.get(".title-editor").setValue("季度项目检查");
-    await getButton(history.wrapper, "保存").trigger("click");
-    expect(history.wrapper.text()).toContain("季度项目检查");
-
-    await getButton(history.wrapper, "再次搜索").trigger("click");
-    await flushPromises();
-    await vi.waitFor(() => {
-      expect(history.router.currentRoute.value.query.q).toBe(originalQuery);
-    });
+    expect(history.router.currentRoute.value.name).toBe("not-found");
+    expect(history.wrapper.text()).toContain("页面不存在");
   });
 });

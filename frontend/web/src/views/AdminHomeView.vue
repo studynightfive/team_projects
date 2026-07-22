@@ -121,7 +121,7 @@ onMounted(loadOverview);
       />
     </section>
 
-    <div class="admin-operations-grid">
+    <div class="admin-operations-grid single-column">
       <section class="content-card service-card" aria-labelledby="service-title">
         <header class="card-heading">
           <h2 id="service-title">核心数据</h2>
@@ -143,29 +143,6 @@ onMounted(loadOverview);
             <dd>{{ metrics?.success_rate ?? 0 }}%</dd>
           </div>
         </dl>
-      </section>
-
-      <section
-        class="content-card governance-card"
-        aria-labelledby="governance-title"
-      >
-        <header class="card-heading">
-          <h2 id="governance-title">快捷入口</h2>
-        </header>
-        <div class="governance-list">
-          <RouterLink class="secondary-button compact" to="/admin/users">
-            用户管理
-          </RouterLink>
-          <RouterLink class="secondary-button compact" to="/admin/knowledge-bases">
-            知识库管理
-          </RouterLink>
-          <RouterLink class="secondary-button compact" to="/admin/tasks">
-            任务中心
-          </RouterLink>
-          <RouterLink class="secondary-button compact" to="/admin/models">
-            模型管理
-          </RouterLink>
-        </div>
       </section>
     </div>
 

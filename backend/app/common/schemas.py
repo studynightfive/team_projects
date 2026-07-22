@@ -79,6 +79,9 @@ class ErrorCode:
     ROLE_ALREADY_EXISTS = 12004
     PERMISSION_NOT_FOUND = 12005
     INVALID_ROLE_STATUS = 12006
+    DEPARTMENT_NOT_FOUND = 12007
+    DEPARTMENT_ALREADY_EXISTS = 12008
+    DEPARTMENT_ADMIN_CONFLICT = 12009
 
     # ---- 知识库和文档 (13000–13999) ----
     KB_NOT_FOUND = 13000
@@ -137,6 +140,9 @@ ERROR_MESSAGES: dict[int, str] = {
     ErrorCode.INVALID_USER_STATUS: "用户状态无效",
     ErrorCode.ROLE_NOT_FOUND: "角色不存在",
     ErrorCode.ROLE_ALREADY_EXISTS: "角色名已存在",
+    ErrorCode.DEPARTMENT_NOT_FOUND: "部门不存在",
+    ErrorCode.DEPARTMENT_ALREADY_EXISTS: "部门名称已存在",
+    ErrorCode.DEPARTMENT_ADMIN_CONFLICT: "部门管理员分配冲突",
     ErrorCode.PERMISSION_NOT_FOUND: "权限不存在",
     ErrorCode.INVALID_ROLE_STATUS: "角色状态无效",
     ErrorCode.KB_NOT_FOUND: "知识库不存在",

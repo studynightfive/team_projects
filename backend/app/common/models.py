@@ -66,6 +66,12 @@ class User(Base):
     )
     display_name: Mapped[str] = mapped_column(String(150), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    department_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("departments.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="active", index=True
     )  # active, disabled

@@ -87,18 +87,18 @@ class OpenAICompatibleProvider:
         self.api_key = api_key
         self.timeout = timeout
 
-    def _client_create(self) -> httpx.AsyncClient:
+    def _client_create(self, *, base_url: str | None = None) -> httpx.AsyncClient:
         return httpx.AsyncClient(
-            base_url=self.base_url,
+            base_url=base_url or self.base_url,
             headers={"Authorization": f"Bearer {self.api_key}"},
             timeout=self.timeout,
         )
 
-    async def _validate_resolved_host(self) -> None:
+    async def _validate_resolved_host(self, *, base_url: str | None = None) -> None:
         """每次出站前解析全部地址，降低私网解析和 DNS 重绑定风险。"""
         if settings.testing:
             return
-        parsed = urlsplit(self.base_url)
+        parsed = urlsplit(base_url or self.base_url)
         hostname = parsed.hostname
         if hostname is None:
             raise ValidationException(message="Provider base_url 缺少主机名")
@@ -217,10 +217,14 @@ class OpenAICompatibleProvider:
         timeout: float | None = None,
     ) -> list[dict[str, int | float]]:
         """Cohere 兼容 /rerank 端点。"""
-        await self._validate_resolved_host()
-        async with self._client_create() as client:
+        is_dashscope = self.provider_code == "dashscope"
+        base_url = settings.dashscope_rerank_base_url if is_dashscope else self.base_url
+        endpoint = "/reranks" if is_dashscope else "/rerank"
+        validate_provider_base_url(self.provider_code, base_url)
+        await self._validate_resolved_host(base_url=base_url)
+        async with self._client_create(base_url=base_url) as client:
             r = await client.post(
-                "/rerank",
+                endpoint,
                 json={"model": model_name, "query": query, "documents": documents, "top_n": top_n},
             )
             r.raise_for_status()
@@ -302,6 +306,18 @@ def build_provider(
     provider_code: str, base_url: str, api_key: str, timeout: float = 10.0
 ) -> OpenAICompatibleProvider:
     """Provider 工厂：当前全部用 OpenAI 兼容实现（DeepSeek/Ollama 等同样适配）。"""
-    if provider_code in ("openai", "deepseek", "ollama", "custom", "anthropic", "dashscope"):
+    if provider_code in (
+        "openai",
+        "deepseek",
+        "moonshot",
+        "zhipu",
+        "minimax",
+        "volcengine",
+        "qianfan",
+        "ollama",
+        "custom",
+        "anthropic",
+        "dashscope",
+    ):
         return OpenAICompatibleProvider(provider_code, base_url, api_key, timeout)
     raise ValueError(f"unsupported provider_code: {provider_code}")

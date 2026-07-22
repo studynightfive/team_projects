@@ -14,6 +14,7 @@ from app.common.config import Settings
 from app.common.config import settings as app_settings
 from app.common.exceptions import AppException, ForbiddenException, NotFoundException
 from app.common.models import User
+from app.common.organization import is_super_admin
 from app.common.schemas import ErrorCode
 from app.documents.chunking import Chunk, Chunker
 from app.documents.indexing import DocumentIndexingService
@@ -127,6 +128,7 @@ class DocumentService:
 
     async def list_admin_documents(
         self,
+        user: User,
         page: int = 1,
         page_size: int = 20,
         search: str | None = None,
@@ -135,6 +137,10 @@ class DocumentService:
         stmt = select(Document, KnowledgeBase.name).join(
             KnowledgeBase, KnowledgeBase.id == Document.knowledge_base_id
         )
+        if not is_super_admin(user):
+            if user.department_id is None:
+                return [], 0
+            stmt = stmt.where(KnowledgeBase.department_id == user.department_id)
         if search:
             keyword = f"%{search}%"
             stmt = stmt.where(
@@ -160,6 +166,7 @@ class DocumentService:
 
     async def list_admin_tasks(
         self,
+        user: User,
         page: int = 1,
         page_size: int = 20,
         search: str | None = None,
@@ -170,6 +177,10 @@ class DocumentService:
             .join(Document, Document.id == DocumentTask.document_id)
             .join(KnowledgeBase, KnowledgeBase.id == Document.knowledge_base_id)
         )
+        if not is_super_admin(user):
+            if user.department_id is None:
+                return [], 0
+            stmt = stmt.where(KnowledgeBase.department_id == user.department_id)
         if search:
             keyword = f"%{search}%"
             stmt = stmt.where(
@@ -271,14 +282,15 @@ class DocumentService:
         files: list[tuple[str, bytes]],
         options: UploadOptions,
     ) -> UploadResponse:
-        require_any_permission(
-            user,
-            "admin.document.upload",
-            "document.upload",
-        )
+        kb = await self._get_kb(kb_id)
+        if kb.kind == "personal":
+            require_any_permission(user, "personal.document.upload")
+            if kb.owner_user_id != user.id:
+                raise ForbiddenException(message="只能向自己的个人知识库上传文档")
+        else:
+            require_any_permission(user, "admin.document.upload", "document.upload")
         if not await user_can_access_kb(self.session, user, str(kb_id)):
             raise ForbiddenException(message="无权访问该知识库")
-        await self._get_kb(kb_id)
 
         if not files:
             raise AppException(code=ErrorCode.UPLOAD_INVALID, message="未上传文件", status_code=400)
@@ -379,6 +391,9 @@ class DocumentService:
             document.ocr_enabled = options.ocr_enabled
             document.language = options.language
             document.folder_path = options.folder_path
+            document.chunk_strategy = options.chunk_strategy
+            document.chunk_size = options.chunk_size
+            document.chunk_overlap = options.chunk_overlap
             document.error_code = None
             document.error_message = None
             document.is_active_index = False
@@ -402,6 +417,9 @@ class DocumentService:
                 status=DocumentStatus.UPLOADED.value,
                 ocr_enabled=options.ocr_enabled,
                 language=options.language,
+                chunk_strategy=options.chunk_strategy,
+                chunk_size=options.chunk_size,
+                chunk_overlap=options.chunk_overlap,
                 created_by=str(user.id),
             )
             self.session.add(document)
@@ -442,12 +460,18 @@ class DocumentService:
         document_id: str,
         body: ReprocessRequest | None = None,
     ) -> TaskResponse:
-        require_any_permission(user, "admin.document.upload")
         doc = await self.session.get(Document, document_id)
         if doc is None:
             raise NotFoundException(code=ErrorCode.DOCUMENT_NOT_FOUND, message="文档不存在")
         if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
             raise ForbiddenException(message="无权访问该知识库")
+        kb = await self._get_kb(str(doc.knowledge_base_id))
+        if kb.kind == "personal":
+            require_any_permission(user, "personal.document.upload")
+            if kb.owner_user_id != user.id:
+                raise ForbiddenException(message="只能重处理自己的个人文档")
+        else:
+            require_any_permission(user, "admin.document.upload")
 
         if doc.status not in {
             DocumentStatus.FAILED.value,
@@ -461,6 +485,13 @@ class DocumentService:
                 doc.ocr_enabled = body.ocr_enabled
             if body.language:
                 doc.language = body.language
+            if body.chunk_strategy is not None:
+                doc.chunk_strategy = body.chunk_strategy
+            if body.chunk_size is not None:
+                doc.chunk_size = body.chunk_size
+            if body.chunk_overlap is not None:
+                doc.chunk_overlap = body.chunk_overlap
+            self.chunker.validate_params(doc.chunk_size, doc.chunk_overlap)
 
         latest = await self._latest_task(doc.id)
         retry_count = (latest.retry_count + 1) if latest else 1
@@ -606,14 +637,14 @@ class DocumentService:
         doc.markdown_path = str(md_path)
         doc.manifest_path = str(manifest_path)
 
-        kb = await self._get_kb(doc.knowledge_base_id)
         await self._set_stage(doc, task, DocumentStatus.CHUNKING)
         chunks = await self.chunker.split(
             package.content_md,
             {
-                "chunk_size": kb.chunk_size,
-                "chunk_overlap": kb.chunk_overlap,
+                "chunk_size": doc.chunk_size,
+                "chunk_overlap": doc.chunk_overlap,
             },
+            strategy=doc.chunk_strategy,
         )
 
         await self._set_stage(doc, task, DocumentStatus.INDEXING)
@@ -665,14 +696,22 @@ class DocumentService:
         chunks: list[Chunk],
     ) -> dict[int, list[float]]:
         models = await model_service.list_models(self.session, kind="embedding")
+        eligible = [
+            item
+            for item in models
+            if item.enabled
+            and item.api_key_encrypted
+            and item.dimensions == self.settings.qwen_embedding_dimensions
+        ]
         model = next(
             (
                 item
-                for item in models
-                if item.enabled and item.model_name == self.settings.qwen_embedding_model
+                for item in eligible
+                if item.model_name == self.settings.qwen_embedding_model
             ),
             None,
         )
+        model = model or (eligible[0] if eligible else None)
         if model is None or not model.api_key_encrypted:
             return {}
 
@@ -695,7 +734,7 @@ class DocumentService:
                         vectors[chunk.chunk_no] = embedding
         except Exception as exc:  # noqa: BLE001
             logger.warning(
-                "qwen_embedding_failed_fallback_to_stub",
+                "embedding_provider_failed_fallback_to_stub",
                 error_type=type(exc).__name__,
             )
             return {}

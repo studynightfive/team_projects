@@ -4,7 +4,9 @@ import { useRoute, useRouter } from "vue-router";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import {
   BookOpen,
   ChevronRight,
@@ -98,6 +100,12 @@ const filteredSpaces = computed(() => {
           .includes(normalizedKeyword)),
   );
 });
+const {
+  page: spacesPage,
+  pageSize: spacesPageSize,
+  pagedItems: pagedSpaces,
+  setPage: setSpacesPage,
+} = useListPagination(filteredSpaces);
 const selectedSpace = computed(() =>
   filteredSpaces.value.find((space) => space.id === selectedSpaceId.value),
 );
@@ -280,7 +288,7 @@ onBeforeUnmount(() => {
 
       <div v-else-if="filteredSpaces.length > 0" class="knowledge-space-grid">
         <article
-          v-for="space in filteredSpaces"
+          v-for="space in pagedSpaces"
           :key="space.id"
           :class="{ selected: selectedSpaceId === space.id }"
         >
@@ -316,6 +324,13 @@ onBeforeUnmount(() => {
           </button>
         </article>
       </div>
+      <ListPagination
+        v-if="filteredSpaces.length > 0"
+        :page="spacesPage"
+        :page-size="spacesPageSize"
+        :total="filteredSpaces.length"
+        @change="setSpacesPage"
+      />
 
       <InlineState
         v-else

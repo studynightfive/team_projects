@@ -115,6 +115,25 @@ export const createExportTask = async (
   return unwrapApiData(response.data);
 };
 
+export const downloadAnswerExport = async (payload: {
+  readonly question: string;
+  readonly answer: string;
+  readonly format?: "markdown" | "txt" | "docx";
+  readonly citations?: readonly Readonly<Record<string, string | number | null>>[];
+}): Promise<Blob> => {
+  const response = await apiClient.post<Blob>(
+    "/v1/exports/answer",
+    {
+      format: payload.format ?? "markdown",
+      question: payload.question,
+      answer: payload.answer,
+      citations: payload.citations ?? [],
+    },
+    { responseType: "blob" },
+  );
+  return response.data;
+};
+
 export const deleteExportTask = async (exportId: string): Promise<void> => {
   const response = await apiClient.delete<ApiSchema<"APIResponse_NoneType_">>(
     `/v1/exports/${exportId}`,

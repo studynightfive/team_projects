@@ -10,7 +10,6 @@ import {
   Files,
   FolderHeart,
   Gauge,
-  History,
   LibraryBig,
   ListChecks,
   MessageSquareText,
@@ -287,18 +286,6 @@ export const userNavigation = [
     to: "/favorites",
   },
   {
-    label: "历史会话",
-    shortLabel: "会话",
-    icon: History,
-    to: "/conversations",
-  },
-  {
-    label: "搜索历史",
-    shortLabel: "历史",
-    icon: ScrollText,
-    to: "/history",
-  },
-  {
     label: "我的下载",
     shortLabel: "下载",
     icon: Download,
@@ -319,13 +306,22 @@ export const adminNavigation = [
     shortLabel: "身份",
     icon: UsersRound,
     to: "/admin/users",
-    requiredPermissions: ["admin.user.view", "admin.role.view"],
-    activePrefixes: ["/admin/users", "/admin/roles"],
+    requiredPermissions: [
+      "admin.user.view",
+      "admin.department.view",
+      "admin.role.view",
+    ],
+    activePrefixes: ["/admin/users", "/admin/departments", "/admin/roles"],
     children: [
       {
         label: "用户管理",
         to: "/admin/users",
         requiredPermissions: ["admin.user.view"],
+      },
+      {
+        label: "部门管理",
+        to: "/admin/departments",
+        requiredPermissions: ["admin.department.view"],
       },
       {
         label: "角色管理",
@@ -387,8 +383,8 @@ export const adminNavigation = [
 export const userMobileNavigation = [
   userNavigation[0],
   userNavigation[1],
-  userNavigation[4],
-  userNavigation[5],
+  userNavigation[2],
+  userNavigation[3],
 ] as const;
 export const adminMobileNavigation = [
   adminNavigation[0],

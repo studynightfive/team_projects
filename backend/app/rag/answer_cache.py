@@ -14,6 +14,7 @@ from app.common.config import settings
 from app.rag.search.schemas import RagAnswerResponse, SearchHit
 
 logger = structlog.get_logger()
+CACHE_SCHEMA_VERSION = "v2-rerank"
 
 _WHITESPACE = re.compile(r"\s+")
 _THINK_BLOCK_RE = re.compile(
@@ -32,7 +33,7 @@ def _strip_think_blocks(text: str) -> str:
 
 def _cache_key(*, user_id: str, kb_id: str | None, query: str) -> str:
     digest = hashlib.sha256(
-        f"{user_id}|{kb_id or ''}|{normalize_query(query)}".encode()
+        f"{CACHE_SCHEMA_VERSION}|{user_id}|{kb_id or ''}|{normalize_query(query)}".encode()
     ).hexdigest()
     return f"rag:answer_cache:{digest}"
 

@@ -251,7 +251,7 @@ export const runRealSearch = async (
     kb_id: request.workspaceId,
     top_k: 10,
     threshold: 0.0,
-    rerank: false,
+    rerank: true,
     chat_model_id:
       request.modelId !== undefined && request.modelId !== "env-deepseek"
         ? request.modelId

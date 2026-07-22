@@ -25,7 +25,7 @@ from app.rag._shared.permissions import (
     post_filter_hits,
 )
 from app.rag.answer_cache import get_cached_answer, set_cached_answer
-from app.rag.conversations.all import Conversation, Message
+from app.rag.guard import ensure_safe_query
 from app.rag.search.schemas import (
     RagAnswerRequest,
     RagAnswerResponse,
@@ -153,17 +153,27 @@ def _row_to_hit(row: SearchRow, *, kb_id: str | None = None) -> SearchHit:
 
 def _text_from_hit(hit: SearchRow) -> str:
     text_value = hit.get("text")
-    if isinstance(text_value, str):
-        return text_value
-    content_value = hit.get("content")
-    return content_value if isinstance(content_value, str) else ""
+    content_value = text_value if isinstance(text_value, str) else hit.get("content")
+    content = content_value if isinstance(content_value, str) else ""
+    context = [hit.get("doc_title"), hit.get("heading"), content]
+    return "\n".join(
+        value.strip() for value in context if isinstance(value, str) and value.strip()
+    )
 
 
 def _score_from_hit(hit: SearchRow) -> float:
-    value = hit.get("score")
+    value = hit.get("rerank_score", hit.get("vector_score", hit.get("score")))
     if isinstance(value, bool) or not isinstance(value, int | float):
         return 0.0
     return float(value)
+
+
+def _has_retrieval_information(hit: SearchRow) -> bool:
+    content = hit.get("content")
+    if not isinstance(content, str):
+        return False
+    plain = re.sub(r"[#>*_`|\-\s\d.]+", "", content)
+    return len(plain) >= 8
 
 
 # ============================================================
@@ -196,6 +206,7 @@ async def _keyword_search(
                d.title AS doc_title,
                c.knowledge_base_id AS kb_id,
                c.page_no AS page,
+               c.heading AS heading,
                c.content AS content,
                ({score_expr})::float AS score
         FROM document_chunks c
@@ -233,7 +244,10 @@ async def _embed_query(db: AsyncSession, *, query: str, embedding_model_id: str)
     api_key = decrypt_api_key(model.api_key_encrypted) if model.api_key_encrypted else ""
     p: OpenAICompatibleProvider = build_provider(provider.code, provider.base_url, api_key)
     out = await p.embed(model_name=model.model_name, inputs=[query])
-    return out[0]
+    embedding = out[0]
+    if len(embedding) != settings.qwen_embedding_dimensions:
+        raise ValueError("embedding dimensions do not match pgvector column")
+    return embedding
 
 
 async def _resolve_embedding_model_id(
@@ -244,19 +258,22 @@ async def _resolve_embedding_model_id(
         return requested_model_id
 
     models = await model_service.list_models(db, kind="embedding")
+    eligible = [
+        model
+        for model in models
+        if model.enabled
+        and model.api_key_encrypted
+        and model.dimensions == settings.qwen_embedding_dimensions
+    ]
     configured = next(
         (
             model
-            for model in models
-            if model.enabled
-            and model.model_name == settings.qwen_embedding_model
-            and model.api_key_encrypted
+            for model in eligible
+            if model.model_name == settings.qwen_embedding_model
         ),
         None,
     )
-    if configured is not None:
-        return configured.id
-    return None
+    return configured.id if configured is not None else (eligible[0].id if eligible else None)
 
 
 def _to_vector_literal(embedding: list[float]) -> str:
@@ -278,6 +295,7 @@ async def _vector_search(
         SELECT c.id AS chunk_id,
                c.document_id AS doc_id,
                c.page_no AS page,
+               c.heading AS heading,
                c.content AS content,
                d.title AS doc_title,
                c.knowledge_base_id AS kb_id,
@@ -338,6 +356,25 @@ def rrf_fuse(
 # ============================================================
 # 重排
 # ============================================================
+async def _resolve_rerank_model_id(
+    db: AsyncSession,
+    requested_model_id: str | None,
+) -> str | None:
+    if requested_model_id:
+        return requested_model_id
+
+    models = await model_service.list_models(db, kind="rerank")
+    configured = next(
+        (
+            model
+            for model in models
+            if model.enabled and model.api_key_encrypted
+        ),
+        None,
+    )
+    return configured.id if configured is not None else None
+
+
 async def _rerank(
     db: AsyncSession,
     *,
@@ -393,6 +430,7 @@ async def search(
     user: User,
     req: SearchRequest,
 ) -> SearchResponse:
+    ensure_safe_query(req.query)
     start = time.time()
     if req.metadata_filter:
         raise ValidationException(message="metadata_filter 尚未接入，不能静默忽略筛选条件")
@@ -459,26 +497,30 @@ async def search(
                 actual_mode = "keyword"
                 fused = kw_hits
 
-    # 阈值过滤
-    if req.threshold > 0:
-        fused = [hit for hit in fused if _score_from_hit(hit) >= req.threshold]
-
-    # 重排（仅当 top_k > settings.rag_max_top_k 强制启用）
+    # 重排在答案生成前完成；未显式指定时使用首个已启用且已配置密钥的模型。
+    informative = [hit for hit in fused if _has_retrieval_information(hit)]
+    if informative:
+        fused = informative
     forced_rerank = req.top_k > settings.rag_max_top_k
-    do_rerank = (req.rerank or forced_rerank) and actual_mode != "keyword"  # keyword 不重排
+    do_rerank = req.rerank or forced_rerank
     reranked = False
     if do_rerank:
         ts = time.time()
+        rerank_model_id = await _resolve_rerank_model_id(db, req.rerank_model_id)
         fused, reranked = await _rerank(
             db,
             query=req.query,
             candidates=fused,
-            rerank_model_id=req.rerank_model_id,
+            rerank_model_id=rerank_model_id,
             top_k=req.top_k,
         )
         debug_rt = int((time.time() - ts) * 1000)
     else:
         fused = fused[: req.top_k]
+
+    # 阈值作用于最终相关性分数，避免用约 0.016 的 RRF 分数误删全部结果。
+    if req.threshold > 0:
+        fused = [hit for hit in fused if _score_from_hit(hit) >= req.threshold]
 
     # 结果后置权限过滤
     safe = post_filter_hits(hits=fused, accessible_kb_ids=accessible_kbs)
@@ -550,7 +592,7 @@ async def _resolve_chat_model(
     api_key = settings.deepseek_api_key.strip() or settings.model_api_key.strip()
     if not api_key:
         raise ValidationException(
-            message="未配置 DeepSeek API Key，请设置 DEEPSEEK_API_KEY 后重启后端服务"
+            message="未选择可用聊天模型，且环境变量兜底模型未配置 API Key"
         )
     return (
         "deepseek",
@@ -622,7 +664,7 @@ async def answer(
             answer=(
                 f"已检索到 {len(search_resp.hits)} 条相关片段，但聊天模型调用失败"
                 f"（{status or type(exc).__name__}）。"
-                "请检查 MiniMax/DeepSeek 的 API Key、Base URL 与模型名。"
+                "请检查所选供应商的 API Key、Base URL 与模型名。"
             ),
             hits=search_resp.hits,
             mode=search_resp.mode,
@@ -635,20 +677,13 @@ async def answer(
     answer_text = strip_model_think_blocks(
         generated if isinstance(generated, str) else ""
     )
-    conversation = await _persist_answer_conversation(
-        db,
-        user=user,
-        req=req,
-        answer_text=answer_text.strip() or "未在文档中找到相关引用。",
-        hits=search_resp.hits,
-    )
     response = RagAnswerResponse(
         answer=answer_text.strip() or "未在文档中找到相关引用。",
         hits=search_resp.hits,
         mode=search_resp.mode,
         took_ms=int((time.time() - start) * 1000),
         model=model_name,
-        conversation_id=conversation.id,
+        conversation_id=None,
         generated=True,
         from_cache=False,
     )
@@ -659,57 +694,3 @@ async def answer(
         response=response,
     )
     return response
-
-
-async def _persist_answer_conversation(
-    db: AsyncSession,
-    *,
-    user: User,
-    req: RagAnswerRequest,
-    answer_text: str,
-    hits: list[SearchHit],
-) -> Conversation:
-    kb_id = req.kb_id or next((hit.kb_id for hit in hits if hit.kb_id), None)
-    if kb_id is None:
-        raise ValidationException(message="检索结果缺少知识库标识，无法保存会话")
-
-    now = time.time()
-    title = req.query.strip()[:80] or "知识库问答"
-    conversation = Conversation(
-        user_id=user.id,
-        kb_id=kb_id,
-        title=title,
-        message_count=2,
-    )
-    db.add(conversation)
-    await db.flush()
-
-    db.add(
-        Message(
-            conversation_id=conversation.id,
-            role="user",
-            content=req.query,
-            is_latest=True,
-        )
-    )
-    db.add(
-        Message(
-            conversation_id=conversation.id,
-            role="assistant",
-            content=answer_text,
-            citations=[
-                {
-                    "doc_id": hit.doc_id,
-                    "chunk_id": hit.chunk_id,
-                    "page": hit.page,
-                    "score": hit.score,
-                    "text": hit.text,
-                }
-                for hit in hits
-            ],
-            finish_reason="stop",
-            usage={"source": "retrieval_answer", "saved_at_ms": int(now * 1000)},
-            is_latest=True,
-        )
-    )
-    return conversation

@@ -15,6 +15,32 @@ interface PageData<T> {
   readonly total: number;
 }
 
+type PageParams = Readonly<
+  Record<string, string | number | boolean | undefined>
+>;
+
+const listAllPages = async <T>(
+  path: string,
+  params: PageParams = {},
+): Promise<PageData<T>> => {
+  const items: T[] = [];
+  let page = 1;
+  let total = 0;
+
+  do {
+    const response = await apiClient.get<ApiResponse<PageData<T>>>(path, {
+      params: { ...params, page, page_size: 100 },
+    });
+    const data = unwrap(response.data);
+    items.push(...data.items);
+    total = data.total;
+    page += 1;
+    if (data.items.length === 0) break;
+  } while (items.length < total);
+
+  return { items, page: 1, page_size: 100, total };
+};
+
 type CreateUserRequest =
   paths["/users"]["post"]["requestBody"]["content"]["application/json"];
 type UpdateUserRequest =
@@ -47,18 +73,6 @@ type CreateAdminRolePayload = Readonly<
   }
 >;
 
-type AdminDocumentPage = Readonly<
-  Omit<ApiSchema<"PaginatedData_AdminDocumentItem_">, "items"> & {
-    readonly items: readonly AdminDocument[];
-  }
->;
-
-type AdminTaskPage = Readonly<
-  Omit<ApiSchema<"PaginatedData_AdminTaskItem_">, "items"> & {
-    readonly items: readonly AdminTask[];
-  }
->;
-
 export interface RoleBrief {
   readonly id: string;
   readonly name: string;
@@ -70,8 +84,27 @@ export interface AdminUser {
   readonly display_name: string;
   readonly status: string;
   readonly roles: readonly RoleBrief[];
+  readonly department: DepartmentBrief | null;
   readonly last_login_at: string | null;
   readonly created_at: string | null;
+}
+
+export interface DepartmentBrief {
+  readonly id: string;
+  readonly name: string;
+}
+
+export interface DepartmentRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly admin_user_id: string | null;
+  readonly admin_username: string | null;
+  readonly admin_display_name: string | null;
+  readonly user_count: number;
+  readonly knowledge_base_count: number;
+  readonly created_at: string | null;
+  readonly updated_at: string | null;
 }
 
 export interface AdminRole {
@@ -219,6 +252,15 @@ export interface RetrievalTestResult {
   readonly finished_at: string | null;
 }
 
+export interface SingleRetrievalTestResult {
+  readonly question: string;
+  readonly hit: boolean;
+  readonly hit_rate: number;
+  readonly threshold: number;
+  readonly hits: readonly RetrievalSearchHit[];
+  readonly took_ms: number;
+}
+
 export interface RetrievalSearchHit {
   readonly doc_id: string;
   readonly chunk_id: string;
@@ -238,11 +280,7 @@ export const listAdminUsers = async (
     readonly status?: string;
   } = {},
 ): Promise<PageData<AdminUser>> => {
-  const response = await apiClient.get<ApiResponse<PageData<AdminUser>>>(
-    "/v1/users",
-    { params: { page_size: 100, ...params } },
-  );
-  return unwrap(response.data);
+  return listAllPages<AdminUser>("/v1/users", params);
 };
 
 export const createAdminUser = async (
@@ -270,6 +308,40 @@ export const updateAdminUser = async (
   return unwrap(response.data);
 };
 
+export const listDepartments = async (): Promise<readonly DepartmentRecord[]> => {
+  const response = await apiClient.get<
+    ApiResponse<{ readonly items: readonly DepartmentRecord[]; readonly total: number }>
+  >("/v1/departments");
+  return unwrap(response.data).items;
+};
+
+export const createDepartment = async (payload: {
+  readonly name: string;
+  readonly description?: string | null;
+  readonly admin_user_id: string;
+}): Promise<DepartmentRecord> => {
+  const response = await apiClient.post<ApiResponse<DepartmentRecord>>(
+    "/v1/departments",
+    payload,
+  );
+  return unwrap(response.data);
+};
+
+export const updateDepartment = async (
+  departmentId: string,
+  payload: {
+    readonly name?: string;
+    readonly description?: string | null;
+    readonly admin_user_id?: string;
+  },
+): Promise<DepartmentRecord> => {
+  const response = await apiClient.patch<ApiResponse<DepartmentRecord>>(
+    `/v1/departments/${departmentId}`,
+    payload,
+  );
+  return unwrap(response.data);
+};
+
 export const resetAdminUserPassword = async (
   userId: string,
   newPassword: string,
@@ -283,11 +355,7 @@ export const resetAdminUserPassword = async (
 };
 
 export const listAdminRoles = async (): Promise<PageData<AdminRole>> => {
-  const response = await apiClient.get<ApiResponse<PageData<AdminRole>>>(
-    "/v1/roles",
-    { params: { page_size: 100 } },
-  );
-  return unwrap(response.data);
+  return listAllPages<AdminRole>("/v1/roles");
 };
 
 export const getAdminRole = async (roleId: string): Promise<RoleDetail> => {
@@ -352,11 +420,7 @@ export const listAuditLogs = async (
     readonly result?: string;
   } = {},
 ): Promise<PageData<AuditLogItem>> => {
-  const response = await apiClient.get<ApiResponse<PageData<AuditLogItem>>>(
-    "/v1/audit-logs",
-    { params: { page_size: 100, ...params } },
-  );
-  return unwrap(response.data);
+  return listAllPages<AuditLogItem>("/v1/audit-logs", params);
 };
 
 export const listAdminDocuments = async (
@@ -365,11 +429,7 @@ export const listAdminDocuments = async (
     readonly status?: string;
   } = {},
 ): Promise<PageData<AdminDocument>> => {
-  const response = await apiClient.get<ApiResponse<AdminDocumentPage>>(
-    "/v1/admin/documents",
-    { params: { page_size: 100, ...params } },
-  );
-  return unwrap(response.data);
+  return listAllPages<AdminDocument>("/v1/admin/documents", params);
 };
 
 export const listAdminTasks = async (
@@ -378,11 +438,7 @@ export const listAdminTasks = async (
     readonly status?: string;
   } = {},
 ): Promise<PageData<AdminTask>> => {
-  const response = await apiClient.get<ApiResponse<AdminTaskPage>>(
-    "/v1/admin/tasks",
-    { params: { page_size: 100, ...params } },
-  );
-  return unwrap(response.data);
+  return listAllPages<AdminTask>("/v1/admin/tasks", params);
 };
 
 export const listModelProviders = async (): Promise<
@@ -488,11 +544,7 @@ export const testModel = async (modelId: string): Promise<TestModelResult> => {
 export const listRetrievalDatasets = async (): Promise<
   PageData<RetrievalDataset>
 > => {
-  const response = await apiClient.get<ApiResponse<PageData<RetrievalDataset>>>(
-    "/v1/retrieval-tests/datasets",
-    { params: { page_size: 100 } },
-  );
-  return unwrap(response.data);
+  return listAllPages<RetrievalDataset>("/v1/retrieval-tests/datasets");
 };
 
 export const createRetrievalDataset = async (payload: {
@@ -541,11 +593,7 @@ export const updateRetrievalDataset = async (
 };
 
 export const listRetrievalRuns = async (): Promise<PageData<RetrievalRun>> => {
-  const response = await apiClient.get<ApiResponse<PageData<RetrievalRun>>>(
-    "/v1/retrieval-tests/runs",
-    { params: { page_size: 100 } },
-  );
-  return unwrap(response.data);
+  return listAllPages<RetrievalRun>("/v1/retrieval-tests/runs");
 };
 
 export const getRetrievalRun = async (
@@ -582,6 +630,33 @@ export const runRetrievalTest = async (payload: {
   const response = await apiClient.post<ApiResponse<RetrievalTestResult>>(
     "/v1/retrieval-tests/run",
     request,
+  );
+  return unwrap(response.data);
+};
+
+export const runSingleRetrievalTest = async (payload: {
+  readonly kb_id: string;
+  readonly question: string;
+  readonly mode: RetrievalTestMode;
+  readonly top_k: number;
+  readonly threshold: number;
+  readonly rerank: boolean;
+}): Promise<SingleRetrievalTestResult> => {
+  const response = await apiClient.post<ApiResponse<SingleRetrievalTestResult>>(
+    "/v1/retrieval-tests/single",
+    {
+      kb_id: payload.kb_id,
+      question: payload.question,
+      config: {
+        mode: payload.mode,
+        top_k: payload.top_k,
+        threshold: payload.threshold,
+        rerank: payload.rerank,
+        metadata_filter: {},
+        embedding_model_id: null,
+        rerank_model_id: null,
+      },
+    },
   );
   return unwrap(response.data);
 };

@@ -47,10 +47,22 @@ const toFavorite = (record: FavoriteRecord): Favorite => ({
 export const listFavorites = async (
   signal?: AbortSignal,
 ): Promise<readonly Favorite[]> => {
-  const response = await apiClient.get<
-    ApiResponse<PaginatedData<FavoriteRecord>>
-  >("/v1/favorites", { params: { page: 1, page_size: 100 }, signal });
-  return unwrapApiData(response.data).items.map(toFavorite);
+  const items: FavoriteRecord[] = [];
+  let page = 1;
+  let total = 0;
+
+  do {
+    const response = await apiClient.get<
+      ApiResponse<PaginatedData<FavoriteRecord>>
+    >("/v1/favorites", { params: { page, page_size: 100 }, signal });
+    const data = unwrapApiData(response.data);
+    items.push(...data.items);
+    total = data.total;
+    page += 1;
+    if (data.items.length === 0) break;
+  } while (items.length < total);
+
+  return items.map(toFavorite);
 };
 
 export const createFavorite = async (

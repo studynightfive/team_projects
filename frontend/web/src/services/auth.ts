@@ -16,10 +16,16 @@ interface KnowledgeBaseAccess {
   readonly access_level: string;
 }
 
+interface DepartmentBrief {
+  readonly id: string;
+  readonly name: string;
+}
+
 export interface AuthenticatedUser {
   readonly id: string;
   readonly username: string;
   readonly display_name: string;
+  readonly department: DepartmentBrief | null;
   readonly roles: readonly UserRole[];
   readonly permissions: readonly string[];
   readonly knowledge_base_access: readonly KnowledgeBaseAccess[];

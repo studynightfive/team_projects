@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
 import structlog
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
@@ -76,11 +77,12 @@ async def list_admin_documents(
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = Query(None),
     status: str | None = Query(None),
-    _user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     _perm: None = Depends(require_permission("admin.document.view")),
     service: DocumentService = Depends(get_service),
 ) -> APIResponse[PaginatedData[AdminDocumentItem]]:
     items, total = await service.list_admin_documents(
+        user,
         page=page,
         page_size=page_size,
         search=search,
@@ -98,11 +100,12 @@ async def list_admin_tasks(
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = Query(None),
     status: str | None = Query(None),
-    _user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     _perm: None = Depends(require_permission("admin.task.view")),
     service: DocumentService = Depends(get_service),
 ) -> APIResponse[PaginatedData[AdminTaskItem]]:
     items, total = await service.list_admin_tasks(
+        user,
         page=page,
         page_size=page_size,
         search=search,
@@ -118,13 +121,22 @@ async def list_admin_tasks(
 async def upload_documents(
     kb_id: str,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_any_permission("admin.document.upload", "document.upload")),
+    _perm: None = Depends(
+        require_any_permission(
+            "admin.document.upload", "document.upload", "personal.document.upload"
+        )
+    ),
     service: DocumentService = Depends(get_service),
     files: list[UploadFile] = File(...),
     folder_path: str = Form("", max_length=1000),
     ocr_enabled: bool = Form(True),
     language: str = Form("chi_sim+eng", min_length=1, max_length=64),
     duplicate_policy: str = Form("new_version"),
+    chunk_strategy: Literal["fixed", "semantic", "recursive", "format"] = Form(
+        "recursive"
+    ),
+    chunk_size: int = Form(800, ge=100, le=4000),
+    chunk_overlap: int = Form(120, ge=0, le=1000),
 ) -> APIResponse[UploadResponse]:
     request_id = str(uuid.uuid4())
     try:
@@ -164,6 +176,9 @@ async def upload_documents(
             ocr_enabled=ocr_enabled,
             language=language,
             duplicate_policy=policy,
+            chunk_strategy=chunk_strategy,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
         ),
     )
     return APIResponse(data=result, request_id=request_id)
@@ -219,7 +234,9 @@ async def reprocess_document(
     document_id: str,
     body: ReprocessRequest | None = None,
     user: User = Depends(get_current_user),
-    _perm: None = Depends(require_permission("admin.document.upload")),
+    _perm: None = Depends(
+        require_any_permission("admin.document.upload", "personal.document.upload")
+    ),
     service: DocumentService = Depends(get_service),
 ) -> APIResponse[TaskResponse]:
     data = await service.reprocess(user, document_id, body)
@@ -248,6 +265,7 @@ async def get_task(
             "document.view",
             "admin.document.upload",
             "document.upload",
+            "personal.document.upload",
         )
     ),
     service: DocumentService = Depends(get_service),

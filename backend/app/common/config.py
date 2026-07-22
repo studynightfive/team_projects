@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     # ============================================================
     # 安全配置
     # ============================================================
-    secret_key: str = Field(min_length=32)
+    secret_key: str
     cookie_secure: bool = False
     business_timezone: str = "Asia/Shanghai"
     access_token_expire_minutes: int = Field(default=30, ge=1, le=1440)
@@ -72,8 +72,10 @@ class Settings(BaseSettings):
     deepseek_chat_model: str = "deepseek-chat"
     dashscope_api_key: str = ""
     dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    dashscope_rerank_base_url: str = "https://dashscope.aliyuncs.com/compatible-api/v1"
     qwen_embedding_model: str = "text-embedding-v2"
     qwen_embedding_dimensions: int = 1536
+    qwen_rerank_model: str = "qwen3-rerank"
     rag_answer_max_context_chars: int = 12000
     rag_answer_max_tokens: int = 1200
     rag_answer_cache_enabled: bool = True
@@ -187,11 +189,15 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_production_safety(self) -> Settings:
         """阻止缺少口令的演示播种，并强制生产环境使用安全配置。"""
+        if len(self.secret_key) < 16:
+            raise ValueError("SECRET_KEY 至少需要 16 位")
         if self.auto_seed_demo_data and len(self.demo_seed_password) < 12:
             raise ValueError(
                 "启用 AUTO_SEED_DEMO_DATA 时必须提供至少 12 位的 DEMO_SEED_PASSWORD"
             )
         if self.app_environment == "production":
+            if len(self.secret_key) < 32:
+                raise ValueError("生产环境 SECRET_KEY 至少需要 32 位")
             if not self.cookie_secure:
                 raise ValueError("生产环境必须设置 COOKIE_SECURE=true")
             if self.auto_seed_demo_data:
