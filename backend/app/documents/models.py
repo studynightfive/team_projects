@@ -9,6 +9,7 @@ from enum import Enum
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
@@ -56,6 +57,15 @@ class Document(Base):
     __tablename__ = "documents"
     __table_args__ = (
         UniqueConstraint("knowledge_base_id", "content_hash", "version", name="uq_doc_kb_hash_ver"),
+        CheckConstraint(
+            "chunk_strategy IN ('fixed', 'semantic', 'recursive', 'format')",
+            name="ck_documents_chunk_strategy",
+        ),
+        CheckConstraint(
+            "chunk_size BETWEEN 100 AND 4000 AND chunk_overlap >= 0 "
+            "AND chunk_overlap < chunk_size",
+            name="ck_documents_chunk_parameters",
+        ),
     )
 
     id: Mapped[str] = mapped_column(
@@ -78,6 +88,11 @@ class Document(Base):
     )
     ocr_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     language: Mapped[str] = mapped_column(String(64), default="chi_sim+eng")
+    chunk_strategy: Mapped[str] = mapped_column(
+        String(16), default="recursive", nullable=False
+    )
+    chunk_size: Mapped[int] = mapped_column(Integer, default=800, nullable=False)
+    chunk_overlap: Mapped[int] = mapped_column(Integer, default=120, nullable=False)
     parser_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     parser_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
     markdown_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)

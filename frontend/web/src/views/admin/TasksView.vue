@@ -4,8 +4,10 @@ import { computed, onMounted, ref } from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import { listAdminTasks, type AdminTask } from "../../services/admin";
 
 const { message } = AntApp.useApp();
@@ -32,6 +34,12 @@ const filteredTasks = computed(() => {
     );
   });
 });
+const {
+  page: tasksPage,
+  pageSize: tasksPageSize,
+  pagedItems: pagedTasks,
+  setPage: setTasksPage,
+} = useListPagination(filteredTasks);
 
 const statusLabel = (status: string): string =>
   ({
@@ -139,7 +147,7 @@ onMounted(loadData);
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredTasks" :key="item.task_id">
+            <tr v-for="item in pagedTasks" :key="item.task_id">
               <td>
                 <strong>{{ item.document_title }}</strong>
                 <small>{{ item.task_type }}</small>
@@ -176,6 +184,13 @@ onMounted(loadData);
           </tbody>
         </table>
       </div>
+      <ListPagination
+        v-if="filteredTasks.length > 0"
+        :page="tasksPage"
+        :page-size="tasksPageSize"
+        :total="filteredTasks.length"
+        @change="setTasksPage"
+      />
     </ResourcePanel>
 
     <Drawer

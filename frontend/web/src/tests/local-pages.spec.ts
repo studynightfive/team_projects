@@ -65,24 +65,10 @@ const businessRoutes: readonly BusinessRouteCase[] = [
     activeNavigation: "收藏内容",
   },
   {
-    name: "search-history",
-    path: "/history",
-    title: "搜索历史",
-    shell: "user",
-    activeNavigation: "搜索历史",
-  },
-  {
     name: "search-settings",
     path: "/settings",
     title: "搜索设置",
     shell: "user",
-  },
-  {
-    name: "conversations",
-    path: "/conversations",
-    title: "历史会话",
-    shell: "user",
-    activeNavigation: "历史会话",
   },
   {
     name: "downloads",
@@ -95,6 +81,13 @@ const businessRoutes: readonly BusinessRouteCase[] = [
     name: "admin-users",
     path: "/admin/users",
     title: "用户管理",
+    shell: "admin",
+    activeNavigation: "用户与角色",
+  },
+  {
+    name: "admin-departments",
+    path: "/admin/departments",
+    title: "部门管理",
     shell: "admin",
     activeNavigation: "用户与角色",
   },
@@ -212,6 +205,15 @@ describe("M02-M14 本地业务路由", () => {
       expect(requestSpy).not.toHaveBeenCalled();
       expect(localStorage).toHaveLength(0);
       expect(sessionStorage).toHaveLength(0);
+    },
+  );
+
+  it.each(["/history", "/conversations"])(
+    "%s 已删除并返回统一 404 页面",
+    async (path) => {
+      const { wrapper, router } = await renderAppAt(path);
+      expect(router.currentRoute.value.name).toBe("not-found");
+      expect(wrapper.text()).toContain("页面不存在");
     },
   );
 
@@ -420,7 +422,7 @@ describe("M03-M07 用户页面本地交互", () => {
       expect(wrapper.find(".result-tabs").exists()).toBe(true);
     });
 
-    await wrapper.get('select[title="选择搜索模式"]').setValue("precise");
+    expect(wrapper.find('select[title="选择搜索模式"]').exists()).toBe(false);
     const query = wrapper.get("#ai-search-query");
     await query.setValue("复盘");
     await wrapper.get("form.ai-search-box").trigger("submit");
@@ -429,11 +431,6 @@ describe("M03-M07 用户页面本地交互", () => {
       expect(wrapper.find(".result-tabs").exists()).toBe(true);
       expect(wrapper.text()).toContain("本地模拟，无真实耗时");
     });
-
-    expect(
-      wrapper.find<HTMLSelectElement>('select[title="选择搜索模式"]').element
-        .value,
-    ).toBe("precise");
 
     await getButton(wrapper, "原始结果").trigger("click");
     expect(wrapper.findAll(".source-result-item")).toHaveLength(3);
@@ -448,32 +445,7 @@ describe("M03-M07 用户页面本地交互", () => {
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
-  it("搜索历史重置关键词并在确认后批量删除当前筛选结果", async () => {
-    const requestSpy = vi.spyOn(apiClient, "request");
-    const history = await renderAppAt("/history");
-    const searchInput = history.wrapper.get(
-      'input[placeholder="搜索问题或来源"]',
-    );
-
-    await searchInput.setValue("差旅报销");
-    expect(history.wrapper.findAll(".history-list article")).toHaveLength(1);
-    await getButton(history.wrapper, "重置搜索").trigger("click");
-    expect((searchInput.element as HTMLInputElement).value).toBe("");
-    expect(history.wrapper.findAll(".history-list article")).toHaveLength(8);
-
-    await searchInput.setValue("差旅报销");
-    await getButton(history.wrapper, "批量删除当前筛选结果").trigger("click");
-    await flushPromises();
-    expect(document.querySelector(".ant-modal-confirm")).not.toBeNull();
-    expect(history.wrapper.find(".delete-confirmation").exists()).toBe(false);
-    expect(document.body.textContent).toContain("确认批量删除 1 条筛选结果？");
-    getDocumentButton("确认批量删除").click();
-    await flushPromises();
-    expect(history.wrapper.text()).toContain("没有符合条件的搜索记录");
-    expect(requestSpy).not.toHaveBeenCalled();
-  });
-
-  it("收藏与搜索历史单条删除使用模态弹窗，取消不会误删", async () => {
+  it("收藏单条删除使用模态弹窗，取消不会误删", async () => {
     const favorites = await renderAppAt("/favorites");
     const favoriteTitle = favorites.wrapper.get(".favorite-copy h2").text();
 
@@ -495,38 +467,10 @@ describe("M03-M07 用户页面本地交互", () => {
     getDocumentButton("确认删除").click();
     await flushPromises();
     expect(favorites.wrapper.text()).not.toContain(favoriteTitle);
-    favorites.wrapper.unmount();
-
-    const history = await renderAppAt("/history");
-    await history.wrapper.get('button[aria-label^="删除"]').trigger("click");
-    await flushPromises();
-    expect(document.querySelector(".ant-modal-confirm")).not.toBeNull();
-    expect(history.wrapper.find(".delete-confirmation").exists()).toBe(false);
-    expect(document.body.textContent).toContain("确认删除这条搜索记录？");
-    getDocumentButton("取消").click();
-    await flushPromises();
   });
 
-  it("会话重命名、删除确认和下载筛选只影响当前页面", async () => {
+  it("下载筛选和删除确认只影响当前页面", async () => {
     const requestSpy = vi.spyOn(apiClient, "request");
-    const conversations = await renderAppAt("/conversations");
-    await getButton(conversations.wrapper, "重命名").trigger("click");
-    await conversations.wrapper.get(".title-editor").setValue("本地会话名称");
-    await getButton(conversations.wrapper, "保存本地名称").trigger("click");
-    expect(conversations.wrapper.text()).toContain("本地会话名称");
-    await conversations.wrapper
-      .get('button[aria-label^="删除本地会话名称"]')
-      .trigger("click");
-    await flushPromises();
-    expect(document.querySelector(".ant-modal-confirm")).not.toBeNull();
-    expect(conversations.wrapper.find(".delete-confirmation").exists()).toBe(
-      false,
-    );
-    getDocumentButton("确认删除").click();
-    await flushPromises();
-    expect(conversations.wrapper.text()).not.toContain("本地会话名称");
-    conversations.wrapper.unmount();
-
     const downloads = await renderAppAt("/downloads");
     await downloads.wrapper
       .get('input[placeholder="搜索文件名或格式"]')
@@ -587,12 +531,15 @@ describe("M09-M14 管理页面真实 API 渲染", () => {
 
     await getButton(wrapper, "新增模型").trigger("click");
     await flushPromises();
-    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"));
-    const modelName = inputs.find((input) => input.autocomplete === "off");
-    const credential = inputs.find((input) => input.autocomplete === "new-password");
-    expect(modelName).toBeDefined();
-    expect(credential).toBeDefined();
-    if (modelName === undefined || credential === undefined) return;
+    const modelName = document.querySelector<HTMLInputElement>(
+      "#model-name-input",
+    );
+    const credential = document.querySelector<HTMLInputElement>(
+      'input[autocomplete="new-password"]',
+    );
+    expect(modelName).not.toBeNull();
+    expect(credential).not.toBeNull();
+    if (modelName === null || credential === null) return;
 
     modelName.value = "deepseek-reasoner";
     modelName.dispatchEvent(new Event("input", { bubbles: true }));
@@ -671,6 +618,11 @@ describe("M09-M14 管理页面真实 API 渲染", () => {
     await wrapper.get(".retrieval-form").trigger("submit");
     await flushPromises();
     expect(wrapper.text()).toContain("真实测试记录");
+    await getButton(wrapper, "查看结果").trigger("click");
+    await flushPromises();
+    expect(wrapper.text()).toContain("命中率（Hit Rate）");
+    expect(wrapper.text()).toContain("平均倒数排名（MRR）");
+    expect(wrapper.text()).toContain("是否命中（Hit）");
   });
 
   it("审计日志使用 API 数据并掩码网络标识", async () => {

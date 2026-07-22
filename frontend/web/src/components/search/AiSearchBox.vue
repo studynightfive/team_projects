@@ -5,11 +5,10 @@ import type {
   KnowledgeBaseOption,
   ModelOption,
   SearchMode,
-  SearchModeOption,
   SearchRequest,
   SearchSourceType,
 } from "../../types/ai-search";
-import { FileText, Paperclip, Send, X } from "../icons";
+import { Send, X } from "../icons";
 
 const props = withDefaults(
   defineProps<{
@@ -18,20 +17,17 @@ const props = withDefaults(
     sources: readonly SearchSourceType[];
     modelId: string;
     workspaceId?: string;
-    modeOptions: readonly SearchModeOption[];
     modelOptions: readonly ModelOption[];
     knowledgeBaseOptions?: readonly KnowledgeBaseOption[];
     requiresWorkspace?: boolean;
     busy?: boolean;
     disabled?: boolean;
     compact?: boolean;
-    attachmentsEnabled?: boolean;
   }>(),
   {
     busy: false,
     disabled: false,
     compact: false,
-    attachmentsEnabled: true,
     requiresWorkspace: true,
     workspaceId: undefined,
     knowledgeBaseOptions: () => [],
@@ -40,36 +36,14 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "update:query": [value: string];
-  "update:mode": [value: SearchMode];
   "update:sources": [value: SearchSourceType[]];
   "update:model-id": [value: string];
   "update:workspace-id": [value: string | undefined];
-  "attachments-change": [names: string[]];
   submit: [request: SearchRequest];
   notice: [message: string];
 }>();
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const MAX_FILE_COUNT = 5;
-const ALLOWED_FILE_EXTENSIONS = [
-  ".pdf",
-  ".doc",
-  ".docx",
-  ".txt",
-  ".md",
-  ".xls",
-  ".xlsx",
-] as const;
-
 const textareaRef = ref<HTMLTextAreaElement>();
-const fileInputRef = ref<HTMLInputElement>();
-const attachments = ref<File[]>([]);
-
-const activeMode = computed(
-  () =>
-    props.modeOptions.find((option) => option.value === props.mode) ??
-    props.modeOptions[0],
-);
 const selectedKnowledgeBaseLabel = computed(() => {
   const selected = props.knowledgeBaseOptions.find(
     (item) => item.id === props.workspaceId,
@@ -137,9 +111,6 @@ const submit = (): void => {
       props.workspaceId !== undefined && props.workspaceId !== ""
         ? props.workspaceId
         : undefined,
-    attachmentIds: props.attachmentsEnabled
-      ? attachments.value.map((file) => file.name)
-      : [],
     modelId: props.modelId,
   });
 };
@@ -150,58 +121,8 @@ const handleKeydown = (event: KeyboardEvent): void => {
   submit();
 };
 
-const openFilePicker = (): void => {
-  if (!props.disabled && !props.busy) fileInputRef.value?.click();
-};
-
-const emitAttachmentNames = (): void => {
-  emit(
-    "attachments-change",
-    attachments.value.map((file) => file.name),
-  );
-};
-
-const addAttachments = (event: Event): void => {
-  const input = event.target as HTMLInputElement;
-  const selectedFiles = Array.from(input.files ?? []);
-  input.value = "";
-
-  const availableSlots = MAX_FILE_COUNT - attachments.value.length;
-  if (availableSlots <= 0) {
-    emit("notice", `最多添加 ${MAX_FILE_COUNT} 个附件`);
-    return;
-  }
-
-  const acceptedFiles = selectedFiles
-    .slice(0, availableSlots)
-    .filter((file) => {
-      const normalizedName = file.name.toLocaleLowerCase("zh-CN");
-      const extensionAllowed = ALLOWED_FILE_EXTENSIONS.some((extension) =>
-        normalizedName.endsWith(extension),
-      );
-      if (!extensionAllowed) {
-        emit("notice", `${file.name} 的格式不受支持`);
-        return false;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        emit("notice", `${file.name} 超过 10 MB 限制`);
-        return false;
-      }
-      return true;
-    });
-
-  attachments.value = [...attachments.value, ...acceptedFiles];
-  emitAttachmentNames();
-};
-
-const removeAttachment = (name: string): void => {
-  attachments.value = attachments.value.filter((file) => file.name !== name);
-  emitAttachmentNames();
-};
-
 defineExpose({
   focus: (): void => textareaRef.value?.focus(),
-  openFilePicker,
 });
 </script>
 
@@ -212,22 +133,6 @@ defineExpose({
     aria-label="企业 AI 搜索"
     @submit.prevent="submit"
   >
-    <fieldset class="search-mode-list">
-      <legend class="visually-hidden">搜索模式</legend>
-      <button
-        v-for="option in modeOptions"
-        :key="option.value"
-        type="button"
-        :class="{ active: mode === option.value }"
-        :aria-pressed="mode === option.value"
-        :title="option.description"
-        :disabled="disabled || busy"
-        @click="emit('update:mode', option.value)"
-      >
-        {{ option.label }}
-      </button>
-    </fieldset>
-
     <label class="visually-hidden" for="ai-search-query">输入搜索问题</label>
     <div class="search-editor">
       <textarea
@@ -252,77 +157,8 @@ defineExpose({
       </button>
     </div>
 
-    <div
-      v-if="attachmentsEnabled && attachments.length > 0"
-      class="attachment-list"
-      aria-label="已添加附件"
-    >
-      <span
-        v-for="file in attachments"
-        :key="file.name"
-        class="attachment-chip"
-      >
-        <FileText :size="15" aria-hidden="true" />
-        <span :title="file.name">{{ file.name }}</span>
-        <button
-          type="button"
-          :aria-label="`移除附件 ${file.name}`"
-          @click="removeAttachment(file.name)"
-        >
-          <X :size="14" aria-hidden="true" />
-        </button>
-      </span>
-    </div>
-
     <div class="search-toolbar">
       <div class="search-toolbar-options">
-        <input
-          v-if="attachmentsEnabled"
-          ref="fileInputRef"
-          class="visually-hidden"
-          type="file"
-          multiple
-          accept=".pdf,.doc,.docx,.txt,.md,.xls,.xlsx"
-          @change="addAttachments"
-        />
-        <button
-          v-if="attachmentsEnabled"
-          class="search-tool-button"
-          type="button"
-          title="添加附件，最多 5 个且单个不超过 10 MB"
-          :disabled="disabled || busy"
-          @click="openFilePicker"
-        >
-          <Paperclip :size="17" aria-hidden="true" />
-          添加附件
-        </button>
-        <span v-else class="search-tool-button" title="真实接口尚未定义附件上传契约">
-          附件检索暂不可用
-        </span>
-
-        <label v-if="compact" class="search-select-label">
-          <span class="visually-hidden">选择搜索模式</span>
-          <select
-            :value="mode"
-            :disabled="disabled || busy"
-            title="选择搜索模式"
-            @change="
-              emit(
-                'update:mode',
-                ($event.target as HTMLSelectElement).value as SearchMode,
-              )
-            "
-          >
-            <option
-              v-for="option in modeOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
-
         <label
           v-if="knowledgeBaseOptions.length > 0"
           class="search-select-label"
@@ -389,11 +225,8 @@ defineExpose({
       </button>
     </div>
 
-    <div class="search-box-meta">
-      <span>{{ activeMode?.description }}</span>
-      <span aria-live="polite">{{
-        busy ? "正在检索已选知识库，请稍候" : "Enter 发送，Shift + Enter 换行"
-      }}</span>
+    <div v-if="busy" class="search-box-meta" aria-live="polite">
+      <span>正在检索已选知识库，请稍候</span>
     </div>
   </form>
 </template>

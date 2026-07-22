@@ -8,6 +8,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.departments.schemas import DepartmentBrief
+
 
 # ============================================================
 # 请求模型
@@ -18,14 +20,16 @@ class CreateUserRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=150)
     display_name: str = Field(..., min_length=1, max_length=150)
     password: str = Field(..., min_length=7, max_length=128)
-    role_ids: list[str] = []
+    role_ids: list[str] = Field(default_factory=list, min_length=1, max_length=1)
+    department_id: str | None = None
 
 
 class UpdateUserRequest(BaseModel):
     """更新用户请求"""
 
     status: str | None = None  # active, disabled
-    role_ids: list[str] | None = None
+    role_ids: list[str] | None = Field(default=None, min_length=1, max_length=1)
+    department_id: str | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -47,6 +51,7 @@ class UserResponse(BaseModel):
     display_name: str
     status: str
     roles: list[RoleBrief] = []
+    department: DepartmentBrief | None = None
     last_login_at: datetime | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -71,6 +76,7 @@ class UserListItem(BaseModel):
     display_name: str
     status: str
     roles: list[RoleBrief] = []
+    department: DepartmentBrief | None = None
     last_login_at: datetime | None = None
     created_at: datetime | None = None
 

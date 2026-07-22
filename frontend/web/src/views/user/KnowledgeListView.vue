@@ -1,37 +1,25 @@
 <script setup lang="ts">
-import { App as AntApp, Drawer } from "ant-design-vue";
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import { isRealApiMode } from "../../config/runtime";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
 import InlineState from "../../components/InlineState.vue";
-import { ArrowUpRight, BookOpen, Plus, Search } from "../../components/icons";
+import ListPagination from "../../components/ListPagination.vue";
+import { useListPagination } from "../../composables/useListPagination";
+import { ArrowUpRight, BookOpen, Search } from "../../components/icons";
 import { localPageData } from "../../data/local-pages";
 import { toPublicApiError } from "../../api/client";
 import {
-  createKnowledgeBase,
   listKnowledgeBases,
   type KnowledgeBaseRecord,
 } from "../../services/knowledge";
-import { useSessionStore } from "../../stores/session";
-
-const { message } = AntApp.useApp();
-const sessionStore = useSessionStore();
 const query = ref("");
 const type = ref("全部类型");
 const realKnowledgeBases = ref<readonly KnowledgeBaseRecord[]>([]);
 const loadState = ref<"idle" | "loading" | "error">("idle");
 const loadError = ref("");
-const isCreating = ref(false);
-const saving = ref(false);
-const editor = reactive({
-  name: "",
-  description: "",
-  chunkSize: 800,
-  chunkOverlap: 120,
-});
 
 let loadController: AbortController | undefined;
 
@@ -40,7 +28,7 @@ const realItems = computed(() =>
     id: item.id,
     name: item.name,
     description: item.description ?? "暂无说明",
-    type: item.status === "active" ? "可用知识库" : "已归档",
+    type: item.kind === "personal" ? "个人知识库" : item.department_name,
     tone: (["blue", "green", "violet", "amber"][index % 4] ?? "blue") as
       | "blue"
       | "green"
@@ -70,14 +58,6 @@ const knowledgeBaseTypes = computed(() => [
   ...new Set(displayItems.value.map((item) => item.type)),
 ]);
 
-const canCreateKnowledgeBase = computed(
-  () =>
-    isRealApiMode &&
-    (sessionStore.currentUser?.permissions ?? []).includes(
-      "admin.knowledge_base.create",
-    ),
-);
-
 const filteredKnowledgeBases = computed(() => {
   const normalizedQuery = query.value.trim().toLocaleLowerCase("zh-CN");
 
@@ -92,6 +72,12 @@ const filteredKnowledgeBases = computed(() => {
     return matchesType && matchesQuery;
   });
 });
+const {
+  page: knowledgeBasesPage,
+  pageSize: knowledgeBasesPageSize,
+  pagedItems: pagedKnowledgeBases,
+  setPage: setKnowledgeBasesPage,
+} = useListPagination(filteredKnowledgeBases);
 
 const loadRealKnowledgeBases = async (): Promise<void> => {
   if (!isRealApiMode) return;
@@ -106,58 +92,6 @@ const loadRealKnowledgeBases = async (): Promise<void> => {
     if (error instanceof DOMException && error.name === "AbortError") return;
     loadError.value = toPublicApiError(error).message;
     loadState.value = "error";
-  }
-};
-
-const startCreate = (): void => {
-  if (!canCreateKnowledgeBase.value) return;
-  Object.assign(editor, {
-    name: "",
-    description: "",
-    chunkSize: 800,
-    chunkOverlap: 120,
-  });
-  isCreating.value = true;
-};
-
-const closeEditor = (): void => {
-  isCreating.value = false;
-};
-
-const saveKnowledgeBase = async (): Promise<void> => {
-  if (!canCreateKnowledgeBase.value) {
-    message.error("当前账号没有创建知识库权限");
-    return;
-  }
-  if (editor.name.trim() === "") {
-    message.warning("请填写知识库名称");
-    return;
-  }
-  if (
-    editor.chunkSize < 200 ||
-    editor.chunkSize > 4000 ||
-    editor.chunkOverlap < 0 ||
-    editor.chunkOverlap > 1000
-  ) {
-    message.warning("请输入有效的切分参数");
-    return;
-  }
-
-  saving.value = true;
-  try {
-    await createKnowledgeBase({
-      name: editor.name.trim(),
-      description: editor.description.trim(),
-      chunk_size: editor.chunkSize,
-      chunk_overlap: editor.chunkOverlap,
-    });
-    message.success("知识库已创建");
-    closeEditor();
-    await loadRealKnowledgeBases();
-  } catch (error: unknown) {
-    message.error(toPublicApiError(error).message);
-  } finally {
-    saving.value = false;
   }
 };
 
@@ -177,20 +111,11 @@ onBeforeUnmount(() => {
       title="企业知识库"
       :description="
         isRealApiMode
-          ? '浏览当前账号可访问的真实知识库，文档上传在具体知识库内完成。'
+          ? '浏览本部门企业知识库，并管理仅自己可见的个人知识库。'
           : '浏览当前本地预览中的知识空间，正式可见范围等待权限契约。'
       "
     >
       <template #actions>
-        <button
-          v-if="canCreateKnowledgeBase"
-          class="secondary-button"
-          type="button"
-          @click="startCreate"
-        >
-          <Plus :size="17" aria-hidden="true" />
-          新建知识库
-        </button>
         <RouterLink class="primary-button" to="/search">
           <Search :size="17" aria-hidden="true" />
           开始检索
@@ -251,7 +176,7 @@ onBeforeUnmount(() => {
 
       <div v-else-if="filteredKnowledgeBases.length > 0" class="knowledge-grid">
         <article
-          v-for="item in filteredKnowledgeBases"
+          v-for="item in pagedKnowledgeBases"
           :key="item.id"
           class="knowledge-card"
           :class="`tone-${item.tone}`"
@@ -282,6 +207,13 @@ onBeforeUnmount(() => {
           </RouterLink>
         </article>
       </div>
+      <ListPagination
+        v-if="filteredKnowledgeBases.length > 0"
+        :page="knowledgeBasesPage"
+        :page-size="knowledgeBasesPageSize"
+        :total="filteredKnowledgeBases.length"
+        @change="setKnowledgeBasesPage"
+      />
 
       <InlineState
         v-else
@@ -289,74 +221,11 @@ onBeforeUnmount(() => {
         title="没有匹配的知识库"
         :description="
           isRealApiMode
-            ? canCreateKnowledgeBase
-              ? '请调整关键词或类型；也可以直接新建知识库。'
-              : '请调整关键词或类型；若需要新增知识库，请联系管理员。'
+            ? '请调整关键词或类型；企业知识库由管理中心维护。'
             : '请调整关键词或类型；真实数据权限尚未接入。'
         "
       />
     </ResourcePanel>
-
-    <Drawer
-      :open="isCreating"
-      title="新建知识库"
-      width="460"
-      @close="closeEditor"
-    >
-      <form class="drawer-form" @submit.prevent="saveKnowledgeBase">
-        <label>
-          <span>知识库名称</span>
-          <input
-            v-model="editor.name"
-            type="text"
-            autocomplete="off"
-            required
-            placeholder="例如：医疗信息化项目资料库"
-          />
-        </label>
-        <label>
-          <span>说明</span>
-          <textarea
-            v-model="editor.description"
-            rows="3"
-            placeholder="用于说明知识库的业务范围和适用场景"
-          />
-        </label>
-        <div class="parameter-grid">
-          <label>
-            <span>切分大小</span>
-            <input
-              v-model.number="editor.chunkSize"
-              type="number"
-              min="200"
-              max="4000"
-              step="50"
-            />
-          </label>
-          <label>
-            <span>重叠字符</span>
-            <input
-              v-model.number="editor.chunkOverlap"
-              type="number"
-              min="0"
-              max="1000"
-              step="10"
-            />
-          </label>
-        </div>
-        <p class="preview-note">
-          系统优先按 Markdown 标题、段落、表格和代码块切分；切分大小和重叠字符只用于超长段落兜底拆分。
-        </p>
-        <div class="drawer-actions">
-          <button class="secondary-button" type="button" @click="closeEditor">
-            取消
-          </button>
-          <button class="primary-button" type="submit" :disabled="saving">
-            {{ saving ? "创建中" : "创建" }}
-          </button>
-        </div>
-      </form>
-    </Drawer>
   </div>
 </template>
 

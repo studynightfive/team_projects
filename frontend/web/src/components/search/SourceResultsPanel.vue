@@ -8,6 +8,8 @@ import {
   watch,
 } from "vue";
 
+import ListPagination from "../ListPagination.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import type { SearchResultItem, SearchSourceType } from "../../types/ai-search";
 import {
   Bookmark,
@@ -94,6 +96,13 @@ const filteredResults = computed(() => {
           new Date(left.updatedAt).getTime(),
     );
 });
+const {
+  page,
+  pageSize,
+  total,
+  pagedItems: pagedResults,
+  setPage,
+} = useListPagination(filteredResults);
 
 const sourceTypeLabel: Readonly<Record<SearchSourceType, string>> = {
   knowledge: "企业知识库",
@@ -389,7 +398,7 @@ onBeforeUnmount(() => {
       :class="{ compact }"
     >
       <article
-        v-for="result in filteredResults"
+        v-for="result in pagedResults"
         :key="result.id"
         class="source-result-item"
       >
@@ -448,6 +457,14 @@ onBeforeUnmount(() => {
         </div>
       </article>
     </div>
+
+    <ListPagination
+      v-if="filteredResults.length > 0"
+      :page="page"
+      :page-size="pageSize"
+      :total="total"
+      @change="setPage"
+    />
 
     <InlineState
       v-else

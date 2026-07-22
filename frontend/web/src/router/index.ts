@@ -89,22 +89,10 @@ export const createAppRouter = (history: RouterHistory): Router => {
             meta: { title: "收藏内容", parentTitle: "企业知识中心" },
           },
           {
-            path: "history",
-            name: "search-history",
-            component: () => import("../views/user/SearchHistoryView.vue"),
-            meta: { title: "搜索历史", parentTitle: "AI 搜索" },
-          },
-          {
             path: "settings",
             name: "search-settings",
             component: () => import("../views/user/SearchSettingsView.vue"),
             meta: { title: "搜索设置", parentTitle: "AI 搜索" },
-          },
-          {
-            path: "conversations",
-            name: "conversations",
-            component: () => import("../views/user/ConversationsView.vue"),
-            meta: { title: "历史会话", parentTitle: "用户工作区" },
           },
           {
             path: "downloads",
@@ -144,6 +132,16 @@ export const createAppRouter = (history: RouterHistory): Router => {
             component: () => import("../views/user/NotificationsView.vue"),
             props: { audience: "admin" },
             meta: { title: "通知中心", parentTitle: "管理中心" },
+          },
+          {
+            path: "departments",
+            name: "admin-departments",
+            component: () => import("../views/admin/DepartmentsView.vue"),
+            meta: {
+              title: "部门管理",
+              parentTitle: "管理中心",
+              requiredPermissions: ["admin.department.view"],
+            },
           },
           {
             path: "roles",

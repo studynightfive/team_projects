@@ -1185,6 +1185,10 @@ p {
   gap: var(--space-6);
 }
 
+.admin-operations-grid.single-column {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .service-row {
   display: grid;
   min-height: 64px;

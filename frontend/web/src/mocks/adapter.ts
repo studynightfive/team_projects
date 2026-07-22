@@ -42,6 +42,8 @@ const permissionSeeds: readonly PermissionSeed[] = [
   ["perm-admin-user-view", "admin.user.view", "查看用户列表", "admin"],
   ["perm-admin-user-create", "admin.user.create", "创建用户", "admin"],
   ["perm-admin-user-edit", "admin.user.edit", "编辑用户", "admin"],
+  ["perm-admin-department-view", "admin.department.view", "查看部门", "admin"],
+  ["perm-admin-department-manage", "admin.department.manage", "管理部门", "admin"],
   ["perm-admin-role-view", "admin.role.view", "查看角色列表", "admin"],
   ["perm-admin-role-edit", "admin.role.edit", "编辑角色", "admin"],
   ["perm-document-view", "document.view", "查看文档", "document"],
@@ -94,6 +96,20 @@ const roles = [
   },
 ];
 
+const defaultDepartment = {
+  id: "department-default",
+  name: "默认部门",
+  description: "本地交互测试部门",
+  admin_user_id: "user-admin",
+  admin_username: "admin",
+  admin_display_name: "系统管理员",
+  user_count: 3,
+  knowledge_base_count: 2,
+  created_at: now,
+  updated_at: now,
+};
+const departments = [defaultDepartment];
+
 const users = [
   {
     id: "user-admin",
@@ -101,6 +117,7 @@ const users = [
     display_name: "系统管理员",
     status: "active",
     roles: [roles[0]],
+    department: { id: defaultDepartment.id, name: defaultDepartment.name },
     last_login_at: now,
     created_at: now,
   },
@@ -110,6 +127,7 @@ const users = [
     display_name: "知识库编辑者",
     status: "active",
     roles: [roles[1]],
+    department: { id: defaultDepartment.id, name: defaultDepartment.name },
     last_login_at: null,
     created_at: now,
   },
@@ -119,6 +137,7 @@ const users = [
     display_name: "刘海旺",
     status: "active",
     roles: [roles[2]],
+    department: { id: defaultDepartment.id, name: defaultDepartment.name },
     last_login_at: null,
     created_at: now,
   },
@@ -129,6 +148,8 @@ const knowledgeBases = [
     id: "kb-default",
     name: "默认知识库",
     description: "用于基础交付演示的默认知识集合",
+    department_id: defaultDepartment.id,
+    department_name: defaultDepartment.name,
     status: "active",
     chunk_size: 800,
     chunk_overlap: 120,
@@ -142,6 +163,8 @@ const knowledgeBases = [
     id: "kb-medical",
     name: "医疗信息化知识库",
     description: "演示医疗信息化 IT 系统分析文档",
+    department_id: defaultDepartment.id,
+    department_name: defaultDepartment.name,
     status: "active",
     chunk_size: 1000,
     chunk_overlap: 160,
@@ -337,6 +360,45 @@ const runs = [
   },
 ];
 
+const retrievalRunResult = {
+  id: "run-1",
+  dataset_id: "dataset-medical",
+  config: {
+    mode: "hybrid",
+    top_k: 5,
+    rerank: true,
+    threshold: 0,
+    embedding_model_id: null,
+    rerank_model_id: null,
+    metadata_filter: null,
+  },
+  config_hash: "hash-demo",
+  total: 1,
+  metrics: {
+    hit_rate: 1,
+    mrr: 1,
+    ndcg_at_k: 1,
+    recall_at_k: 1,
+    precision_at_k: 0.2,
+    map_at_k: 1,
+  },
+  per_query: [
+    {
+      query: "医疗信息化系统有哪些核心模块？",
+      relevant_chunk_ids: ["chunk-medical-1"],
+      retrieved_chunk_ids: ["chunk-medical-1"],
+      hit: true,
+      reciprocal_rank: 1,
+      ndcg: 1,
+      recall: 1,
+      precision: 0.2,
+      latency_ms: 42,
+    },
+  ],
+  started_at: now,
+  finished_at: now,
+};
+
 const ok = <T>(config: Parameters<AxiosAdapter>[0], data: T): AxiosResponse<ApiResponse<T>> => ({
   data: { code: 0, message: "success", data, request_id: "mock-request" },
   status: 200,
@@ -369,6 +431,9 @@ export const mockAdapter: AxiosAdapter = (config) => {
   const url = config.url ?? "";
 
   if (method === "get" && url === "/v1/users") return Promise.resolve(ok(config, page(users)));
+  if (method === "get" && url === "/v1/departments") {
+    return Promise.resolve(ok(config, { items: departments, total: departments.length }));
+  }
   if (method === "get" && url === "/v1/roles") return Promise.resolve(ok(config, page(roles)));
   if (method === "get" && url.startsWith("/v1/roles/")) {
     const role = roles.find((item) => url.endsWith(item.id)) ?? roles[0];
@@ -467,6 +532,9 @@ export const mockAdapter: AxiosAdapter = (config) => {
   }
   if (method === "get" && url === "/v1/retrieval-tests/datasets") return Promise.resolve(ok(config, page(datasets)));
   if (method === "get" && url === "/v1/retrieval-tests/runs") return Promise.resolve(ok(config, page(runs)));
+  if (method === "get" && url === "/v1/retrieval-tests/runs/run-1") {
+    return Promise.resolve(ok(config, retrievalRunResult));
+  }
   if (["post", "patch", "put", "delete"].includes(method)) {
     return Promise.resolve(ok(config, null));
   }

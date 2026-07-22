@@ -3,8 +3,10 @@ import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import {
   Bell,
   BookOpen,
@@ -77,6 +79,12 @@ const filteredNotifications = computed(() => {
     return matchesReadState && matchesCategory && matchesKeyword;
   });
 });
+const {
+  page: notificationsPage,
+  pageSize: notificationsPageSize,
+  pagedItems: pagedNotifications,
+  setPage: setNotificationsPage,
+} = useListPagination(filteredNotifications);
 
 const reloadNotifications = (): void => {
   void notificationStore.loadNotifications(props.audience);
@@ -190,7 +198,7 @@ watch(
         aria-live="polite"
       >
         <article
-          v-for="notification in filteredNotifications"
+          v-for="notification in pagedNotifications"
           :key="notification.id"
           :class="{ unread: !notification.read }"
         >
@@ -235,6 +243,13 @@ watch(
           </div>
         </article>
       </div>
+      <ListPagination
+        v-if="filteredNotifications.length > 0"
+        :page="notificationsPage"
+        :page-size="notificationsPageSize"
+        :total="filteredNotifications.length"
+        @change="setNotificationsPage"
+      />
 
       <InlineState
         v-else

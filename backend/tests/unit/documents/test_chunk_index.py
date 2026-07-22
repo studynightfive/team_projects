@@ -46,6 +46,21 @@ async def test_chunker_prefers_markdown_headings_and_paragraphs() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("strategy", ["fixed", "semantic", "recursive", "format"])
+async def test_chunker_supports_upload_strategies(strategy: str) -> None:
+    md = "# 医疗信息化\n\n电子病历用于记录诊疗过程。\n\n" + "数据安全。" * 80
+    chunks = await Chunker().split(
+        md,
+        {"chunk_size": 200, "chunk_overlap": 20},
+        strategy=strategy,
+    )
+
+    assert chunks
+    assert all(chunk.content for chunk in chunks)
+    assert all(len(chunk.content) <= 220 for chunk in chunks)
+
+
+@pytest.mark.asyncio
 async def test_markdown_package() -> None:
     parsed = ParsedDocument(
         title="标题",

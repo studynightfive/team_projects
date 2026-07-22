@@ -242,12 +242,6 @@ const localPageRoutes = [
     title: "搜索结果",
   },
   {
-    name: "conversations",
-    path: "/conversations",
-    shell: "user",
-    title: "历史会话",
-  },
-  {
     name: "downloads",
     path: "/downloads",
     shell: "user",
@@ -264,6 +258,12 @@ const localPageRoutes = [
     path: "/admin/roles",
     shell: "admin",
     title: "角色管理",
+  },
+  {
+    name: "admin-departments",
+    path: "/admin/departments",
+    shell: "admin",
+    title: "部门管理",
   },
   {
     name: "admin-models",
@@ -862,7 +862,7 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     recordCheck(
       checks,
       "移动完整导航项正确",
-      drawer.navigationCount === (testCase.shell === "user" ? 7 : 11),
+      drawer.navigationCount === (testCase.shell === "user" ? 5 : 12),
       drawer.navigationCount,
     );
     recordCheck(

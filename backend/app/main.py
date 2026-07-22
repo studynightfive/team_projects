@@ -30,9 +30,11 @@ from app.common.seed import (
     seed_default_chat_model,
     seed_default_embedding_model,
     seed_default_knowledge_base,
+    seed_default_rerank_model,
     seed_demo_accounts,
     seed_model_providers,
 )
+from app.departments.router import router as departments_router
 from app.documents.router import router as documents_router
 
 # 员工5 路由（提示词 01~06）
@@ -78,6 +80,8 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             await seed_default_knowledge_base(db)
             await seed_default_chat_model(db)
             await seed_default_embedding_model(db)
+        if settings.dashscope_api_key:
+            await seed_default_rerank_model(db)
     try:
         yield
     finally:
@@ -245,6 +249,7 @@ app.include_router(auth_router)
 
 # 用户管理
 app.include_router(users_router)
+app.include_router(departments_router)
 
 # 角色管理
 app.include_router(role_router)

@@ -4,8 +4,10 @@ import { computed, onMounted, reactive, ref } from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import {
   createAdminRole,
   getAdminRole,
@@ -58,6 +60,13 @@ const filteredRoles = computed(() => {
     ),
   );
 });
+
+const {
+  page: rolesPage,
+  pageSize: rolesPageSize,
+  pagedItems: pagedRoles,
+  setPage: setRolesPage,
+} = useListPagination(filteredRoles);
 
 const groupedPermissions = computed(() => {
   const groups: Record<string, PermissionItem[]> = {};
@@ -228,7 +237,7 @@ onMounted(loadData);
         description="请调整搜索关键词。"
       />
       <div v-else class="role-grid">
-        <article v-for="role in filteredRoles" :key="role.id" class="role-card">
+        <article v-for="role in pagedRoles" :key="role.id" class="role-card">
           <header>
             <div>
               <h3>{{ role.name }}</h3>
@@ -257,6 +266,13 @@ onMounted(loadData);
           </button>
         </article>
       </div>
+      <ListPagination
+        v-if="filteredRoles.length > 0"
+        :page="rolesPage"
+        :page-size="rolesPageSize"
+        :total="filteredRoles.length"
+        @change="setRolesPage"
+      />
     </ResourcePanel>
 
     <Drawer

@@ -12,6 +12,13 @@ export type KnowledgeBaseRecord = Readonly<
 >;
 
 export type DocumentRecord = Readonly<Required<ApiSchema<"DocumentSummary">>>;
+export type ChunkStrategy = "fixed" | "semantic" | "recursive" | "format";
+
+export type DocumentUploadOptions = Readonly<{
+  chunkStrategy: ChunkStrategy;
+  chunkSize: number;
+  chunkOverlap: number;
+}>;
 
 export type DocumentDetailRecord = Readonly<
   Required<ApiSchema<"DocumentDetail">>
@@ -46,10 +53,7 @@ type UploadResponse = Readonly<
 type KnowledgeBaseCreateRequest =
   paths["/knowledge-bases"]["post"]["requestBody"]["content"]["application/json"];
 
-type KnowledgeBaseCreatePayload = Readonly<
-  Omit<KnowledgeBaseCreateRequest, "chunk_size" | "chunk_overlap"> &
-    Partial<Pick<KnowledgeBaseCreateRequest, "chunk_size" | "chunk_overlap">>
->;
+type KnowledgeBaseCreatePayload = Readonly<KnowledgeBaseCreateRequest>;
 
 type KnowledgeBaseUpdatePayload = Readonly<
   paths["/knowledge-bases/{kb_id}"]["patch"]["requestBody"]["content"]["application/json"]
@@ -142,6 +146,7 @@ export const getDocumentMarkdown = async (
 export const uploadDocuments = async (
   kbId: string,
   files: readonly File[],
+  options: DocumentUploadOptions,
 ): Promise<readonly UploadResult[]> => {
   const form = new FormData();
   for (const file of files) {
@@ -150,6 +155,9 @@ export const uploadDocuments = async (
   form.append("duplicate_policy", "new_version");
   form.append("ocr_enabled", "true");
   form.append("language", "chi_sim+eng");
+  form.append("chunk_strategy", options.chunkStrategy);
+  form.append("chunk_size", String(options.chunkSize));
+  form.append("chunk_overlap", String(options.chunkOverlap));
 
   const response = await apiClient.post<ApiResponse<UploadResponse>>(
     `/v1/knowledge-bases/${kbId}/documents`,

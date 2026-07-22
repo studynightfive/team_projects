@@ -13,6 +13,7 @@ def test_model_registry_loads_all_business_tables() -> None:
         "document_chunks",
         "document_tasks",
         "documents",
+        "departments",
         "export_tasks",
         "favorites",
         "knowledge_base_permissions",

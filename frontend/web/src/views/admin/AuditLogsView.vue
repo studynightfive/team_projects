@@ -4,8 +4,10 @@ import { computed, onMounted, ref } from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import { listAuditLogs, type AuditLogItem } from "../../services/admin";
 
 const { message } = AntApp.useApp();
@@ -35,6 +37,12 @@ const filteredLogs = computed(() => {
     );
   });
 });
+const {
+  page: logsPage,
+  pageSize: logsPageSize,
+  pagedItems: pagedLogs,
+  setPage: setLogsPage,
+} = useListPagination(filteredLogs);
 
 const resultLabel = (result: string): string =>
   ({ success: "成功", failure: "失败", denied: "拒绝" })[result] ?? result;
@@ -138,7 +146,7 @@ onMounted(loadData);
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredLogs" :key="item.id">
+            <tr v-for="item in pagedLogs" :key="item.id">
               <td class="numeric">{{ formatDate(item.created_at) }}</td>
               <td>{{ item.username ?? "系统" }}</td>
               <td>{{ item.action }}</td>
@@ -163,6 +171,13 @@ onMounted(loadData);
           </tbody>
         </table>
       </div>
+      <ListPagination
+        v-if="filteredLogs.length > 0"
+        :page="logsPage"
+        :page-size="logsPageSize"
+        :total="filteredLogs.length"
+        @change="setLogsPage"
+      />
     </ResourcePanel>
 
     <Drawer

@@ -17,7 +17,10 @@ from app.common.exceptions import (
     ValidationException,
 )
 from app.common.models import RefreshToken, Role, User
+from app.common.organization import SUPER_ADMIN_ROLE_NAME, is_super_admin
 from app.common.schemas import ErrorCode
+from app.departments.models import Department
+from app.departments.schemas import DepartmentBrief
 from app.users.schemas import (
     CreateUserRequest,
     RoleBrief,
@@ -27,6 +30,16 @@ from app.users.schemas import (
 )
 
 logger = structlog.get_logger()
+
+
+def _ensure_assignable_role(roles: list[Role]) -> None:
+    if any(role.name == SUPER_ADMIN_ROLE_NAME for role in roles):
+        raise ValidationException(message="用户管理不能分配超级管理员角色")
+
+
+def _ensure_role_change_allowed(user: User) -> None:
+    if is_super_admin(user):
+        raise ValidationException(message="超级管理员角色不能通过用户管理修改")
 
 
 # ============================================================
@@ -63,6 +76,22 @@ async def list_users(
         query.order_by(User.created_at.desc()).offset(offset).limit(page_size)
     )
     users = cast(list[User], result.scalars().all())
+    department_ids = {u.department_id for u in users if u.department_id is not None}
+    departments = (
+        {
+            item.id: item
+            for item in cast(
+                list[Department],
+                (
+                    await db.execute(
+                        select(Department).where(Department.id.in_(department_ids))
+                    )
+                ).scalars().all(),
+            )
+        }
+        if department_ids
+        else {}
+    )
 
     items = [
         UserListItem(
@@ -74,6 +103,9 @@ async def list_users(
                 RoleBrief(id=r.id, name=r.name)
                 for r in u.roles
             ],
+            department=_department_brief(
+                departments.get(u.department_id) if u.department_id else None
+            ),
             last_login_at=u.last_login_at,
             created_at=u.created_at,
         )
@@ -106,6 +138,12 @@ async def create_user(db: AsyncSession, data: CreateUserRequest) -> UserResponse
         password_hash=hash_password(data.password),
         status="active",
     )
+    department = None
+    if data.department_id is not None:
+        department = await db.get(Department, data.department_id)
+        if department is None:
+            raise NotFoundException(message="部门不存在")
+        user.department_id = department.id
 
     # 分配角色
     if data.role_ids:
@@ -118,10 +156,15 @@ async def create_user(db: AsyncSession, data: CreateUserRequest) -> UserResponse
                 code=ErrorCode.ROLE_NOT_FOUND,
                 message="部分角色不存在",
             )
+        _ensure_assignable_role(roles)
         user.roles = list(roles)
 
     db.add(user)
     try:
+        await db.flush()
+        from app.knowledge.service import ensure_personal_knowledge_base
+
+        await ensure_personal_knowledge_base(db, user)
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()
@@ -134,13 +177,14 @@ async def create_user(db: AsyncSession, data: CreateUserRequest) -> UserResponse
         raise
     await db.refresh(user)
 
-    return _to_user_response(user)
+    return _to_user_response(user, department)
 
 
 async def get_user(db: AsyncSession, user_id: str) -> UserResponse:
     """获取用户详情"""
     user = await _get_user_or_404(db, user_id)
-    return _to_user_response(user)
+    department = await db.get(Department, user.department_id) if user.department_id else None
+    return _to_user_response(user, department)
 
 
 async def update_user(
@@ -157,6 +201,7 @@ async def update_user(
             user.status = data.status
             invalidate_sessions = True
     if data.role_ids is not None:
+        _ensure_role_change_allowed(user)
         result = await db.execute(
             select(Role).where(Role.id.in_(data.role_ids))
         )
@@ -166,8 +211,31 @@ async def update_user(
                 code=ErrorCode.ROLE_NOT_FOUND,
                 message="部分角色不存在",
             )
+        _ensure_assignable_role(roles)
         if {role.id for role in user.roles} != {role.id for role in roles}:
             user.roles = list(roles)
+            invalidate_sessions = True
+    if "department_id" in data.model_fields_set:
+        if data.department_id is None:
+            raise ValidationException(message="用户必须归属一个部门")
+        department = await db.get(Department, data.department_id)
+        if department is None:
+            raise NotFoundException(message="部门不存在")
+        managed_department = (
+            await db.execute(
+                select(Department.id).where(
+                    Department.admin_user_id == user.id,
+                    Department.id != department.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if managed_department is not None:
+            raise ConflictException(
+                code=ErrorCode.DEPARTMENT_ADMIN_CONFLICT,
+                message="请先为原部门更换管理员，再调整该用户部门",
+            )
+        if user.department_id != department.id:
+            user.department_id = department.id
             invalidate_sessions = True
 
     if invalidate_sessions:
@@ -175,7 +243,8 @@ async def update_user(
 
     await db.commit()
     await db.refresh(user)
-    return _to_user_response(user)
+    department = await db.get(Department, user.department_id) if user.department_id else None
+    return _to_user_response(user, department)
 
 
 async def reset_user_password(
@@ -228,7 +297,15 @@ async def _invalidate_user_sessions(db: AsyncSession, user: User) -> None:
     )
 
 
-def _to_user_response(user: User) -> UserResponse:
+def _department_brief(department: Department | None) -> DepartmentBrief | None:
+    if department is None:
+        return None
+    return DepartmentBrief(id=department.id, name=department.name)
+
+
+def _to_user_response(
+    user: User, department: Department | None = None
+) -> UserResponse:
     """将 ORM 模型转为响应模型"""
     return UserResponse(
         id=user.id,
@@ -236,6 +313,7 @@ def _to_user_response(user: User) -> UserResponse:
         display_name=user.display_name,
         status=user.status,
         roles=[RoleBrief(id=r.id, name=r.name) for r in user.roles],
+        department=_department_brief(department),
         last_login_at=user.last_login_at,
         created_at=user.created_at,
         updated_at=user.updated_at,

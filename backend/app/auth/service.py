@@ -23,6 +23,8 @@ from app.common.exceptions import (
     UserDisabledException,
 )
 from app.common.models import KnowledgeBasePermission, RefreshToken, User
+from app.departments.models import Department
+from app.departments.schemas import DepartmentBrief
 
 logger = structlog.get_logger()
 
@@ -63,6 +65,7 @@ async def login(
 
     # 收集知识库数据权限
     kb_access = await _collect_kb_access(db, user)
+    department = await _get_department(db, user)
 
     # 生成 Token
     access_token = create_access_token(
@@ -90,6 +93,7 @@ async def login(
         id=user.id,
         username=user.username,
         display_name=user.display_name,
+        department=department,
         roles=roles_data,
         permissions=permissions,
         knowledge_base_access=kb_access,
@@ -203,6 +207,7 @@ async def refresh_access_token(
         if r.status == "active"
     ]
     kb_access = await _collect_kb_access(db, user)
+    department = await _get_department(db, user)
 
     # 生成新 Token
     access_token = create_access_token(
@@ -225,6 +230,7 @@ async def refresh_access_token(
         id=user.id,
         username=user.username,
         display_name=user.display_name,
+        department=department,
         roles=roles_data,
         permissions=permissions,
         knowledge_base_access=kb_access,
@@ -258,11 +264,13 @@ async def get_me(db: AsyncSession, user_id: str) -> MeData:
         if r.status == "active"
     ]
     kb_access = await _collect_kb_access(db, user)
+    department = await _get_department(db, user)
 
     return MeData(
         id=user.id,
         username=user.username,
         display_name=user.display_name,
+        department=department,
         roles=roles_data,
         permissions=permissions,
         knowledge_base_access=kb_access,
@@ -281,6 +289,17 @@ async def _collect_user_permissions(db: AsyncSession, user: User) -> list[str]:
         for perm in role.permissions:
             permissions.add(perm.code)
     return sorted(permissions)
+
+
+async def _get_department(
+    db: AsyncSession, user: User
+) -> DepartmentBrief | None:
+    if user.department_id is None:
+        return None
+    department = await db.get(Department, user.department_id)
+    if department is None:
+        return None
+    return DepartmentBrief(id=department.id, name=department.name)
 
 
 async def _collect_kb_access(

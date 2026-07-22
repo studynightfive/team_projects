@@ -4,29 +4,49 @@ import { computed, onMounted, reactive, ref } from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import {
   createKnowledgeBase,
   listKnowledgeBases,
+  uploadDocuments,
   updateKnowledgeBase,
+  type ChunkStrategy,
   type KnowledgeBaseRecord,
 } from "../../services/knowledge";
+import {
+  listDepartments,
+  type DepartmentRecord,
+} from "../../services/admin";
+import { useSessionStore } from "../../stores/session";
 
 const { message, modal } = AntApp.useApp();
+const sessionStore = useSessionStore();
 const knowledgeBases = ref<readonly KnowledgeBaseRecord[]>([]);
+const departments = ref<readonly DepartmentRecord[]>([]);
 const query = ref("");
 const statusFilter = ref("全部状态");
 const selectedId = ref<string>();
 const isCreating = ref(false);
 const loading = ref(false);
 const saving = ref(false);
+const uploadKnowledgeBase = ref<KnowledgeBaseRecord>();
+const uploadInputRef = ref<HTMLInputElement>();
+const uploading = ref(false);
+const uploadStrategy = ref<ChunkStrategy>("recursive");
+const uploadChunkSize = ref(800);
+const uploadChunkOverlap = ref(120);
 const editor = reactive({
   name: "",
   description: "",
-  chunkSize: 800,
-  chunkOverlap: 120,
+  departmentId: "",
 });
+
+const canManageDepartments = computed(() =>
+  sessionStore.hasAnyPermission(["admin.department.view"]),
+);
 
 const selectedKnowledgeBase = computed(() =>
   knowledgeBases.value.find((item) => item.id === selectedId.value),
@@ -47,6 +67,12 @@ const filteredKnowledgeBases = computed(() => {
     );
   });
 });
+const {
+  page: knowledgeBasesPage,
+  pageSize: knowledgeBasesPageSize,
+  pagedItems: pagedKnowledgeBases,
+  setPage: setKnowledgeBasesPage,
+} = useListPagination(filteredKnowledgeBases);
 
 const statusLabel = (status: string): string =>
   status === "active" ? "正常" : "已归档";
@@ -60,7 +86,14 @@ const formatDate = (value: string | null): string =>
 const loadData = async (): Promise<void> => {
   loading.value = true;
   try {
-    knowledgeBases.value = await listKnowledgeBases();
+    const [knowledgeBaseItems, departmentItems] = await Promise.all([
+      listKnowledgeBases(),
+      canManageDepartments.value ? listDepartments() : Promise.resolve([]),
+    ]);
+    knowledgeBases.value = knowledgeBaseItems.filter(
+      (item) => item.kind !== "personal",
+    );
+    departments.value = departmentItems;
   } catch (err) {
     message.error(toPublicApiError(err).message);
   } finally {
@@ -74,8 +107,8 @@ const startCreate = (): void => {
   Object.assign(editor, {
     name: "",
     description: "",
-    chunkSize: 800,
-    chunkOverlap: 120,
+    departmentId:
+      sessionStore.currentUser?.department?.id ?? departments.value[0]?.id ?? "",
   });
 };
 
@@ -87,8 +120,7 @@ const startEdit = (id: string): void => {
   Object.assign(editor, {
     name: item.name,
     description: item.description ?? "",
-    chunkSize: item.chunk_size,
-    chunkOverlap: item.chunk_overlap,
+    departmentId: item.department_id,
   });
 };
 
@@ -102,23 +134,12 @@ const saveKnowledgeBase = async (): Promise<void> => {
     message.warning("请填写知识库名称");
     return;
   }
-  if (
-    editor.chunkSize < 200 ||
-    editor.chunkSize > 4000 ||
-    editor.chunkOverlap < 0 ||
-    editor.chunkOverlap > 1000
-  ) {
-    message.warning("请输入有效的切分参数");
-    return;
-  }
-
   saving.value = true;
   try {
     const payload = {
       name: editor.name.trim(),
       description: editor.description.trim(),
-      chunk_size: editor.chunkSize,
-      chunk_overlap: editor.chunkOverlap,
+      department_id: editor.departmentId || undefined,
     };
     if (isCreating.value) {
       await createKnowledgeBase(payload);
@@ -134,6 +155,43 @@ const saveKnowledgeBase = async (): Promise<void> => {
   } finally {
     saving.value = false;
   }
+};
+
+const startUpload = (item: KnowledgeBaseRecord): void => {
+  uploadKnowledgeBase.value = item;
+  uploadStrategy.value = "recursive";
+  uploadChunkSize.value = 800;
+  uploadChunkOverlap.value = 120;
+};
+
+const uploadFiles = async (files: readonly File[]): Promise<void> => {
+  if (uploadKnowledgeBase.value === undefined || files.length === 0) return;
+  if (uploadChunkOverlap.value >= uploadChunkSize.value) {
+    message.warning("重叠字符必须小于切分大小");
+    return;
+  }
+  uploading.value = true;
+  try {
+    await uploadDocuments(uploadKnowledgeBase.value.id, files, {
+      chunkStrategy: uploadStrategy.value,
+      chunkSize: uploadChunkSize.value,
+      chunkOverlap: uploadChunkOverlap.value,
+    });
+    message.success(`已提交 ${files.length} 个文档处理任务`);
+    uploadKnowledgeBase.value = undefined;
+    await loadData();
+  } catch (err) {
+    message.error(toPublicApiError(err).message);
+  } finally {
+    uploading.value = false;
+  }
+};
+
+const handleUpload = async (event: Event): Promise<void> => {
+  const input = event.target as HTMLInputElement;
+  const files = Array.from(input.files ?? []);
+  input.value = "";
+  await uploadFiles(files);
 };
 
 const confirmArchive = (item: KnowledgeBaseRecord): void => {
@@ -159,7 +217,7 @@ onMounted(loadData);
     <PageHeader
       eyebrow="内容治理"
       title="知识库管理"
-      description="管理真实知识库、切分参数、文档规模和索引状态。"
+      description="管理企业知识库、文档规模和索引状态。切分方法在上传文档时选择。"
     >
       <template #actions>
         <button class="secondary-button" type="button" @click="loadData">
@@ -210,24 +268,24 @@ onMounted(loadData);
             <tr>
               <th scope="col">知识库</th>
               <th scope="col">文档</th>
+              <th scope="col">所属部门</th>
               <th scope="col">可检索文档</th>
               <th scope="col">片段</th>
-              <th scope="col">切分参数</th>
               <th scope="col">状态</th>
               <th scope="col">更新时间</th>
               <th scope="col">操作</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredKnowledgeBases" :key="item.id">
+            <tr v-for="item in pagedKnowledgeBases" :key="item.id">
               <td>
                 <strong>{{ item.name }}</strong>
                 <small>{{ item.description || "暂无说明" }}</small>
               </td>
               <td>{{ item.document_count }}</td>
+              <td>{{ item.department_name }}</td>
               <td>{{ item.ready_document_count }}</td>
               <td>{{ item.chunk_count }}</td>
-              <td>{{ item.chunk_size }} / {{ item.chunk_overlap }}</td>
               <td>
                 <span class="status-chip" :class="statusTone(item.status)">
                   {{ statusLabel(item.status) }}
@@ -236,6 +294,13 @@ onMounted(loadData);
               <td>{{ formatDate(item.updated_at) }}</td>
               <td>
                 <div class="table-actions">
+                  <button
+                    class="text-button"
+                    type="button"
+                    @click="startUpload(item)"
+                  >
+                    上传文档
+                  </button>
                   <button
                     class="text-button"
                     type="button"
@@ -256,6 +321,13 @@ onMounted(loadData);
           </tbody>
         </table>
       </div>
+      <ListPagination
+        v-if="filteredKnowledgeBases.length > 0"
+        :page="knowledgeBasesPage"
+        :page-size="knowledgeBasesPageSize"
+        :total="filteredKnowledgeBases.length"
+        @change="setKnowledgeBasesPage"
+      />
     </ResourcePanel>
 
     <Drawer
@@ -279,30 +351,17 @@ onMounted(loadData);
           <span>说明</span>
           <textarea v-model="editor.description" rows="3" />
         </label>
-        <div class="parameter-grid">
-          <label>
-            <span>切分大小</span>
-            <input
-              v-model.number="editor.chunkSize"
-              type="number"
-              min="200"
-              max="4000"
-              step="50"
-            />
-          </label>
-          <label>
-            <span>重叠字符</span>
-            <input
-              v-model.number="editor.chunkOverlap"
-              type="number"
-              min="0"
-              max="1000"
-              step="10"
-            />
-          </label>
-        </div>
-        <p class="preview-note">
-          系统优先按 Markdown 标题、段落、表格和代码块切分；切分大小和重叠字符只用于超长段落兜底拆分。
+        <label v-if="canManageDepartments">
+          <span>所属部门</span>
+          <select v-model="editor.departmentId" required>
+            <option value="" disabled>请选择部门</option>
+            <option v-for="item in departments" :key="item.id" :value="item.id">
+              {{ item.name }}
+            </option>
+          </select>
+        </label>
+        <p v-else class="preview-note">
+          所属部门：{{ sessionStore.currentUser?.department?.name ?? "待分配" }}
         </p>
         <div class="drawer-actions">
           <button class="secondary-button" type="button" @click="closeEditor">
@@ -314,6 +373,56 @@ onMounted(loadData);
         </div>
       </form>
     </Drawer>
+
+    <Drawer
+      :open="uploadKnowledgeBase !== undefined"
+      title="上传并处理文档"
+      width="500"
+      root-class-name="variant-admin"
+      @close="uploadKnowledgeBase = undefined"
+    >
+      <div class="drawer-form">
+        <p class="preview-note">目标知识库：{{ uploadKnowledgeBase?.name }}</p>
+        <label>
+          <span>切分方法</span>
+          <select v-model="uploadStrategy">
+            <option value="fixed">固定长度</option>
+            <option value="semantic">语义</option>
+            <option value="recursive">递归</option>
+            <option value="format">格式</option>
+          </select>
+        </label>
+        <div class="parameter-grid">
+          <label>
+            <span>切分大小</span>
+            <input v-model.number="uploadChunkSize" type="number" min="100" max="4000" />
+          </label>
+          <label>
+            <span>重叠字符</span>
+            <input v-model.number="uploadChunkOverlap" type="number" min="0" max="1000" />
+          </label>
+        </div>
+        <button
+          class="upload-drop-zone"
+          type="button"
+          :disabled="uploading"
+          @click="uploadInputRef?.click()"
+          @dragover.prevent
+          @drop.prevent="uploadFiles(Array.from($event.dataTransfer?.files ?? []))"
+        >
+          <strong>{{ uploading ? "正在上传并处理" : "点击或拖拽文件到这里上传" }}</strong>
+          <span>文件会先转为 Markdown、清洗，再按所选方法切分和向量化</span>
+        </button>
+        <input
+          ref="uploadInputRef"
+          class="visually-hidden"
+          type="file"
+          multiple
+          accept=".pdf,.doc,.docx,.md,.markdown,.txt,.csv,.xlsx,.pptx,.html,.json"
+          @change="handleUpload"
+        />
+      </div>
+    </Drawer>
   </div>
 </template>
 
@@ -322,6 +431,19 @@ onMounted(loadData);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
+}
+
+.upload-drop-zone {
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-2);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-8);
+  color: var(--color-text-muted);
+  background: var(--color-surface-subtle);
+  cursor: pointer;
 }
 
 @media (max-width: 767px) {

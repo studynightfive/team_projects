@@ -3,8 +3,10 @@ import { App as AntApp } from "ant-design-vue";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import { Download, RefreshCw, X } from "../../components/icons";
 import { toPublicApiError } from "../../api/client";
 import { isRealApiMode } from "../../config/runtime";
@@ -114,6 +116,12 @@ const filteredDownloads = computed(() => {
     return isVisible && matchesStatus && matchesQuery;
   });
 });
+const {
+  page: downloadsPage,
+  pageSize: downloadsPageSize,
+  pagedItems: pagedDownloads,
+  setPage: setDownloadsPage,
+} = useListPagination(filteredDownloads);
 
 const statusTone = (itemStatus: string): string => {
   if (itemStatus === "已完成") return "success";
@@ -327,7 +335,7 @@ onBeforeUnmount(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredDownloads" :key="item.id">
+            <tr v-for="item in pagedDownloads" :key="item.id">
               <td class="download-name">{{ item.name }}</td>
               <td>{{ item.format }}</td>
               <td>
@@ -389,6 +397,13 @@ onBeforeUnmount(() => {
           </tbody>
         </table>
       </div>
+      <ListPagination
+        v-if="filteredDownloads.length > 0"
+        :page="downloadsPage"
+        :page-size="downloadsPageSize"
+        :total="filteredDownloads.length"
+        @change="setDownloadsPage"
+      />
 
       <InlineState
         v-else

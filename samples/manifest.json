@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "智能知识库平台 - 测试样本清单",
-  "updated_at": "2026-07-20",
+  "updated_at": "2026-07-22",
   "samples": [
     {
       "id": "pdf-001",
@@ -586,8 +586,8 @@
         "html",
         "nested"
       ],
-      "file_size_bytes": 2765,
-      "sha256": "c4de1a40e066f262dc00f693ce41ed1a826ad8c9f6fef6acc18be17e9345aa2d",
+      "file_size_bytes": 2766,
+      "sha256": "0e79b720d10d383c74fa029d02d608d90241c6acbbee1c1c4205e6e560c569e8",
       "description": "100层嵌套div的HTML，测试解析器深度限制",
       "status": "ready"
     },
@@ -909,8 +909,8 @@
       "category": "abnormal",
       "language": "zh-CN",
       "features": ["staff4-regression", "corrupted"],
-      "file_size_bytes": 32,
-      "sha256": "323782d3393b9eeec31cc173ba3dd13b758dbd4b4be56bc10a23143d0032c1b8",
+      "file_size_bytes": 33,
+      "sha256": "e889833d4c8e679e6f7f21f066cbf77eaa7e46f096e8584228a468bccb8e53c0",
       "description": "员工4损坏 PDF 回归样本",
       "status": "ready"
     },

@@ -15,10 +15,12 @@ from collections.abc import Iterable, Mapping
 from typing import TypeVar
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.models import KnowledgeBasePermission, User
+from app.common.models import User
+from app.common.organization import is_super_admin
+from app.knowledge.models import KnowledgeBase
 
 logger = structlog.get_logger()
 
@@ -30,46 +32,18 @@ async def get_user_accessible_kb_ids(db: AsyncSession, user: User) -> set[str]:
     1. 用户直接授予的 KB 权限（subject_type = user, subject_id = user.id）
     2. 用户角色继承的 KB 权限（subject_type = role, subject_id in user.role_ids）
     """
-    role_ids = [r.id for r in user.roles if r.status == "active"]
-    permissions = {
-        perm.code
-        for role in user.roles
-        if role.status == "active"
-        for perm in role.permissions
-    }
-    if any(
-        code in permissions
-        for code in {
-            "admin.knowledge_base.view",
-            "admin.document.view",
-            "admin.document.upload",
-        }
-    ):
-        from app.knowledge.models import KnowledgeBase
-
-        rows = await db.execute(select(KnowledgeBase.id))
-        return {row[0] for row in rows.fetchall()}
-
-    user_kb_q = select(KnowledgeBasePermission.kb_id).where(
-        KnowledgeBasePermission.subject_type == "user",
-        KnowledgeBasePermission.subject_id == user.id,
-    )
-    role_kb_q = (
-        select(KnowledgeBasePermission.kb_id).where(
-            KnowledgeBasePermission.subject_type == "role",
-            KnowledgeBasePermission.subject_id.in_(role_ids),
+    clauses = [KnowledgeBase.owner_user_id == user.id]
+    if is_super_admin(user):
+        clauses.append(KnowledgeBase.kind == "enterprise")
+    elif user.department_id is not None:
+        clauses.append(
+            (KnowledgeBase.kind == "enterprise")
+            & (KnowledgeBase.department_id == user.department_id)
         )
-        if role_ids
-        else None
+    rows = await db.execute(
+        select(KnowledgeBase.id).where(or_(*clauses))
     )
-
-    kb_ids: set[str] = set()
-    rows = await db.execute(user_kb_q)
-    kb_ids.update(r[0] for r in rows.fetchall())
-    if role_kb_q is not None:
-        rows = await db.execute(role_kb_q)
-        kb_ids.update(r[0] for r in rows.fetchall())
-    return kb_ids
+    return {row[0] for row in rows.fetchall()}
 
 
 async def get_user_accessible_doc_ids(db: AsyncSession, user: User) -> set[str]:

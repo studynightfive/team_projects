@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from app.common.config import Settings
 from app.common.exceptions import ValidationException
-from app.knowledge.schemas import KnowledgeBaseCreate
+from app.documents.schemas import UploadOptions
 from app.models.providers.openai import _address_is_allowed, build_provider
 from app.models.service import _validate_provider_base_url
 
@@ -19,6 +19,24 @@ def test_sensitive_settings_have_no_credential_defaults() -> None:
     assert Settings.model_fields["database_url"].is_required()
     assert Settings.model_fields["secret_key"].is_required()
     assert Settings.model_fields["worker_inline"].default is False
+
+
+def test_development_accepts_legacy_secret_but_production_requires_32_chars() -> None:
+    development = Settings(
+        database_url="postgresql+asyncpg://test:test@localhost/test",
+        secret_key="legacy-local-secret-key",
+    )
+    assert development.app_environment == "development"
+
+    with pytest.raises(ValidationError, match="至少需要 32 位"):
+        Settings(
+            app_environment="production",
+            cookie_secure=True,
+            model_key_fernet_key="configured-model-key",
+            export_download_signing_key="configured-export-key",
+            database_url="postgresql+asyncpg://test:test@localhost/test",
+            secret_key="production-secret-under-32",
+        )
 
 
 def test_production_rejects_demo_seed() -> None:
@@ -49,7 +67,7 @@ def test_demo_seed_requires_explicit_password() -> None:
 
 def test_chunk_overlap_must_be_smaller_than_chunk_size() -> None:
     with pytest.raises(ValidationError, match="chunk_overlap 必须小于 chunk_size"):
-        KnowledgeBaseCreate(name="invalid", chunk_size=200, chunk_overlap=200)
+        UploadOptions(chunk_size=200, chunk_overlap=200)
 
 
 @pytest.mark.parametrize(

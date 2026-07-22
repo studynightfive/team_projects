@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, Field, JsonValue
+from pydantic import BaseModel, Field, JsonValue, model_validator
 
 from app.documents.models import DocumentTask, DuplicatePolicy
 
@@ -22,6 +23,9 @@ class DocumentSummary(BaseModel):
     version: int
     status: str
     parser_name: str | None = None
+    chunk_strategy: str
+    chunk_size: int
+    chunk_overlap: int
     page_count: int | None = None
     error_code: int | None = None
     error_message: str | None = None
@@ -115,6 +119,9 @@ class AdminTaskItem(TaskResponse):
 class ReprocessRequest(BaseModel):
     ocr_enabled: bool | None = None
     language: str | None = Field(default=None, min_length=1, max_length=64)
+    chunk_strategy: Literal["fixed", "semantic", "recursive", "format"] | None = None
+    chunk_size: int | None = Field(default=None, ge=100, le=4000)
+    chunk_overlap: int | None = Field(default=None, ge=0, le=1000)
     from_stage: str | None = Field(
         default=None,
         max_length=32,
@@ -127,3 +134,12 @@ class UploadOptions(BaseModel):
     ocr_enabled: bool = True
     language: str = Field(default="chi_sim+eng", min_length=1, max_length=64)
     duplicate_policy: DuplicatePolicy = DuplicatePolicy.NEW_VERSION
+    chunk_strategy: Literal["fixed", "semantic", "recursive", "format"] = "recursive"
+    chunk_size: int = Field(default=800, ge=100, le=4000)
+    chunk_overlap: int = Field(default=120, ge=0, le=1000)
+
+    @model_validator(mode="after")
+    def validate_chunk_window(self) -> UploadOptions:
+        if self.chunk_overlap >= self.chunk_size:
+            raise ValueError("chunk_overlap 必须小于 chunk_size")
+        return self

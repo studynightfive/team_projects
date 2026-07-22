@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -67,6 +68,44 @@ class TestProviderFactory:
 # Provider 连通性测试（mock HTTP）
 # ============================================================
 class TestProviderTest:
+    @pytest.mark.asyncio
+    async def test_dashscope_rerank_uses_compatible_reranks_endpoint(self, monkeypatch):
+        captured_url = ""
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal captured_url
+            captured_url = str(request.url)
+            return httpx.Response(
+                200,
+                json={"results": [{"index": 0, "relevance_score": 0.91}]},
+            )
+
+        client = httpx.AsyncClient(
+            base_url="https://dashscope.aliyuncs.com/compatible-api/v1",
+            transport=httpx.MockTransport(handler),
+        )
+        provider = OpenAICompatibleProvider(
+            "dashscope",
+            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "test-key",
+        )
+        monkeypatch.setattr(
+            "app.models.providers.openai.settings.dashscope_rerank_base_url",
+            "https://dashscope.aliyuncs.com/compatible-api/v1",
+        )
+        monkeypatch.setattr(provider, "_validate_resolved_host", AsyncMock())
+        monkeypatch.setattr(provider, "_client_create", lambda **_kwargs: client)
+
+        result = await provider.rerank(
+            model_name="qwen3-rerank",
+            query="患者数据安全",
+            documents=["使用访问控制与审计"],
+            top_n=1,
+        )
+
+        assert captured_url.endswith("/compatible-api/v1/reranks")
+        assert result == [{"index": 0, "relevance_score": 0.91}]
+
     @pytest.mark.asyncio
     async def test_returns_ok_on_200(self):
 

@@ -4,8 +4,10 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import {
   createRetrievalDataset,
   getRetrievalRun,
@@ -13,6 +15,7 @@ import {
   listRetrievalDatasets,
   listRetrievalRuns,
   runRetrievalTest,
+  runSingleRetrievalTest,
   searchRetrievalCandidates,
   updateRetrievalDataset,
   type RetrievalDataset,
@@ -22,6 +25,7 @@ import {
   type RetrievalSearchHit,
   type RetrievalTestMode,
   type RetrievalTestResult,
+  type SingleRetrievalTestResult,
 } from "../../services/admin";
 import {
   listKnowledgeBases,
@@ -60,6 +64,9 @@ const running = ref(false);
 const saving = ref(false);
 const loadingResultId = ref("");
 const selectedResult = ref<RetrievalTestResult | null>(null);
+const singleQuestion = ref("");
+const singleRunning = ref(false);
+const singleResult = ref<SingleRetrievalTestResult | null>(null);
 const editorOpen = ref(false);
 const editor = reactive<DatasetEditor>({
   id: null,
@@ -89,19 +96,6 @@ const modeOptions: readonly {
     label: "向量",
     description: "只使用 embedding 相似度，需要文档已有真实向量。",
   },
-];
-
-const demoQuestions: readonly string[] = [
-  "HIS 医院信息系统需要支持哪些关键能力？",
-  "EMR 电子病历系统有哪些重点要求？",
-  "LIS 检验业务的关键流程是什么？",
-  "PACS/RIS 影像系统的建设重点是什么？",
-  "医保结算模块有哪些主要风险？",
-  "患者主索引需要解决哪些问题？",
-  "临床数据中心包含哪些数据主题？",
-  "系统集成为什么要区分同步接口和异步消息？",
-  "医疗数据安全和权限控制应该怎么做？",
-  "医疗信息化项目实施分为哪些阶段？",
 ];
 
 const selectedDataset = computed(() =>
@@ -226,10 +220,6 @@ const addQuestion = (): void => {
   editor.queries.push(makeDraft());
 };
 
-const fillDemoQuestions = (): void => {
-  editor.queries = demoQuestions.map((query) => makeDraft({ query }));
-};
-
 const removeQuestion = (id: string): void => {
   editor.queries = editor.queries.filter((query) => query.id !== id);
 };
@@ -347,6 +337,33 @@ const runTest = async (): Promise<void> => {
   }
 };
 
+const runSingleTest = async (): Promise<void> => {
+  if (selectedKbId.value === "") {
+    message.warning("请先选择知识库");
+    return;
+  }
+  if (singleQuestion.value.trim() === "") {
+    message.warning("请输入需要测试的问题");
+    return;
+  }
+  singleRunning.value = true;
+  try {
+    singleResult.value = await runSingleRetrievalTest({
+      kb_id: selectedKbId.value,
+      question: singleQuestion.value.trim(),
+      mode: mode.value,
+      top_k: topK.value,
+      threshold: threshold.value,
+      rerank: rerank.value,
+    });
+    message.success("单问题测试已完成");
+  } catch (err) {
+    message.error(toPublicApiError(err).message);
+  } finally {
+    singleRunning.value = false;
+  }
+};
+
 const viewRun = async (run: RetrievalRun): Promise<void> => {
   loadingResultId.value = run.id;
   try {
@@ -371,6 +388,28 @@ const viewRun = async (run: RetrievalRun): Promise<void> => {
 const resultRows = computed<readonly RetrievalPerQueryResult[]>(
   () => selectedResult.value?.per_query ?? [],
 );
+const singleHits = computed<readonly RetrievalSearchHit[]>(
+  () => singleResult.value?.hits ?? [],
+);
+const runRows = computed(() => runs.value);
+const {
+  page: singleHitsPage,
+  pageSize: singleHitsPageSize,
+  pagedItems: pagedSingleHits,
+  setPage: setSingleHitsPage,
+} = useListPagination(singleHits);
+const {
+  page: resultsPage,
+  pageSize: resultsPageSize,
+  pagedItems: pagedResultRows,
+  setPage: setResultsPage,
+} = useListPagination(resultRows);
+const {
+  page: runsPage,
+  pageSize: runsPageSize,
+  pagedItems: pagedRuns,
+  setPage: setRunsPage,
+} = useListPagination(runRows);
 
 onMounted(loadData);
 </script>
@@ -391,6 +430,67 @@ onMounted(loadData);
         </button>
       </template>
     </PageHeader>
+
+    <ResourcePanel
+      title="单问题即时测试"
+      description="无需先创建测试集；系统会按当前检索参数返回候选片段，并用阈值判断本题是否命中。"
+    >
+      <form class="single-test-form" @submit.prevent="runSingleTest">
+        <label class="single-question-field">
+          <span>测试问题</span>
+          <textarea
+            v-model="singleQuestion"
+            rows="3"
+            maxlength="2000"
+            placeholder="例如：医疗信息化项目的主要实施阶段有哪些？"
+          />
+        </label>
+        <button
+          class="admin-primary-button"
+          type="submit"
+          :disabled="singleRunning || selectedKbId === ''"
+        >
+          {{ singleRunning ? "测试中" : "立即测试" }}
+        </button>
+      </form>
+      <div v-if="singleResult" class="single-result" aria-live="polite">
+        <div class="single-result-summary">
+          <span class="status-chip" :class="singleResult.hit ? 'success' : 'danger'">
+            {{ singleResult.hit ? "命中" : "未命中" }}
+          </span>
+          <strong>
+            单题命中率（Hit Rate）{{ formatPercent(singleResult.hit_rate) }}
+          </strong>
+          <span>阈值（Threshold）{{ singleResult.threshold.toFixed(2) }}</span>
+          <span>耗时（Latency）{{ singleResult.took_ms }}ms</span>
+        </div>
+        <div class="data-table-scroll" tabindex="0">
+          <table class="data-table compact-table">
+            <thead>
+              <tr>
+                <th scope="col">候选文档</th>
+                <th scope="col">分数</th>
+                <th scope="col">片段</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="hit in pagedSingleHits" :key="hit.chunk_id">
+                <td>{{ hit.doc_title || shortId(hit.doc_id) }}</td>
+                <td>{{ formatScore(hit.score) }}</td>
+                <td class="single-hit-text">{{ hit.text }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ListPagination
+          v-if="singleHits.length > 0"
+          :page="singleHitsPage"
+          :page-size="singleHitsPageSize"
+          :total="singleHits.length"
+          @change="setSingleHitsPage"
+        />
+      </div>
+    </ResourcePanel>
 
     <div class="retrieval-test-layout">
       <ResourcePanel
@@ -549,32 +649,32 @@ onMounted(loadData);
             v-if="selectedResult === null"
             kind="empty"
             title="暂无结果详情"
-            description="选择测试集并运行后，系统会展示命中率、MRR、Recall 和逐题明细。"
+            description="选择测试集并运行后，系统会展示命中率、排名质量、召回率和逐题明细。"
           />
           <template v-else>
             <div class="metric-grid">
               <div>
-                <span>Hit Rate</span>
+                <span>命中率（Hit Rate）</span>
                 <strong>{{ formatPercent(selectedResult.metrics.hit_rate) }}</strong>
               </div>
               <div>
-                <span>MRR</span>
+                <span>平均倒数排名（MRR）</span>
                 <strong>{{ formatScore(selectedResult.metrics.mrr) }}</strong>
               </div>
               <div>
-                <span>Recall@K</span>
+                <span>召回率（Recall@K）</span>
                 <strong>{{ formatPercent(selectedResult.metrics.recall_at_k) }}</strong>
               </div>
               <div>
-                <span>Precision@K</span>
+                <span>准确率（Precision@K）</span>
                 <strong>{{ formatPercent(selectedResult.metrics.precision_at_k) }}</strong>
               </div>
               <div>
-                <span>NDCG@K</span>
+                <span>归一化折损累计增益（NDCG@K）</span>
                 <strong>{{ formatScore(selectedResult.metrics.ndcg_at_k) }}</strong>
               </div>
               <div>
-                <span>MAP@K</span>
+                <span>平均准确率均值（MAP@K）</span>
                 <strong>{{ formatScore(selectedResult.metrics.map_at_k) }}</strong>
               </div>
             </div>
@@ -582,22 +682,22 @@ onMounted(loadData);
               <table class="data-table compact-table">
                 <thead>
                   <tr>
-                    <th scope="col">问题</th>
-                    <th scope="col">命中</th>
-                    <th scope="col">Recall</th>
-                    <th scope="col">耗时</th>
-                    <th scope="col">命中片段</th>
+                    <th scope="col">问题（Query）</th>
+                    <th scope="col">是否命中（Hit）</th>
+                    <th scope="col">召回率（Recall）</th>
+                    <th scope="col">耗时（Latency）</th>
+                    <th scope="col">命中片段（Retrieved Chunks）</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="item in resultRows" :key="item.query">
+                  <tr v-for="item in pagedResultRows" :key="item.query">
                     <td>{{ item.query }}</td>
                     <td>
                       <span
                         class="status-chip"
                         :class="item.hit ? 'success' : 'danger'"
                       >
-                        {{ item.hit ? "命中" : "未命中" }}
+                        {{ item.hit ? "命中（Hit）" : "未命中（Miss）" }}
                       </span>
                     </td>
                     <td>{{ formatPercent(item.recall) }}</td>
@@ -609,6 +709,13 @@ onMounted(loadData);
                 </tbody>
               </table>
             </div>
+            <ListPagination
+              v-if="resultRows.length > 0"
+              :page="resultsPage"
+              :page-size="resultsPageSize"
+              :total="resultRows.length"
+              @change="setResultsPage"
+            />
           </template>
         </ResourcePanel>
 
@@ -626,17 +733,17 @@ onMounted(loadData);
             <table class="data-table">
               <thead>
                 <tr>
-                  <th scope="col">运行 ID</th>
-                  <th scope="col">测试集</th>
-                  <th scope="col">状态</th>
-                  <th scope="col">进度</th>
-                  <th scope="col">问题数</th>
-                  <th scope="col">开始时间</th>
-                  <th scope="col">操作</th>
+                  <th scope="col">运行 ID（Run ID）</th>
+                  <th scope="col">测试集（Dataset）</th>
+                  <th scope="col">状态（Status）</th>
+                  <th scope="col">进度（Progress）</th>
+                  <th scope="col">问题数（Queries）</th>
+                  <th scope="col">开始时间（Started At）</th>
+                  <th scope="col">操作（Action）</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="run in runs" :key="run.id">
+                <tr v-for="run in pagedRuns" :key="run.id">
                   <td class="numeric">{{ shortId(run.id) }}</td>
                   <td>{{ shortId(run.dataset_id) }}</td>
                   <td>
@@ -661,6 +768,13 @@ onMounted(loadData);
               </tbody>
             </table>
           </div>
+          <ListPagination
+            v-if="runs.length > 0"
+            :page="runsPage"
+            :page-size="runsPageSize"
+            :total="runs.length"
+            @change="setRunsPage"
+          />
         </ResourcePanel>
       </div>
     </div>
@@ -710,13 +824,6 @@ onMounted(loadData);
           <strong>测试问题</strong>
           <div>
             <button
-              class="secondary-button compact"
-              type="button"
-              @click="fillDemoQuestions"
-            >
-              填充医疗问题
-            </button>
-            <button
               class="admin-primary-button compact"
               type="button"
               @click="addQuestion"
@@ -761,18 +868,19 @@ onMounted(loadData);
             />
           </label>
           <div class="candidate-toolbar">
-            <span>
-              已选 {{ draft.relevantChunkIds.length }} 个相关 chunk
-            </span>
+            <span>已标注 {{ draft.relevantChunkIds.length }} 个标准答案片段</span>
             <button
               class="secondary-button compact"
               type="button"
               :disabled="draft.loading"
               @click="loadCandidates(draft)"
             >
-              {{ draft.loading ? "检索中" : "检索候选" }}
+              {{ draft.loading ? "检索中" : "查找相关片段" }}
             </button>
           </div>
+          <p class="field-help">
+            从真实知识库检索候选片段，并勾选应当命中的片段作为评测标准答案。
+          </p>
           <div v-if="draft.candidates.length > 0" class="candidate-list">
             <label
               v-for="candidate in draft.candidates"
@@ -797,7 +905,7 @@ onMounted(loadData);
             </label>
           </div>
           <label>
-            <span>相关 chunk ID</span>
+            <span>标准答案片段 ID</span>
             <textarea
               :value="draft.relevantChunkIds.join('\n')"
               rows="3"
@@ -826,6 +934,39 @@ onMounted(loadData);
 </template>
 
 <style scoped>
+.single-test-form,
+.single-result,
+.single-question-field {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.single-test-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.single-test-form textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.single-result {
+  margin-top: var(--space-5);
+}
+
+.single-result-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.single-hit-text {
+  max-width: 640px;
+  white-space: normal;
+}
+
 .retrieval-test-layout {
   display: grid;
   grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
@@ -1035,6 +1176,9 @@ onMounted(loadData);
 }
 
 @media (max-width: 767px) {
+  .single-test-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .parameter-grid,
   .editor-grid,
   .metric-grid {

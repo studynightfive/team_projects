@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { App as AntApp, Drawer } from "ant-design-vue";
 import { computed, onMounted, ref } from "vue";
+import { RouterLink } from "vue-router";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import { listAdminDocuments, type AdminDocument } from "../../services/admin";
 import { deleteDocument, reprocessDocument } from "../../services/knowledge";
 
@@ -33,6 +36,12 @@ const filteredDocuments = computed(() => {
     );
   });
 });
+const {
+  page: documentsPage,
+  pageSize: documentsPageSize,
+  pagedItems: pagedDocuments,
+  setPage: setDocumentsPage,
+} = useListPagination(filteredDocuments);
 
 const statusLabel = (status: string): string =>
   ({
@@ -177,7 +186,7 @@ onMounted(loadData);
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredDocuments" :key="item.id">
+            <tr v-for="item in pagedDocuments" :key="item.id">
               <td>
                 <strong>{{ item.title }}</strong>
                 <small>{{ item.original_filename }}</small>
@@ -192,6 +201,12 @@ onMounted(loadData);
               <td>{{ formatDate(item.updated_at) }}</td>
               <td>
                 <div class="table-actions">
+                  <RouterLink
+                    class="text-button"
+                    :to="`/knowledge/${item.knowledge_base_id}/documents/${item.id}`"
+                  >
+                    查看
+                  </RouterLink>
                   <button
                     class="text-button"
                     type="button"
@@ -220,6 +235,13 @@ onMounted(loadData);
           </tbody>
         </table>
       </div>
+      <ListPagination
+        v-if="filteredDocuments.length > 0"
+        :page="documentsPage"
+        :page-size="documentsPageSize"
+        :total="filteredDocuments.length"
+        @change="setDocumentsPage"
+      />
     </ResourcePanel>
 
     <Drawer

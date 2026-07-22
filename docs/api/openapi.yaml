@@ -668,6 +668,203 @@
         ]
       }
     },
+    "/departments": {
+      "get": {
+        "tags": [
+          "departments"
+        ],
+        "summary": "List Departments Endpoint",
+        "operationId": "list_departments_endpoint_api_v1_departments_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse_DepartmentListResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录、Token 无效或已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "已登录但权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "departments"
+        ],
+        "summary": "Create Department Endpoint",
+        "operationId": "create_department_endpoint_api_v1_departments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse_DepartmentResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录、Token 无效或已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "已登录但权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/departments/{department_id}": {
+      "patch": {
+        "tags": [
+          "departments"
+        ],
+        "summary": "Update Department Endpoint",
+        "operationId": "update_department_endpoint_api_v1_departments__department_id__patch",
+        "parameters": [
+          {
+            "name": "department_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Department Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse_DepartmentResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录、Token 无效或已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "已登录但权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/permissions": {
       "get": {
         "tags": [
@@ -3956,6 +4153,71 @@
         ]
       }
     },
+    "/exports/answer": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Answer Endpoint",
+        "description": "即时导出当前 RAG 问答，不读取或打包参考文档正文。",
+        "operationId": "export_answer_endpoint_api_v1_exports_answer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录、Token 无效或已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "已登录但权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/exports": {
       "post": {
         "tags": [
@@ -5114,6 +5376,74 @@
         ]
       }
     },
+    "/retrieval-tests/single": {
+      "post": {
+        "tags": [
+          "retrieval-tests"
+        ],
+        "summary": "Run Single Test Endpoint",
+        "operationId": "run_single_test_endpoint_api_v1_retrieval_tests_single_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SingleRetrievalTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Run Single Test Endpoint Api V1 Retrieval Tests Single Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录、Token 无效或已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "已登录但权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/retrieval-tests/runs": {
       "get": {
         "tags": [
@@ -5498,6 +5828,68 @@
   },
   "components": {
     "schemas": {
+      "APIResponse_DepartmentListResponse_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DepartmentListResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "APIResponse[DepartmentListResponse]"
+      },
+      "APIResponse_DepartmentResponse_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DepartmentResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "APIResponse[DepartmentResponse]"
+      },
       "APIResponse_DocumentDetail_": {
         "properties": {
           "code": {
@@ -6060,6 +6452,18 @@
             ],
             "title": "Parser Name"
           },
+          "chunk_strategy": {
+            "type": "string",
+            "title": "Chunk Strategy"
+          },
+          "chunk_size": {
+            "type": "integer",
+            "title": "Chunk Size"
+          },
+          "chunk_overlap": {
+            "type": "integer",
+            "title": "Chunk Overlap"
+          },
           "page_count": {
             "anyOf": [
               {
@@ -6135,6 +6539,9 @@
           "content_hash",
           "version",
           "status",
+          "chunk_strategy",
+          "chunk_size",
+          "chunk_overlap",
           "knowledge_base_name"
         ],
         "title": "AdminDocumentItem"
@@ -6260,6 +6667,49 @@
         ],
         "title": "AdminTaskItem"
       },
+      "AnswerExportRequest": {
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "txt",
+              "docx"
+            ],
+            "title": "Format",
+            "default": "markdown"
+          },
+          "question": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question"
+          },
+          "answer": {
+            "type": "string",
+            "maxLength": 100000,
+            "minLength": 1,
+            "title": "Answer"
+          },
+          "citations": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Citations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "AnswerExportRequest"
+      },
       "Body_upload_documents_api_v1_knowledge_bases__kb_id__documents_post": {
         "properties": {
           "files": {
@@ -6292,6 +6742,31 @@
             "type": "string",
             "title": "Duplicate Policy",
             "default": "new_version"
+          },
+          "chunk_strategy": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "semantic",
+              "recursive",
+              "format"
+            ],
+            "title": "Chunk Strategy",
+            "default": "recursive"
+          },
+          "chunk_size": {
+            "type": "integer",
+            "maximum": 4000.0,
+            "minimum": 100.0,
+            "title": "Chunk Size",
+            "default": 800
+          },
+          "chunk_overlap": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Chunk Overlap",
+            "default": 120
           }
         },
         "type": "object",
@@ -6626,8 +7101,20 @@
               "type": "string"
             },
             "type": "array",
-            "title": "Role Ids",
-            "default": []
+            "maxItems": 1,
+            "minItems": 1,
+            "title": "Role Ids"
+          },
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
           }
         },
         "type": "object",
@@ -6638,6 +7125,197 @@
         ],
         "title": "CreateUserRequest",
         "description": "创建用户请求"
+      },
+      "DepartmentCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "admin_user_id": {
+            "type": "string",
+            "title": "Admin User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "admin_user_id"
+        ],
+        "title": "DepartmentCreate"
+      },
+      "DepartmentListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DepartmentResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "DepartmentListResponse"
+      },
+      "DepartmentResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "admin_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin User Id"
+          },
+          "admin_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Username"
+          },
+          "admin_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Display Name"
+          },
+          "user_count": {
+            "type": "integer",
+            "title": "User Count",
+            "default": 0
+          },
+          "knowledge_base_count": {
+            "type": "integer",
+            "title": "Knowledge Base Count",
+            "default": 0
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "DepartmentResponse"
+      },
+      "DepartmentUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 150,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "admin_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin User Id"
+          }
+        },
+        "type": "object",
+        "title": "DepartmentUpdate"
       },
       "DocumentDetail": {
         "properties": {
@@ -6695,6 +7373,18 @@
               }
             ],
             "title": "Parser Name"
+          },
+          "chunk_strategy": {
+            "type": "string",
+            "title": "Chunk Strategy"
+          },
+          "chunk_size": {
+            "type": "integer",
+            "title": "Chunk Size"
+          },
+          "chunk_overlap": {
+            "type": "integer",
+            "title": "Chunk Overlap"
           },
           "page_count": {
             "anyOf": [
@@ -6780,6 +7470,9 @@
           "content_hash",
           "version",
           "status",
+          "chunk_strategy",
+          "chunk_size",
+          "chunk_overlap",
           "language",
           "ocr_enabled"
         ],
@@ -6841,6 +7534,18 @@
               }
             ],
             "title": "Parser Name"
+          },
+          "chunk_strategy": {
+            "type": "string",
+            "title": "Chunk Strategy"
+          },
+          "chunk_size": {
+            "type": "integer",
+            "title": "Chunk Size"
+          },
+          "chunk_overlap": {
+            "type": "integer",
+            "title": "Chunk Overlap"
           },
           "page_count": {
             "anyOf": [
@@ -6912,7 +7617,10 @@
           "size_bytes",
           "content_hash",
           "version",
-          "status"
+          "status",
+          "chunk_strategy",
+          "chunk_size",
+          "chunk_overlap"
         ],
         "title": "DocumentSummary"
       },
@@ -7248,19 +7956,16 @@
             ],
             "title": "Description"
           },
-          "chunk_size": {
-            "type": "integer",
-            "maximum": 4000.0,
-            "minimum": 200.0,
-            "title": "Chunk Size",
-            "default": 800
-          },
-          "chunk_overlap": {
-            "type": "integer",
-            "maximum": 1000.0,
-            "minimum": 0.0,
-            "title": "Chunk Overlap",
-            "default": 120
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
           }
         },
         "type": "object",
@@ -7290,17 +7995,32 @@
             ],
             "title": "Description"
           },
+          "department_id": {
+            "type": "string",
+            "title": "Department Id"
+          },
+          "department_name": {
+            "type": "string",
+            "title": "Department Name"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
           "status": {
             "type": "string",
             "title": "Status"
-          },
-          "chunk_size": {
-            "type": "integer",
-            "title": "Chunk Size"
-          },
-          "chunk_overlap": {
-            "type": "integer",
-            "title": "Chunk Overlap"
           },
           "document_count": {
             "type": "integer",
@@ -7346,9 +8066,10 @@
         "required": [
           "id",
           "name",
-          "status",
-          "chunk_size",
-          "chunk_overlap"
+          "department_id",
+          "department_name",
+          "kind",
+          "status"
         ],
         "title": "KnowledgeBaseSummary"
       },
@@ -7391,31 +8112,16 @@
             ],
             "title": "Status"
           },
-          "chunk_size": {
+          "department_id": {
             "anyOf": [
               {
-                "type": "integer",
-                "maximum": 4000.0,
-                "minimum": 200.0
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Chunk Size"
-          },
-          "chunk_overlap": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "maximum": 1000.0,
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Chunk Overlap"
+            "title": "Department Id"
           }
         },
         "type": "object",
@@ -7478,6 +8184,11 @@
               "openai",
               "anthropic",
               "deepseek",
+              "moonshot",
+              "zhipu",
+              "minimax",
+              "volcengine",
+              "qianfan",
               "ollama",
               "custom",
               "dashscope"
@@ -7580,6 +8291,11 @@
               "openai",
               "anthropic",
               "deepseek",
+              "moonshot",
+              "zhipu",
+              "minimax",
+              "volcengine",
+              "qianfan",
               "ollama",
               "custom",
               "dashscope"
@@ -8086,6 +8802,49 @@
             ],
             "title": "Language"
           },
+          "chunk_strategy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "fixed",
+                  "semantic",
+                  "recursive",
+                  "format"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Strategy"
+          },
+          "chunk_size": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4000.0,
+                "minimum": 100.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Size"
+          },
+          "chunk_overlap": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Overlap"
+          },
           "from_stage": {
             "anyOf": [
               {
@@ -8425,6 +9184,30 @@
         "title": "SetRolePermissionsRequest",
         "description": "设置角色权限请求"
       },
+      "SingleRetrievalTestRequest": {
+        "properties": {
+          "kb_id": {
+            "type": "string",
+            "title": "Kb Id"
+          },
+          "question": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question"
+          },
+          "config": {
+            "$ref": "#/components/schemas/RetrievalTestConfig"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kb_id",
+          "question",
+          "config"
+        ],
+        "title": "SingleRetrievalTestRequest"
+      },
       "TaskResponse": {
         "properties": {
           "task_id": {
@@ -8576,13 +9359,26 @@
                 "items": {
                   "type": "string"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 1,
+                "minItems": 1
               },
               {
                 "type": "null"
               }
             ],
             "title": "Role Ids"
+          },
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
           }
         },
         "additionalProperties": false,

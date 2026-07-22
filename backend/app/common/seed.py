@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.security import hash_password
 from app.common.config import settings
 from app.common.models import KnowledgeBasePermission, Permission, Role, User
+from app.departments.models import DEFAULT_DEPARTMENT_ID, Department
 from app.knowledge.models import KnowledgeBase
 from app.models.repository import Model, ModelProvider
 from app.models.security import encrypt_api_key
@@ -26,6 +27,7 @@ DEFAULT_PERMISSIONS: list[dict[str, str]] = [
     {"code": "knowledge_base.view", "name": "查看知识库", "module": "knowledge_base", "action": "view"},
     {"code": "document.view", "name": "查看文档", "module": "document", "action": "view"},
     {"code": "document.upload", "name": "上传文档", "module": "document", "action": "upload"},
+    {"code": "personal.document.upload", "name": "上传个人文档", "module": "document", "action": "personal.upload"},
     {"code": "conversation.view", "name": "查看会话", "module": "conversation", "action": "view"},
     {"code": "conversation:read", "name": "读取会话", "module": "conversation", "action": "read"},
     {"code": "conversation:write", "name": "写入会话", "module": "conversation", "action": "write"},
@@ -43,6 +45,8 @@ DEFAULT_PERMISSIONS: list[dict[str, str]] = [
     {"code": "admin.user.view", "name": "查看用户列表", "module": "admin", "action": "user.view"},
     {"code": "admin.user.create", "name": "创建用户", "module": "admin", "action": "user.create"},
     {"code": "admin.user.edit", "name": "编辑用户", "module": "admin", "action": "user.edit"},
+    {"code": "admin.department.view", "name": "查看部门", "module": "admin", "action": "department.view"},
+    {"code": "admin.department.manage", "name": "管理部门", "module": "admin", "action": "department.manage"},
     {"code": "admin.role.view", "name": "查看角色列表", "module": "admin", "action": "role.view"},
     {"code": "admin.role.create", "name": "创建角色", "module": "admin", "action": "role.create"},
     {"code": "admin.role.edit", "name": "编辑角色", "module": "admin", "action": "role.edit"},
@@ -74,6 +78,7 @@ DEFAULT_USER_PERMISSION_CODES = frozenset(
         "retrieval.search",
         "knowledge_base.view",
         "document.view",
+        "personal.document.upload",
         "conversation.view",
         "conversation:read",
         "conversation:write",
@@ -89,23 +94,9 @@ DEFAULT_USER_PERMISSION_CODES = frozenset(
     }
 )
 
-KNOWLEDGE_EDITOR_PERMISSION_CODES = frozenset(
+KNOWLEDGE_EDITOR_PERMISSION_CODES = DEFAULT_USER_PERMISSION_CODES | frozenset(
     {
-        "chat.use",
-        "retrieval.search",
-        "knowledge_base.view",
-        "document.view",
         "document.upload",
-        "conversation.view",
-        "conversation:read",
-        "conversation:write",
-        "export.view",
-        "export.create",
-        "export:read",
-        "export:write",
-        "export:download",
-        "favorite:read",
-        "favorite:write",
         "admin.knowledge_base.view",
         "admin.knowledge_base.create",
         "admin.knowledge_base.edit",
@@ -275,6 +266,22 @@ async def seed_demo_accounts(db: AsyncSession) -> list[User]:
             roles=[editor_role],
         ),
     ]
+    department = await db.get(Department, DEFAULT_DEPARTMENT_ID)
+    if department is None:
+        department = Department(
+            id=DEFAULT_DEPARTMENT_ID,
+            name="默认部门",
+            description="承接本地演示账号与默认知识库",
+        )
+        db.add(department)
+        await db.flush()
+    for user in users:
+        user.department_id = department.id
+    department.admin_user_id = users[0].id
+    from app.knowledge.service import ensure_personal_knowledge_base
+
+    for user in users:
+        await ensure_personal_knowledge_base(db, user)
     await db.commit()
     logger.info("demo_accounts_seeded", usernames=[user.username for user in users])
     return users
@@ -340,6 +347,7 @@ async def seed_default_knowledge_base(db: AsyncSession) -> KnowledgeBase:
         description="用于基础交付演示的默认知识集合，可上传文档后直接检索。",
         chunk_size=800,
         chunk_overlap=120,
+        department_id=DEFAULT_DEPARTMENT_ID,
     )
     db.add(kb)
     await db.flush()
@@ -373,6 +381,12 @@ async def seed_model_providers(db: AsyncSession) -> None:
             "阿里云 DashScope",
             settings.dashscope_base_url,
         ),
+        ("moonshot", "Kimi / Moonshot", "https://api.moonshot.cn/v1"),
+        ("zhipu", "智谱 BigModel", "https://open.bigmodel.cn/api/paas/v4"),
+        ("minimax", "MiniMax", "https://api.minimax.io/v1"),
+        ("volcengine", "火山引擎豆包", "https://ark.cn-beijing.volces.com/api/v3"),
+        ("qianfan", "百度千帆", "https://qianfan.baidubce.com/v2"),
+        ("openai", "OpenAI", "https://api.openai.com/v1"),
     )
     for code, display_name, base_url in provider_specs:
         provider = await db.get(ModelProvider, code)
@@ -445,6 +459,46 @@ async def seed_default_embedding_model(db: AsyncSession) -> None:
         "default_embedding_model_seeded",
         provider="dashscope",
         model=settings.qwen_embedding_model,
+        api_key_set=bool(settings.dashscope_api_key),
+    )
+
+
+async def seed_default_rerank_model(db: AsyncSession) -> None:
+    """根据环境配置创建或更新默认的 DashScope 文本重排模型。"""
+    legacy_names = {
+        settings.qwen_rerank_model,
+        "qwen3-rerank",
+        "qwen3-vl-rerank",
+        "gte-rerank-v2",
+    }
+    result = await db.execute(
+        select(Model).where(
+            Model.provider_code == "dashscope",
+            Model.kind == "rerank",
+            Model.model_name.in_(legacy_names),
+        ).limit(1)
+    )
+    model = result.scalar_one_or_none()
+    if model is None:
+        model = Model(
+            provider_code="dashscope",
+            model_name=settings.qwen_rerank_model,
+            kind="rerank",
+            parameters={},
+            top_n=settings.rerank_default_top_n,
+            enabled=True,
+        )
+        db.add(model)
+    model.model_name = settings.qwen_rerank_model
+    model.top_n = settings.rerank_default_top_n
+    model.enabled = True
+    if settings.dashscope_api_key:
+        model.api_key_encrypted = encrypt_api_key(settings.dashscope_api_key)
+    await db.commit()
+    logger.info(
+        "default_rerank_model_seeded",
+        provider="dashscope",
+        model=settings.qwen_rerank_model,
         api_key_set=bool(settings.dashscope_api_key),
     )
 

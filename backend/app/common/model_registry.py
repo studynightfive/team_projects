@@ -4,6 +4,7 @@ from importlib import import_module
 
 _MODEL_MODULES = (
     "app.common.models",
+    "app.departments.models",
     "app.documents.models",
     "app.exports.all",
     "app.favorites.models",

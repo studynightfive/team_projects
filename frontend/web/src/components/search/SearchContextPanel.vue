@@ -6,7 +6,6 @@ import type {
   KnowledgeBaseOption,
 } from "../../types/ai-search";
 import { BookOpen, FileText, Settings2, X } from "../icons";
-import SearchStatusBadge from "./SearchStatusBadge.vue";
 
 const props = defineProps<{
   open: boolean;
@@ -15,7 +14,6 @@ const props = defineProps<{
   knowledgeBaseOptions: readonly KnowledgeBaseOption[];
   modelLabel: string;
   citations: readonly CitationSource[];
-  attachmentNames?: readonly string[];
   returnFocusTo?: HTMLElement;
 }>();
 
@@ -31,6 +29,21 @@ const totalReadyDocumentCount = computed(() =>
     0,
   ),
 );
+const uniqueCitations = computed(() => {
+  const seenDocuments = new Set<string>();
+
+  return props.citations.filter((citation) => {
+    const documentId = citation.documentId?.trim();
+    const key =
+      documentId === undefined || documentId === ""
+        ? `${citation.sourceName.trim()}::${citation.title.trim()}`
+        : documentId;
+    if (seenDocuments.has(key)) return false;
+
+    seenDocuments.add(key);
+    return true;
+  });
+});
 
 const emit = defineEmits<{
   close: [];
@@ -161,13 +174,6 @@ onBeforeUnmount(() => {
         <p class="context-query">{{ query }}</p>
       </section>
 
-      <section v-if="attachmentNames && attachmentNames.length > 0">
-        <h3><FileText :size="16" aria-hidden="true" />上传附件</h3>
-        <ul class="context-file-list">
-          <li v-for="name in attachmentNames" :key="name">{{ name }}</li>
-        </ul>
-      </section>
-
       <section>
         <h3><Settings2 :size="16" aria-hidden="true" />模型与来源</h3>
         <dl class="context-definition-list">
@@ -190,11 +196,11 @@ onBeforeUnmount(() => {
         </dl>
       </section>
 
-      <section v-if="citations.length > 0">
+      <section v-if="uniqueCitations.length > 0">
         <h3><FileText :size="16" aria-hidden="true" />引用来源概览</h3>
         <div class="context-citation-list">
           <button
-            v-for="citation in citations"
+            v-for="citation in uniqueCitations"
             :key="citation.id"
             type="button"
             @click="
@@ -202,7 +208,6 @@ onBeforeUnmount(() => {
             "
           >
             <span>{{ citation.title }}</span>
-            <SearchStatusBadge :status="citation.verifiedStatus" />
           </button>
         </div>
       </section>

@@ -4,37 +4,31 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 
 class KnowledgeBaseCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
-    chunk_size: int = Field(default=800, ge=200, le=4000)
-    chunk_overlap: int = Field(default=120, ge=0, le=1000)
-
-    @model_validator(mode="after")
-    def validate_chunk_window(self) -> KnowledgeBaseCreate:
-        if self.chunk_overlap >= self.chunk_size:
-            raise ValueError("chunk_overlap 必须小于 chunk_size")
-        return self
+    department_id: str | None = None
 
 
 class KnowledgeBaseUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
     status: str | None = Field(default=None, pattern="^(active|archived)$")
-    chunk_size: int | None = Field(default=None, ge=200, le=4000)
-    chunk_overlap: int | None = Field(default=None, ge=0, le=1000)
+    department_id: str | None = None
 
 
 class KnowledgeBaseSummary(BaseModel):
     id: str
     name: str
     description: str | None = None
+    department_id: str
+    department_name: str
+    kind: str
+    owner_user_id: str | None = None
     status: str
-    chunk_size: int
-    chunk_overlap: int
     document_count: int = 0
     ready_document_count: int = 0
     chunk_count: int = 0

@@ -5,8 +5,10 @@ import { useRouter } from "vue-router";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
+import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import { useListPagination } from "../../composables/useListPagination";
 import { ExternalLink, Plus, Search, Trash2, X } from "../../components/icons";
 import { isRealApiMode } from "../../config/runtime";
 import { aiSearchMockData } from "../../mocks/ai-search";
@@ -76,6 +78,12 @@ const filteredFavorites = computed(() => {
     );
   });
 });
+const {
+  page: favoritesPage,
+  pageSize: favoritesPageSize,
+  pagedItems: pagedFavorites,
+  setPage: setFavoritesPage,
+} = useListPagination(filteredFavorites);
 
 const formatSavedAt = (value: string): string =>
   new Date(value).toLocaleString("zh-CN", {
@@ -309,7 +317,7 @@ onBeforeUnmount(() => {
       />
 
       <div v-else-if="filteredFavorites.length > 0" class="favorite-grid">
-        <article v-for="item in filteredFavorites" :key="item.id">
+        <article v-for="item in pagedFavorites" :key="item.id">
           <header>
             <span class="favorite-type">{{ typeLabels[item.type] }}</span>
             <button
@@ -394,6 +402,13 @@ onBeforeUnmount(() => {
           </footer>
         </article>
       </div>
+      <ListPagination
+        v-if="filteredFavorites.length > 0"
+        :page="favoritesPage"
+        :page-size="favoritesPageSize"
+        :total="filteredFavorites.length"
+        @change="setFavoritesPage"
+      />
 
       <InlineState
         v-else

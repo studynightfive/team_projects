@@ -5,8 +5,8 @@ import { renderAppAt } from "./renderApp";
 
 describe("M01 移动端完整导航", () => {
   it.each([
-    ["/", 7, undefined],
-    ["/admin", 11, "返回用户工作区"],
+    ["/", 5, undefined],
+    ["/admin", 12, "返回用户工作区"],
   ] as const)(
     "%s 展开完整模块并通过关闭按钮返回焦点",
     async (path, moduleCount, workspaceSwitch) => {
