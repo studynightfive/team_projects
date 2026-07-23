@@ -77,7 +77,7 @@ COPY backend/ /app/backend/
 RUN groupadd -r appuser && \
     useradd -r -g appuser -d /app -s /sbin/nologin appuser && \
     mkdir -p /app/storage && \
-    chown -R appuser:appuser /app
+    chown appuser:appuser /app/storage
 
 # 切换到非 root 用户
 ENV PYTHONPATH=/app/backend

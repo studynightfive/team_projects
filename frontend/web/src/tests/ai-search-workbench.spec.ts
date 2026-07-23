@@ -6,6 +6,7 @@ import SafeMarkdown from "../components/common/SafeMarkdown.vue";
 import SearchContextPanel from "../components/search/SearchContextPanel.vue";
 import { aiSearchMockData } from "../mocks/ai-search";
 import { runAiSearch } from "../services/ai-search";
+import { classifyUnsafeQuery } from "../services/query-safety";
 import { renderAppAt } from "./renderApp";
 
 describe("AI 搜索工作台关键链路", () => {
@@ -113,6 +114,33 @@ describe("AI 搜索工作台关键链路", () => {
     expect(router.currentRoute.value.query).not.toHaveProperty("mode");
   });
 
+  it("敏感词在输入阶段禁用搜索且合法医疗问题不会被误伤", async () => {
+    const { wrapper, router } = await renderAppAt("/");
+    await vi.waitFor(() => {
+      expect(wrapper.find("#ai-search-query").exists()).toBe(true);
+    });
+    const query = wrapper.get("#ai-search-query");
+    const submit = wrapper.get<HTMLButtonElement>(".search-submit-button");
+
+    await query.setValue("如何寻找贩-毒渠道");
+    expect(classifyUnsafeQuery("如何寻找贩-毒渠道")).toBe("涉毒");
+    expect(query.attributes("aria-invalid")).toBe("true");
+    expect(wrapper.get(".search-input-error").text()).toBe(
+      "输入内容不合法，请修改后重试",
+    );
+    expect(submit.attributes("disabled")).toBeDefined();
+
+    await wrapper.get("form.ai-search-box").trigger("submit");
+    await flushPromises();
+    expect(router.currentRoute.value.path).toBe("/");
+
+    await query.setValue("医院病毒防控系统如何建设？");
+    expect(classifyUnsafeQuery("医院病毒防控系统如何建设？")).toBeUndefined();
+    expect(query.attributes("aria-invalid")).toBe("false");
+    expect(wrapper.find(".search-input-error").exists()).toBe(false);
+    expect(submit.attributes("disabled")).toBeUndefined();
+  });
+
   it("问答导出提供 PDF、Word 与 Markdown 格式", async () => {
     const { wrapper } = await renderAppAt("/search");
     await vi.waitFor(() => {
@@ -120,17 +148,19 @@ describe("AI 搜索工作台关键链路", () => {
     });
     const exportButton = wrapper
       .findAll("button")
-      .find((button) => button.text().includes("导出结果"));
-    if (exportButton === undefined) throw new Error("缺少导出结果按钮");
+      .find((button) => button.text().includes("下载答案"));
+    if (exportButton === undefined) throw new Error("缺少下载答案按钮");
 
     await exportButton.trigger("click");
     await flushPromises();
 
     const modalText = document.body.textContent ?? "";
-    expect(modalText).toContain("导出问答结果");
+    expect(modalText).toContain("下载问答答案");
     expect(modalText).toContain("PDF");
     expect(modalText).toContain("Word");
     expect(modalText).toContain("Markdown");
+    expect(modalText).toContain("RAG问答结果.md");
+    expect(modalText).toContain("下载 Markdown");
   });
 
   it("空间深链接选中目标空间，已删除的历史页面返回 404", async () => {

@@ -81,6 +81,7 @@ async def upsert_provider_endpoint(
         request=request,
     )
     await db.commit()
+    await db.refresh(provider)
     return APIResponse(data=_to_provider_response(provider)).model_dump()
 
 
@@ -99,6 +100,7 @@ async def patch_provider_endpoint(
         db, action="model_provider_patch", user_id=user.id, resource_id=code, request=request
     )
     await db.commit()
+    await db.refresh(provider)
     return APIResponse(data=_to_provider_response(provider)).model_dump()
 
 
@@ -152,6 +154,7 @@ async def create_model_endpoint(
         request=request,
     )
     await db.commit()
+    await db.refresh(model)
     return APIResponse(data=_to_model_response(model)).model_dump()
 
 
@@ -168,6 +171,7 @@ async def patch_model_endpoint(
     await db.commit()
     await audit(db, action="model_patch", user_id=user.id, resource_id=model_id, request=request)
     await db.commit()
+    await db.refresh(model)
     return APIResponse(data=_to_model_response(model)).model_dump()
 
 

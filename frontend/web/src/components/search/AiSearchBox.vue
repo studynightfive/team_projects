@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 
+import { getQuerySafetyMessage } from "../../services/query-safety";
 import type {
   KnowledgeBaseOption,
   ModelOption,
@@ -50,9 +51,11 @@ const selectedKnowledgeBaseLabel = computed(() => {
   );
   return selected?.name ?? props.knowledgeBaseOptions[0]?.name ?? "暂无可用知识库";
 });
+const querySafetyMessage = computed(() => getQuerySafetyMessage(props.query));
 const canSubmit = computed(
   () =>
     props.query.trim().length > 0 &&
+    querySafetyMessage.value === undefined &&
     props.sources.length > 0 &&
     (!props.requiresWorkspace ||
       (props.workspaceId !== undefined && props.workspaceId !== "")) &&
@@ -91,6 +94,10 @@ const clearQuery = (): void => {
 };
 
 const submit = (): void => {
+  if (querySafetyMessage.value !== undefined) {
+    textareaRef.value?.focus();
+    return;
+  }
   if (!canSubmit.value) {
     if (props.query.trim().length === 0) {
       emit("notice", "请输入要查找的问题");
@@ -129,7 +136,12 @@ defineExpose({
 <template>
   <form
     class="ai-search-box"
-    :class="{ compact, busy, disabled }"
+    :class="{
+      compact,
+      busy,
+      disabled,
+      invalid: querySafetyMessage !== undefined,
+    }"
     aria-label="企业 AI 搜索"
     @submit.prevent="submit"
   >
@@ -141,6 +153,10 @@ defineExpose({
         :value="query"
         rows="2"
         :disabled="disabled || busy"
+        :aria-invalid="querySafetyMessage !== undefined"
+        :aria-describedby="
+          querySafetyMessage === undefined ? undefined : 'ai-search-query-error'
+        "
         placeholder="输入问题，例如：公司最新的差旅报销标准是什么？"
         @input="updateQuery"
         @keydown="handleKeydown"
@@ -156,6 +172,15 @@ defineExpose({
         <X :size="18" aria-hidden="true" />
       </button>
     </div>
+
+    <p
+      v-if="querySafetyMessage !== undefined"
+      id="ai-search-query-error"
+      class="search-input-error"
+      role="alert"
+    >
+      {{ querySafetyMessage }}
+    </p>
 
     <div class="search-toolbar">
       <div class="search-toolbar-options">
@@ -256,6 +281,10 @@ defineExpose({
   border-color: var(--blue-300);
 }
 
+.ai-search-box.invalid {
+  border-color: var(--color-danger);
+}
+
 .search-mode-list {
   display: flex;
   width: fit-content;
@@ -311,6 +340,12 @@ defineExpose({
 
 .search-editor textarea:focus-visible {
   box-shadow: none;
+}
+
+.search-input-error {
+  margin: calc(var(--space-2) * -1) 0 0;
+  color: var(--color-danger-text);
+  font-size: var(--font-size-13);
 }
 
 .search-clear-button {

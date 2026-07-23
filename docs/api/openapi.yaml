@@ -33,7 +33,7 @@
           "health"
         ],
         "summary": "Health Ready",
-        "description": "就绪检查端点\n检查内容：\n1. 数据库连接：执行 SELECT 1\n2. Redis 连接：执行 PING\n3. 文件存储：检查存储目录是否可读写\n4. LLM Guard：启用预热时确认安全模型已经加载",
+        "description": "就绪检查端点\n检查内容：\n1. 数据库连接：执行 SELECT 1\n2. Redis 连接：执行 PING\n3. 文件存储：检查存储目录是否可读写",
         "operationId": "health_ready_api_v1_health_ready_get",
         "responses": {
           "200": {

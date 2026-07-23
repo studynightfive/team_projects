@@ -267,8 +267,8 @@ const testConnection = async (): Promise<void> => {
       message.error(connectionResult.value);
       return;
     }
-    connectionResult.value = `供应商认证与连通性测试成功，耗时 ${result.latency_ms}ms。`;
-    message.success("供应商认证与连通性测试成功");
+    connectionResult.value = `模型真实调用测试成功，耗时 ${result.latency_ms}ms。`;
+    message.success("模型真实调用测试成功");
   } catch (err) {
     connectionResult.value = toPublicApiError(err).message;
     message.error(connectionResult.value);
@@ -675,7 +675,7 @@ onBeforeUnmount(clearSensitiveState);
           :disabled="testingConnection"
           @click="testConnection"
         >
-          {{ testingConnection ? "测试中" : "测试供应商认证与连通性" }}
+          {{ testingConnection ? "测试中" : "测试模型真实调用" }}
         </button>
         <p v-if="connectionResult" class="preview-note" role="status">
           {{ connectionResult }}

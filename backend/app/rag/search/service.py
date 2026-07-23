@@ -41,6 +41,7 @@ logger = structlog.get_logger()
 RRF_K = 60
 SearchRow: TypeAlias = dict[str, object]
 
+
 def _embedding_literal(value: object) -> str:
     """序列化 embedding 为 pgvector 字面量"""
     if isinstance(value, str):
@@ -50,6 +51,7 @@ def _embedding_literal(value: object) -> str:
     if isinstance(value, list | tuple):
         return "[" + ",".join(str(float(x)) for x in value) + "]"
     return str(value)
+
 
 def rrf_fuse_many(lists: list[list[dict[str, object]]], k: int = RRF_K) -> list[dict[str, object]]:
     """多列表 RRF 融合"""
@@ -156,9 +158,7 @@ def _text_from_hit(hit: SearchRow) -> str:
     content_value = text_value if isinstance(text_value, str) else hit.get("content")
     content = content_value if isinstance(content_value, str) else ""
     context = [hit.get("doc_title"), hit.get("heading"), content]
-    return "\n".join(
-        value.strip() for value in context if isinstance(value, str) and value.strip()
-    )
+    return "\n".join(value.strip() for value in context if isinstance(value, str) and value.strip())
 
 
 def _score_from_hit(hit: SearchRow) -> float:
@@ -266,11 +266,7 @@ async def _resolve_embedding_model_id(
         and model.dimensions == settings.qwen_embedding_dimensions
     ]
     configured = next(
-        (
-            model
-            for model in eligible
-            if model.model_name == settings.qwen_embedding_model
-        ),
+        (model for model in eligible if model.model_name == settings.qwen_embedding_model),
         None,
     )
     return configured.id if configured is not None else (eligible[0].id if eligible else None)
@@ -365,11 +361,7 @@ async def _resolve_rerank_model_id(
 
     models = await model_service.list_models(db, kind="rerank")
     configured = next(
-        (
-            model
-            for model in models
-            if model.enabled and model.api_key_encrypted
-        ),
+        (model for model in models if model.enabled and model.api_key_encrypted),
         None,
     )
     return configured.id if configured is not None else None
@@ -580,7 +572,7 @@ async def _resolve_chat_model(
     db: AsyncSession,
     *,
     chat_model_id: str | None,
-) -> tuple[str, str, str, str]:
+) -> tuple[str, str, str, str, float, int]:
     if chat_model_id:
         model = await model_service.get_model(db, chat_model_id)
         if model is None or model.kind != "chat" or not model.enabled:
@@ -589,18 +581,40 @@ async def _resolve_chat_model(
         if provider is None or not provider.enabled:
             raise ValidationException(message="模型 Provider 不存在")
         api_key = decrypt_api_key(model.api_key_encrypted) if model.api_key_encrypted else ""
-        return provider.code, provider.base_url, model.model_name, api_key
+        parameters = model.parameters or {}
+        temperature_value = parameters.get("temperature")
+        temperature = (
+            float(temperature_value)
+            if isinstance(temperature_value, int | float)
+            and not isinstance(temperature_value, bool)
+            and 0 <= temperature_value <= 2
+            else 0.2
+        )
+        max_tokens_value = parameters.get("max_tokens")
+        max_tokens = (
+            min(max(max_tokens_value, 1), 8192)
+            if isinstance(max_tokens_value, int) and not isinstance(max_tokens_value, bool)
+            else settings.rag_answer_max_tokens
+        )
+        return (
+            provider.code,
+            provider.base_url,
+            model.model_name,
+            api_key,
+            temperature,
+            max_tokens,
+        )
 
     api_key = settings.deepseek_api_key.strip() or settings.model_api_key.strip()
     if not api_key:
-        raise ValidationException(
-            message="未选择可用聊天模型，且环境变量兜底模型未配置 API Key"
-        )
+        raise ValidationException(message="未选择可用聊天模型，且环境变量兜底模型未配置 API Key")
     return (
         "deepseek",
         settings.deepseek_base_url,
         settings.deepseek_chat_model,
         api_key,
+        0.2,
+        settings.rag_answer_max_tokens,
     )
 
 
@@ -636,9 +650,14 @@ async def answer(
             from_cache=False,
         )
 
-    provider_code, base_url, model_name, api_key = await _resolve_chat_model(
-        db, chat_model_id=req.chat_model_id
-    )
+    (
+        provider_code,
+        base_url,
+        model_name,
+        api_key,
+        temperature,
+        max_tokens,
+    ) = await _resolve_chat_model(db, chat_model_id=req.chat_model_id)
     provider: OpenAICompatibleProvider = build_provider(
         provider_code,
         base_url,
@@ -649,8 +668,8 @@ async def answer(
         generated = await provider.chat(
             model_name=model_name,
             messages=_build_answer_messages(req.query, search_resp.hits),
-            temperature=0.2,
-            max_tokens=settings.rag_answer_max_tokens,
+            temperature=temperature,
+            max_tokens=max_tokens,
             stream=False,
             timeout=settings.model_provider_timeout_seconds,
         )
@@ -677,9 +696,7 @@ async def answer(
             generated=False,
             from_cache=False,
         )
-    answer_text = strip_model_think_blocks(
-        generated if isinstance(generated, str) else ""
-    )
+    answer_text = strip_model_think_blocks(generated if isinstance(generated, str) else "")
     response = RagAnswerResponse(
         answer=answer_text.strip() or "未在文档中找到相关引用。",
         hits=search_resp.hits,

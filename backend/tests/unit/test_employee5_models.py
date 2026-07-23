@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.common.config import get_model_key_fernet
 from app.models import service as model_service
 from app.models.providers.openai import OpenAICompatibleProvider, build_provider
+from app.models.repository import Model, ModelProvider
 from app.models.security import decrypt_api_key, encrypt_api_key
 
 
@@ -108,7 +109,6 @@ class TestProviderTest:
 
     @pytest.mark.asyncio
     async def test_returns_ok_on_200(self):
-
         p = OpenAICompatibleProvider("openai", "https://api.openai.com/v1", "sk-x")
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
             mock_resp = AsyncMock()
@@ -264,6 +264,80 @@ class TestModelService:
 
         with pytest.raises(ConflictException):
             await model_service.delete_provider(db, "openai")
+
+    @pytest.mark.asyncio
+    async def test_chat_model_test_invokes_selected_model(self):
+        db = MagicMock(spec=AsyncSession)
+        model = MagicMock(spec=Model)
+        model.provider_code = "deepseek"
+        model.model_name = "deepseek-v4-pro"
+        model.kind = "chat"
+        model.parameters = {"max_tokens": 1200}
+        model.api_key_encrypted = encrypt_api_key("test-key")
+        provider = MagicMock(spec=ModelProvider)
+        provider.code = "deepseek"
+        provider.base_url = "https://api.deepseek.com"
+        provider.enabled = True
+        db.get = AsyncMock(side_effect=[model, provider])
+        client = MagicMock(spec=OpenAICompatibleProvider)
+        client.chat = AsyncMock(return_value="连接正常")
+
+        with patch("app.models.service.build_provider", return_value=client):
+            result = await model_service.test_model(db, "model-1")
+
+        assert result.ok is True
+        client.chat.assert_awaited_once()
+        assert client.chat.await_args.kwargs["model_name"] == "deepseek-v4-pro"
+        assert client.chat.await_args.kwargs["max_tokens"] == 1200
+
+    @pytest.mark.asyncio
+    async def test_embedding_model_test_rejects_dimension_mismatch(self):
+        db = MagicMock(spec=AsyncSession)
+        model = MagicMock(spec=Model)
+        model.provider_code = "dashscope"
+        model.model_name = "text-embedding-v2"
+        model.kind = "embedding"
+        model.parameters = {}
+        model.dimensions = 1536
+        model.api_key_encrypted = encrypt_api_key("test-key")
+        provider = MagicMock(spec=ModelProvider)
+        provider.code = "dashscope"
+        provider.base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        provider.enabled = True
+        db.get = AsyncMock(side_effect=[model, provider])
+        client = MagicMock(spec=OpenAICompatibleProvider)
+        client.embed = AsyncMock(return_value=[[0.1, 0.2, 0.3]])
+
+        with patch("app.models.service.build_provider", return_value=client):
+            result = await model_service.test_model(db, "model-2")
+
+        assert result.ok is False
+        assert result.error_code == "dimension_mismatch"
+        assert "1536" in (result.error_message or "")
+
+    @pytest.mark.asyncio
+    async def test_rerank_model_test_invokes_rerank_endpoint(self):
+        db = MagicMock(spec=AsyncSession)
+        model = MagicMock(spec=Model)
+        model.provider_code = "dashscope"
+        model.model_name = "qwen3-rerank"
+        model.kind = "rerank"
+        model.parameters = {}
+        model.top_n = 10
+        model.api_key_encrypted = encrypt_api_key("test-key")
+        provider = MagicMock(spec=ModelProvider)
+        provider.code = "dashscope"
+        provider.base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        provider.enabled = True
+        db.get = AsyncMock(side_effect=[model, provider])
+        client = MagicMock(spec=OpenAICompatibleProvider)
+        client.rerank = AsyncMock(return_value=[{"index": 0, "relevance_score": 0.95}])
+
+        with patch("app.models.service.build_provider", return_value=client):
+            result = await model_service.test_model(db, "model-3")
+
+        assert result.ok is True
+        client.rerank.assert_awaited_once()
 
 
 # ============================================================

@@ -24,6 +24,10 @@ import { aiSearchMockData } from "../../mocks/ai-search";
 import { runAiSearch } from "../../services/ai-search";
 import { listRealChatModelOptions } from "../../services/ai-search-real";
 import {
+  getQuerySafetyMessage,
+  INVALID_QUERY_MESSAGE,
+} from "../../services/query-safety";
+import {
   downloadAnswerExport,
   type AnswerExportFormat,
 } from "../../services/downloads";
@@ -78,7 +82,7 @@ const isExporting = ref(false);
 
 type VisibleAnswerExportFormat = Exclude<AnswerExportFormat, "txt">;
 
-const answerExportFormat = ref<VisibleAnswerExportFormat>("pdf");
+const answerExportFormat = ref<VisibleAnswerExportFormat>("markdown");
 const answerExportFormats = {
   pdf: {
     label: "PDF",
@@ -112,9 +116,9 @@ const answerExportOptions: Array<{
   label: string;
   value: VisibleAnswerExportFormat;
 }> = [
-  { label: "PDF", value: "pdf" },
-  { label: "Word", value: "docx" },
   { label: "Markdown", value: "markdown" },
+  { label: "Word", value: "docx" },
+  { label: "PDF", value: "pdf" },
 ];
 
 let searchController: AbortController | undefined;
@@ -206,6 +210,15 @@ const syncFromRoute = (): void => {
 
 const executeSearch = async (): Promise<void> => {
   searchController?.abort();
+  const safetyMessage = getQuerySafetyMessage(query.value);
+  if (safetyMessage !== undefined) {
+    searchController = undefined;
+    status.value = "idle";
+    response.value = undefined;
+    errorMessage.value = "";
+    void message.warning(safetyMessage);
+    return;
+  }
   searchController = new AbortController();
   status.value = "searching";
   errorMessage.value = "";
@@ -228,10 +241,18 @@ const executeSearch = async (): Promise<void> => {
     status.value = nextResponse.status;
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") return;
-    errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : "搜索暂时无法完成，请保留问题后重新尝试。";
+    const publicError = toPublicApiError(error);
+    if (
+      publicError.status === 422 &&
+      /输入内容|提示词注入|禁止主题/u.test(publicError.message)
+    ) {
+      response.value = undefined;
+      errorMessage.value = "";
+      status.value = "idle";
+      void message.warning(INVALID_QUERY_MESSAGE);
+      return;
+    }
+    errorMessage.value = publicError.message;
     status.value = "error";
   }
 };
@@ -306,7 +327,6 @@ const downloadAnswerMarkdownLocally = (): void => {
 
 const openAnswerExport = (): void => {
   if (response.value === undefined) return;
-  answerExportFormat.value = isRealApiMode ? "pdf" : "markdown";
   isExportDialogOpen.value = true;
 };
 
@@ -349,7 +369,7 @@ const confirmAnswerExport = async (): Promise<void> => {
     });
     await destination.save(result.blob, result.filename);
     isExportDialogOpen.value = false;
-    void message.success("答案已保存，并已记录到「我的下载」");
+    void message.success("答案已下载，并已记录到「我的下载」");
   } catch (error: unknown) {
     void message.error(toPublicApiError(error).message);
   } finally {
@@ -616,7 +636,7 @@ onBeforeUnmount(() => {
           @click="openAnswerExport"
         >
           <Download :size="16" aria-hidden="true" />
-          导出结果
+          下载答案
         </button>
         <button
           class="secondary-button compact"
@@ -792,8 +812,8 @@ onBeforeUnmount(() => {
 
     <AntModal
       v-model:open="isExportDialogOpen"
-      title="导出问答结果"
-      ok-text="导出并选择位置"
+      title="下载问答答案"
+      :ok-text="`下载 ${answerExportFormats[answerExportFormat].label}`"
       cancel-text="取消"
       :confirm-loading="isExporting"
       :closable="!isExporting"
@@ -819,6 +839,12 @@ onBeforeUnmount(() => {
           <div>
             <dt>格式</dt>
             <dd>{{ answerExportFormats[answerExportFormat].label }}</dd>
+          </div>
+          <div>
+            <dt>文件名</dt>
+            <dd>
+              RAG问答结果{{ answerExportFormats[answerExportFormat].extension }}
+            </dd>
           </div>
         </dl>
       </div>
