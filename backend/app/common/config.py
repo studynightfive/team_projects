@@ -54,21 +54,6 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=30, ge=1, le=1440)
     refresh_token_expire_days: int = Field(default=7, ge=1, le=365)
 
-    # LLM Guard 只扫描用户输入；同步模型推理在线程池执行。
-    llm_guard_enabled: bool = True
-    llm_guard_preload: bool = True
-    llm_guard_fail_closed: bool = True
-    llm_guard_ban_topics_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
-    llm_guard_prompt_injection_threshold: float = Field(default=0.8, ge=0.0, le=1.0)
-    llm_guard_scan_timeout_seconds: float = Field(default=30.0, ge=1.0, le=300.0)
-    llm_guard_thread_workers: int = Field(default=1, ge=1, le=4)
-    llm_guard_ban_topics: str = (
-        "requests involving pornography, obscene sexual content, prostitution, or commercial "
-        "sexual services|requests involving gambling, betting, wagering, casinos, roulette, "
-        "or gaming for money|requests involving manufacturing, obtaining, selling, trafficking, "
-        "or recreationally abusing illegal drugs or narcotics"
-    )
-
     # ============================================================
     # 文件存储配置
     # ============================================================
@@ -135,7 +120,7 @@ class Settings(BaseSettings):
     # 员工5 扩展配置：模型密钥 Fernet 加密（提示词 01）
     # ============================================================
     model_key_fernet_key: str = ""
-    model_provider_timeout_seconds: int = 10
+    model_provider_timeout_seconds: int = Field(default=30, ge=1, le=300)
     model_provider_max_retries: int = 1
 
     # ============================================================
@@ -207,9 +192,7 @@ class Settings(BaseSettings):
         if len(self.secret_key) < 16:
             raise ValueError("SECRET_KEY 至少需要 16 位")
         if self.auto_seed_demo_data and len(self.demo_seed_password) < 12:
-            raise ValueError(
-                "启用 AUTO_SEED_DEMO_DATA 时必须提供至少 12 位的 DEMO_SEED_PASSWORD"
-            )
+            raise ValueError("启用 AUTO_SEED_DEMO_DATA 时必须提供至少 12 位的 DEMO_SEED_PASSWORD")
         if self.app_environment == "production":
             if len(self.secret_key) < 32:
                 raise ValueError("生产环境 SECRET_KEY 至少需要 32 位")

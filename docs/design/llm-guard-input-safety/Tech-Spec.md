@@ -1,5 +1,8 @@
 # LLM Guard 输入安全 Tech-Spec
 
+> 状态：已于 2026-07-22 撤销。运行代码不再加载本文所述模型、线程池和缓存，替代方案见
+> [撤除后端 LLM Guard 模型扫描 Tech-Spec](../remove-llm-guard-backend/Tech-Spec.md)。
+
 ## 依赖与配置
 
 - 固定依赖 `llm-guard==0.3.16`。

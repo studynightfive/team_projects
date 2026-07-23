@@ -40,7 +40,6 @@ export interface paths {
          *     1. 数据库连接：执行 SELECT 1
          *     2. Redis 连接：执行 PING
          *     3. 文件存储：检查存储目录是否可读写
-         *     4. LLM Guard：启用预热时确认安全模型已经加载
          */
         get: operations["health_ready_api_v1_health_ready_get"];
         put?: never;

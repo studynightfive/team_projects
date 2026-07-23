@@ -29,9 +29,7 @@ def validate_provider_base_url(provider_code: str, base_url: str) -> None:
     if provider_code != "ollama" and parsed.scheme != "https":
         raise ValidationException(message="非 Ollama Provider 必须使用 HTTPS")
     hostname = parsed.hostname.lower().rstrip(".")
-    if provider_code != "ollama" and (
-        hostname == "localhost" or hostname.endswith(".localhost")
-    ):
+    if provider_code != "ollama" and (hostname == "localhost" or hostname.endswith(".localhost")):
         raise ValidationException(message="仅 Ollama Provider 可访问本机地址")
     try:
         address = ipaddress.ip_address(hostname)
@@ -87,11 +85,16 @@ class OpenAICompatibleProvider:
         self.api_key = api_key
         self.timeout = timeout
 
-    def _client_create(self, *, base_url: str | None = None) -> httpx.AsyncClient:
+    def _client_create(
+        self,
+        *,
+        base_url: str | None = None,
+        timeout: float | None = None,
+    ) -> httpx.AsyncClient:
         return httpx.AsyncClient(
             base_url=base_url or self.base_url,
             headers={"Authorization": f"Bearer {self.api_key}"},
-            timeout=self.timeout,
+            timeout=timeout or self.timeout,
         )
 
     async def _validate_resolved_host(self, *, base_url: str | None = None) -> None:
@@ -112,8 +115,7 @@ class OpenAICompatibleProvider:
         except (OSError, ValueError) as exc:
             raise ValidationException(message="Provider 主机名无法解析") from exc
         addresses = {
-            ipaddress.ip_address(str(record[4][0]).split("%", maxsplit=1)[0])
-            for record in records
+            ipaddress.ip_address(str(record[4][0]).split("%", maxsplit=1)[0]) for record in records
         }
         if not addresses or any(
             not _address_is_allowed(self.provider_code, parsed.scheme, address)
@@ -141,7 +143,7 @@ class OpenAICompatibleProvider:
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
         if not stream:
-            async with self._client_create() as client:
+            async with self._client_create(timeout=timeout) as client:
                 r = await client.post("/chat/completions", json=payload)
                 r.raise_for_status()
                 raw_data: object = r.json()
@@ -157,7 +159,7 @@ class OpenAICompatibleProvider:
                 return content
 
         async def gen() -> AsyncIterator[str]:
-            async with self._client_create() as client:
+            async with self._client_create(timeout=timeout) as client:
                 async with client.stream("POST", "/chat/completions", json=payload) as r:
                     r.raise_for_status()
                     async for line in r.aiter_lines():
@@ -189,7 +191,7 @@ class OpenAICompatibleProvider:
         timeout: float | None = None,
     ) -> list[list[float]]:
         await self._validate_resolved_host()
-        async with self._client_create() as client:
+        async with self._client_create(timeout=timeout) as client:
             r = await client.post("/embeddings", json={"model": model_name, "input": inputs})
             r.raise_for_status()
             raw_data: object = r.json()
@@ -222,7 +224,7 @@ class OpenAICompatibleProvider:
         endpoint = "/reranks" if is_dashscope else "/rerank"
         validate_provider_base_url(self.provider_code, base_url)
         await self._validate_resolved_host(base_url=base_url)
-        async with self._client_create(base_url=base_url) as client:
+        async with self._client_create(base_url=base_url, timeout=timeout) as client:
             r = await client.post(
                 endpoint,
                 json={"model": model_name, "query": query, "documents": documents, "top_n": top_n},
@@ -243,9 +245,7 @@ class OpenAICompatibleProvider:
             results.append({"index": index, "relevance_score": float(score)})
         return results
 
-    async def test(
-        self, *, model_name: str, api_key: str, base_url: str
-    ) -> dict[str, object]:
+    async def test(self, *, model_name: str, api_key: str, base_url: str) -> dict[str, object]:
         start = time.time()
         if self.provider_code != "ollama" and not api_key.strip():
             return {
@@ -281,14 +281,10 @@ class OpenAICompatibleProvider:
                     "ok": False,
                     "latency_ms": latency_ms,
                     "error_code": (
-                        "authentication_failed"
-                        if authentication_failed
-                        else "provider_unreachable"
+                        "authentication_failed" if authentication_failed else "provider_unreachable"
                     ),
                     "error_message": (
-                        "模型服务认证失败"
-                        if authentication_failed
-                        else f"HTTP {r.status_code}"
+                        "模型服务认证失败" if authentication_failed else f"HTTP {r.status_code}"
                     ),
                 }
             finally:

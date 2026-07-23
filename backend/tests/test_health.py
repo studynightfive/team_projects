@@ -54,7 +54,7 @@ class TestHealthReady:
         data = response.json()
         assert "checks" in data
         # 即使数据库和 Redis 不可用，检查项也应该存在
-        for check_name in ["database", "redis", "storage", "llm_guard"]:
+        for check_name in ["database", "redis", "storage"]:
             assert check_name in data["checks"]
 
     @pytest.mark.asyncio
@@ -73,7 +73,6 @@ class TestHealthReady:
             "database": "ok",
             "redis": "ok",
             "storage": "ok",
-            "llm_guard": "ok",
         }
 
     @pytest.mark.asyncio
@@ -98,28 +97,9 @@ class TestHealthReady:
                 "database": "unavailable",
                 "redis": "ok",
                 "storage": "ok",
-                "llm_guard": "ok",
             },
             "timestamp": response.json()["timestamp"],
         }
-
-    @pytest.mark.asyncio
-    async def test_health_ready_waits_for_llm_guard_preload(
-        self, client, monkeypatch
-    ):
-        monkeypatch.setattr(health_module, "_check_database", AsyncMock())
-        monkeypatch.setattr(health_module, "_check_redis", AsyncMock())
-        monkeypatch.setattr(health_module, "_check_storage", lambda: None)
-        monkeypatch.setattr(
-            health_module,
-            "guard_readiness_status",
-            lambda: "warming",
-        )
-
-        response = await client.get("/api/v1/health/ready")
-
-        assert response.status_code == 503
-        assert response.json()["checks"]["llm_guard"] == "warming"
 
 
 class TestRootEndpoint:

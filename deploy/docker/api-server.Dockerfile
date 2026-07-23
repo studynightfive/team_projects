@@ -81,14 +81,12 @@ COPY backend/ /app/backend/
 RUN groupadd -r appuser && \
     useradd -r -g appuser -d /app -s /sbin/nologin appuser && \
     # 创建文件存储目录
-    mkdir -p /app/storage /app/model-cache && \
-    # 将应用目录的所有权赋予 appuser
-    chown -R appuser:appuser /app
+    mkdir -p /app/storage && \
+    # 仅运行时存储目录需要写权限，代码与依赖保持只读
+    chown appuser:appuser /app/storage
 
 # 切换到非 root 用户
-ENV PYTHONPATH=/app/backend \
-    HF_HOME=/app/model-cache \
-    HF_HUB_DISABLE_TELEMETRY=1
+ENV PYTHONPATH=/app/backend
 
 USER appuser
 
@@ -118,7 +116,7 @@ FROM runtime AS test
 USER root
 
 RUN cd /app && uv sync --project backend --frozen \
-    && chown -R appuser:appuser /app/backend
+    && chown appuser:appuser /app/backend
 
 COPY docs/ /app/docs/
 COPY samples/ /app/samples/

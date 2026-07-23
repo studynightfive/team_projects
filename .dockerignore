@@ -20,14 +20,22 @@ frontend/web/dist/
 
 # Python
 __pycache__/
+**/__pycache__/
 *.pyc
 *.pyo
 .venv/
+**/.venv/
 venv/
+**/venv/
 *.egg-info/
 
 # 测试和覆盖率
 .pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
+.ruff_cache/
+**/.ruff_cache/
 .coverage
 htmlcov/
 

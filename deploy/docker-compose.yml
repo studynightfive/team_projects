@@ -83,15 +83,9 @@ services:
       - QWEN_EMBEDDING_MODEL=${QWEN_EMBEDDING_MODEL:-text-embedding-v2}
       - QWEN_EMBEDDING_DIMENSIONS=${QWEN_EMBEDDING_DIMENSIONS:-1536}
       - QWEN_RERANK_MODEL=${QWEN_RERANK_MODEL:-qwen3-rerank}
+      - MODEL_PROVIDER_TIMEOUT_SECONDS=${MODEL_PROVIDER_TIMEOUT_SECONDS:-30}
       - RAG_ANSWER_CACHE_ENABLED=${RAG_ANSWER_CACHE_ENABLED:-true}
       - RAG_ANSWER_CACHE_TTL_SECONDS=${RAG_ANSWER_CACHE_TTL_SECONDS:-604800}
-      - LLM_GUARD_ENABLED=${LLM_GUARD_ENABLED:-true}
-      - LLM_GUARD_PRELOAD=${LLM_GUARD_PRELOAD:-true}
-      - LLM_GUARD_FAIL_CLOSED=${LLM_GUARD_FAIL_CLOSED:-true}
-      - LLM_GUARD_BAN_TOPICS_THRESHOLD=${LLM_GUARD_BAN_TOPICS_THRESHOLD:-0.5}
-      - LLM_GUARD_PROMPT_INJECTION_THRESHOLD=${LLM_GUARD_PROMPT_INJECTION_THRESHOLD:-0.8}
-      - LLM_GUARD_SCAN_TIMEOUT_SECONDS=${LLM_GUARD_SCAN_TIMEOUT_SECONDS:-30}
-      - LLM_GUARD_THREAD_WORKERS=${LLM_GUARD_THREAD_WORKERS:-1}
       - PDF_PARSE_TIMEOUT_SECONDS=${PDF_PARSE_TIMEOUT_SECONDS:-120}
       - PDF_MAX_PAGES=${PDF_MAX_PAGES:-500}
       - PDF_PARSE_MEMORY_LIMIT_MB=${PDF_PARSE_MEMORY_LIMIT_MB:-512}
@@ -109,7 +103,6 @@ services:
     # 挂载卷：文件存储目录
     volumes:
       - storage_data:/app/storage
-      - llm_guard_model_cache:/app/model-cache
     mem_limit: 4g
     cpus: 2.0
     networks:
@@ -144,6 +137,7 @@ services:
       - QWEN_EMBEDDING_MODEL=${QWEN_EMBEDDING_MODEL:-text-embedding-v2}
       - QWEN_EMBEDDING_DIMENSIONS=${QWEN_EMBEDDING_DIMENSIONS:-1536}
       - QWEN_RERANK_MODEL=${QWEN_RERANK_MODEL:-qwen3-rerank}
+      - MODEL_PROVIDER_TIMEOUT_SECONDS=${MODEL_PROVIDER_TIMEOUT_SECONDS:-30}
       - RAG_ANSWER_CACHE_ENABLED=${RAG_ANSWER_CACHE_ENABLED:-true}
       - RAG_ANSWER_CACHE_TTL_SECONDS=${RAG_ANSWER_CACHE_TTL_SECONDS:-604800}
       - PDF_PARSE_TIMEOUT_SECONDS=${PDF_PARSE_TIMEOUT_SECONDS:-120}
@@ -255,10 +249,6 @@ volumes:
   # 文件存储卷：上传的原始文件、Markdown、assets
   storage_data:
     name: kb-storage-data
-  # BanTopics 与 PromptInjection 权重缓存，容器重建后不重复下载。
-  llm_guard_model_cache:
-    name: kb-llm-guard-model-cache
-
 # ============================================================
 # Docker 网络定义
 # 所有服务在同一个 bridge 网络中通信

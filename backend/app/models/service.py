@@ -11,10 +11,12 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from time import perf_counter
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.config import settings
 from app.common.exceptions import ConflictException, NotFoundException, ValidationException
 from app.models.providers.openai import build_provider, validate_provider_base_url
 from app.models.repository import Model, ModelProvider
@@ -155,10 +157,123 @@ async def test_model(db: AsyncSession, model_id: str) -> TestModelResponse:
     if model is None:
         raise NotFoundException()
     provider = await get_provider(db, model.provider_code)
-    if provider is None:
+    if provider is None or not provider.enabled:
         raise NotFoundException()
     _validate_provider_base_url(provider.code, provider.base_url)
     api_key = decrypt_api_key(model.api_key_encrypted) if model.api_key_encrypted else ""
-    p = build_provider(provider.code, provider.base_url, api_key)
-    result = await p.test(model_name=model.model_name, api_key=api_key, base_url=provider.base_url)
-    return TestModelResponse.model_validate(result)
+    if provider.code != "ollama" and not api_key.strip():
+        return TestModelResponse(
+            ok=False,
+            latency_ms=0,
+            error_code="missing_api_key",
+            error_message="请先保存 API Key 后再测试模型",
+        )
+
+    started_at = perf_counter()
+    client = build_provider(
+        provider.code,
+        provider.base_url,
+        api_key,
+        timeout=settings.model_provider_timeout_seconds,
+    )
+    model_info: dict[str, object] = {
+        "model_name": model.model_name,
+        "kind": model.kind,
+        "invoked": True,
+    }
+    try:
+        if model.kind == "chat":
+            configured_max_tokens = (model.parameters or {}).get("max_tokens")
+            max_tokens = (
+                min(max(configured_max_tokens, 512), 8192)
+                if isinstance(configured_max_tokens, int)
+                and not isinstance(configured_max_tokens, bool)
+                else max(settings.rag_answer_max_tokens, 512)
+            )
+            answer = await client.chat(
+                model_name=model.model_name,
+                messages=[{"role": "user", "content": "只回答：连接正常"}],
+                temperature=0.2,
+                max_tokens=max_tokens,
+                stream=False,
+                timeout=settings.model_provider_timeout_seconds,
+            )
+            if not isinstance(answer, str) or not answer.strip():
+                return TestModelResponse(
+                    ok=False,
+                    latency_ms=int((perf_counter() - started_at) * 1000),
+                    error_code="empty_response",
+                    error_message="模型调用成功但没有返回可见答案，请检查模型标识和最大输出 Token",
+                )
+            model_info["response_chars"] = len(answer)
+        elif model.kind == "embedding":
+            vectors = await client.embed(
+                model_name=model.model_name,
+                inputs=["医疗信息化模型连通性测试"],
+                timeout=settings.model_provider_timeout_seconds,
+            )
+            if len(vectors) != 1 or not vectors[0]:
+                return TestModelResponse(
+                    ok=False,
+                    latency_ms=int((perf_counter() - started_at) * 1000),
+                    error_code="empty_embedding",
+                    error_message="Embedding 模型未返回有效向量",
+                )
+            returned_dimensions = len(vectors[0])
+            if model.dimensions is not None and returned_dimensions != model.dimensions:
+                return TestModelResponse(
+                    ok=False,
+                    latency_ms=int((perf_counter() - started_at) * 1000),
+                    error_code="dimension_mismatch",
+                    error_message=(
+                        f"Embedding 返回 {returned_dimensions} 维，"
+                        f"与配置的 {model.dimensions} 维不一致"
+                    ),
+                )
+            model_info["dimensions"] = returned_dimensions
+        elif model.kind == "rerank":
+            results = await client.rerank(
+                model_name=model.model_name,
+                query="医疗数据安全",
+                documents=["医疗数据需要访问控制和审计"],
+                top_n=1,
+                timeout=settings.model_provider_timeout_seconds,
+            )
+            if not results:
+                return TestModelResponse(
+                    ok=False,
+                    latency_ms=int((perf_counter() - started_at) * 1000),
+                    error_code="empty_rerank",
+                    error_message="Rerank 模型未返回有效排序结果",
+                )
+            model_info["result_count"] = len(results)
+        else:
+            raise ValidationException(message="不支持的模型类型")
+    except ValidationException:
+        raise
+    except Exception as exc:
+        status_code = getattr(getattr(exc, "response", None), "status_code", None)
+        if status_code in (401, 403):
+            error_code = "authentication_failed"
+            error_message = "模型服务认证失败，请检查 API Key"
+        elif status_code == 404:
+            error_code = "model_not_found"
+            error_message = "模型标识不存在或当前账号未开通该模型"
+        elif status_code == 429:
+            error_code = "rate_limited"
+            error_message = "模型服务请求受限，请稍后重试"
+        else:
+            error_code = "model_invocation_failed"
+            error_message = f"模型真实调用失败（{status_code or type(exc).__name__}）"
+        return TestModelResponse(
+            ok=False,
+            latency_ms=int((perf_counter() - started_at) * 1000),
+            error_code=error_code,
+            error_message=error_message,
+        )
+
+    return TestModelResponse(
+        ok=True,
+        latency_ms=int((perf_counter() - started_at) * 1000),
+        model_info=model_info,
+    )
