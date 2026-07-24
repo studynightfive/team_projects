@@ -9,9 +9,47 @@ import pytest
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.api import patch_model_endpoint
+from app.models.api import list_available_models_endpoint, patch_model_endpoint
 from app.models.repository import Model
 from app.models.schemas import ModelUpdate
+
+
+@pytest.mark.asyncio
+async def test_available_models_only_exposes_enabled_minimal_fields() -> None:
+    enabled_model = Model(
+        id="model-enabled",
+        provider_code="deepseek",
+        model_name="deepseek-chat",
+        kind="chat",
+        parameters={"temperature": 0.2},
+        api_key_encrypted=b"encrypted",
+        enabled=True,
+    )
+    disabled_model = Model(
+        id="model-disabled",
+        provider_code="moonshot",
+        model_name="kimi-k2",
+        kind="chat",
+        enabled=False,
+    )
+    db = AsyncMock(spec=AsyncSession)
+    user = MagicMock(id="normal-user")
+
+    with patch(
+        "app.models.api.service.list_models",
+        new=AsyncMock(return_value=[enabled_model, disabled_model]),
+    ) as list_models:
+        response = await list_available_models_endpoint("chat", user, db)
+
+    list_models.assert_awaited_once_with(db, kind="chat")
+    assert response.model_dump()["data"] == [
+        {
+            "id": "model-enabled",
+            "provider_code": "deepseek",
+            "model_name": "deepseek-chat",
+            "kind": "chat",
+        }
+    ]
 
 
 @pytest.mark.asyncio
