@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import time
 import unicodedata
 from dataclasses import dataclass
-from difflib import SequenceMatcher
 from typing import Any
 
 import structlog
@@ -18,16 +18,46 @@ from app.common.config import settings
 from app.rag.search.schemas import CacheMatch, RagAnswerResponse, SearchHit
 
 logger = structlog.get_logger()
-CACHE_SCHEMA_VERSION = "v3-stream-scope"
+CACHE_SCHEMA_VERSION = "v4-semantic-cache"
 
 _WHITESPACE = re.compile(r"\s+")
-_WORD = re.compile(r"[a-z0-9_]+|[\u4e00-\u9fff]+")
 _THINK_BLOCK_RE = re.compile(
     r"<think\b[^>]*>.*?</think>",
     flags=re.IGNORECASE | re.DOTALL,
 )
 _POLITE_PREFIX = re.compile(r"^(?:请问|麻烦问一下|帮我查一下|我想知道|请帮我|请说明)")
 _PUNCTUATION = re.compile(r"[\W_]+", flags=re.UNICODE)
+_NUMBER = re.compile(r"\d+(?:\.\d+)?%?")
+_LATIN_ENTITY = re.compile(r"[a-z][a-z0-9._-]*")
+_NEGATION = re.compile(
+    r"(?:不能|不可|不允许|不需要|不应|不得|没有|尚未|未能|未曾|无需|禁止|"
+    r"不(?:支持|包含|包括|可以|需要|具备|存在|能够|会|是|有)|"
+    r"\b(?:not|no|without|cannot|can't|mustn't)\b)",
+    flags=re.IGNORECASE,
+)
+_LATIN_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "can",
+    "do",
+    "does",
+    "for",
+    "how",
+    "in",
+    "is",
+    "of",
+    "or",
+    "the",
+    "to",
+    "what",
+    "when",
+    "where",
+    "which",
+    "who",
+    "why",
+}
 
 
 @dataclass(frozen=True)
@@ -59,45 +89,60 @@ def normalize_query(query: str) -> str:
     return _WHITESPACE.sub("", normalized)
 
 
-def _query_features(query: str) -> set[str]:
+def semantic_similarity(left: list[float], right: list[float]) -> float:
+    if not left or len(left) != len(right):
+        return 0.0
+    numerator = sum(a * b for a, b in zip(left, right, strict=True))
+    left_norm = math.sqrt(sum(value * value for value in left))
+    right_norm = math.sqrt(sum(value * value for value in right))
+    if left_norm == 0 or right_norm == 0:
+        return 0.0
+    return max(0.0, min(1.0, numerator / (left_norm * right_norm)))
+
+
+def _question_type(query: str) -> str:
     normalized = unicodedata.normalize("NFKC", query).strip().lower()
-    features: set[str] = set()
-    for token in _WORD.findall(normalized):
-        if token.isascii():
-            features.add(f"w:{token}")
-            continue
-        if len(token) == 1:
-            features.add(f"c:{token}")
-            continue
-        features.update(f"c:{token[index:index + 2]}" for index in range(len(token) - 1))
-    return features
-
-
-def question_similarity(left: str, right: str) -> float:
-    left_normalized = normalize_query(left)
-    right_normalized = normalize_query(right)
-    if not left_normalized or not right_normalized:
-        return 0.0
-    if left_normalized == right_normalized:
-        return 1.0
-    if min(len(left_normalized), len(right_normalized)) < 6:
-        return 0.0
-
-    sequence_score = SequenceMatcher(
-        None,
-        left_normalized,
-        right_normalized,
-        autojunk=False,
-    ).ratio()
-    left_features = _query_features(left)
-    right_features = _query_features(right)
-    union = left_features | right_features
-    feature_score = len(left_features & right_features) / len(union) if union else 0.0
-    length_ratio = min(len(left_normalized), len(right_normalized)) / max(
-        len(left_normalized),
-        len(right_normalized),
+    rules = (
+        ("why", ("为什么", "为何", "原因", "why")),
+        ("how", ("如何", "怎么", "怎样", "how")),
+        ("quantity", ("多少", "几个", "几项", "数量", "how many")),
+        ("when", ("何时", "什么时候", "多久", "when")),
+        ("where", ("哪里", "何处", "在哪", "where")),
+        ("who", ("谁", "哪位", "who")),
+        ("yes_no", ("是否", "能否", "可否", "有没有", "是不是", "can ", "is ")),
+        ("what", ("什么", "哪些", "哪种", "what", "which")),
     )
-    return max(sequence_score, feature_score * length_ratio)
+    for question_type, markers in rules:
+        if any(marker in normalized for marker in markers):
+            return question_type
+    return "unknown"
+
+
+def query_intent_features(query: str) -> dict[str, object]:
+    normalized = unicodedata.normalize("NFKC", query).strip().lower()
+    latin_entities = sorted(
+        {token for token in _LATIN_ENTITY.findall(normalized) if token not in _LATIN_STOPWORDS}
+    )
+    return {
+        "question_type": _question_type(normalized),
+        "negated": bool(_NEGATION.search(normalized)),
+        "numbers": sorted(set(_NUMBER.findall(normalized))),
+        "latin_entities": latin_entities,
+    }
+
+
+def intents_are_compatible(left: str, right: str) -> bool:
+    left_features = query_intent_features(left)
+    right_features = query_intent_features(right)
+    left_type = left_features["question_type"]
+    right_type = right_features["question_type"]
+    if left_type != "unknown" and right_type != "unknown" and left_type != right_type:
+        return False
+    if left_features["negated"] != right_features["negated"]:
+        return False
+    if left_features["numbers"] != right_features["numbers"]:
+        return False
+    return left_features["latin_entities"] == right_features["latin_entities"]
 
 
 def _strip_think_blocks(text: str) -> str:
@@ -147,6 +192,8 @@ async def get_cached_answer(
     *,
     scope: AnswerCacheScope,
     query: str,
+    query_embedding: list[float] | None = None,
+    check_exact: bool = True,
 ) -> RagAnswerResponse | None:
     if not settings.rag_answer_cache_enabled:
         return None
@@ -155,9 +202,12 @@ async def get_cached_answer(
     exact_key = _entry_key(scope_digest=scope_digest, query=query)
     client = await _redis()
     try:
-        raw = await client.get(exact_key)
-        if raw:
-            return _decode_response(raw, cache_match="exact", similarity=1.0)
+        if check_exact:
+            raw = await client.get(exact_key)
+            if raw:
+                return _decode_response(raw, cache_match="exact", similarity=1.0)
+        if query_embedding is None:
+            return None
 
         candidate_keys = await client.zrevrange(
             _index_key(scope_digest),
@@ -175,9 +225,22 @@ async def get_cached_answer(
             try:
                 candidate = json.loads(candidate_raw)
                 candidate_query = str(candidate.get("query") or "")
+                candidate_embedding = candidate.get("query_embedding")
             except (TypeError, ValueError, json.JSONDecodeError):
                 continue
-            similarity = question_similarity(query, candidate_query)
+            if (
+                not isinstance(candidate_embedding, list)
+                or not all(
+                    isinstance(value, int | float) and not isinstance(value, bool)
+                    for value in candidate_embedding
+                )
+                or not intents_are_compatible(query, candidate_query)
+            ):
+                continue
+            similarity = semantic_similarity(
+                query_embedding,
+                [float(value) for value in candidate_embedding],
+            )
             if similarity > best_similarity:
                 best_similarity = similarity
                 best_raw = candidate_raw
@@ -203,6 +266,7 @@ async def set_cached_answer(
     scope: AnswerCacheScope,
     query: str,
     response: RagAnswerResponse,
+    query_embedding: list[float] | None = None,
 ) -> None:
     if not settings.rag_answer_cache_enabled:
         return
@@ -220,6 +284,8 @@ async def set_cached_answer(
         "model": response.model,
         "conversation_id": response.conversation_id,
         "generated": response.generated,
+        "query_embedding": query_embedding,
+        "query_intent": query_intent_features(query),
     }
     client = await _redis()
     try:

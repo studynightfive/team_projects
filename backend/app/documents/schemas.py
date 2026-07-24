@@ -72,6 +72,22 @@ class UploadResponse(BaseModel):
     items: list[UploadResultItem]
 
 
+class DocumentNameConflictRequest(BaseModel):
+    filenames: list[str] = Field(min_length=1, max_length=20)
+
+
+class DocumentNameConflictItem(BaseModel):
+    filename: str
+    document_name: str
+    conflict_type: Literal["existing", "batch"]
+    existing_document_id: str | None = None
+    existing_document_title: str | None = None
+
+
+class DocumentNameConflictResponse(BaseModel):
+    conflicts: list[DocumentNameConflictItem]
+
+
 class MarkdownContent(BaseModel):
     document_id: str
     content: str

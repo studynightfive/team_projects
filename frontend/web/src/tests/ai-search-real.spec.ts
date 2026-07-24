@@ -129,7 +129,7 @@ describe("AI 搜索真实工作台", () => {
         query: "电子病历有哪些核心模块",
         mode: "smart",
         sources: ["knowledge"],
-        workspaceId: "kb-1",
+        workspaceIds: ["kb-1"],
         modelId: "chat-1",
       },
       undefined,

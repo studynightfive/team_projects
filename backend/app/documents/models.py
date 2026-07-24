@@ -13,11 +13,13 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -51,6 +53,7 @@ class DuplicatePolicy(str, Enum):
     SKIP = "skip"
     NEW_VERSION = "new_version"
     REPLACE = "replace"
+    RENAME = "rename"
 
 
 class Document(Base):
@@ -62,15 +65,12 @@ class Document(Base):
             name="ck_documents_chunk_strategy",
         ),
         CheckConstraint(
-            "chunk_size BETWEEN 100 AND 4000 AND chunk_overlap >= 0 "
-            "AND chunk_overlap < chunk_size",
+            "chunk_size BETWEEN 100 AND 4000 AND chunk_overlap >= 0 AND chunk_overlap < chunk_size",
             name="ck_documents_chunk_parameters",
         ),
     )
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     knowledge_base_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("knowledge_bases.id", ondelete="CASCADE"), index=True
     )
@@ -88,9 +88,7 @@ class Document(Base):
     )
     ocr_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     language: Mapped[str] = mapped_column(String(64), default="chi_sim+eng")
-    chunk_strategy: Mapped[str] = mapped_column(
-        String(16), default="recursive", nullable=False
-    )
+    chunk_strategy: Mapped[str] = mapped_column(String(16), default="recursive", nullable=False)
     chunk_size: Mapped[int] = mapped_column(Integer, default=800, nullable=False)
     chunk_overlap: Mapped[int] = mapped_column(Integer, default=120, nullable=False)
     parser_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -102,9 +100,7 @@ class Document(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active_index: Mapped[bool] = mapped_column(Boolean, default=False)
     created_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -130,9 +126,7 @@ class Document(Base):
 class DocumentAsset(Base):
     __tablename__ = "document_assets"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     document_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("documents.id", ondelete="CASCADE"), index=True
     )
@@ -141,11 +135,18 @@ class DocumentAsset(Base):
     mime_type: Mapped[str] = mapped_column(String(200), nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     page_no: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     document: Mapped[Document] = relationship(back_populates="assets")
+
+
+Index(
+    "uq_documents_active_kb_title",
+    Document.knowledge_base_id,
+    func.lower(func.btrim(Document.title)),
+    unique=True,
+    postgresql_where=text("deleted_at IS NULL"),
+)
 
 
 class DocumentChunk(Base):
@@ -154,9 +155,7 @@ class DocumentChunk(Base):
         UniqueConstraint("document_id", "chunk_no", "index_generation", name="uq_chunk_doc_no_gen"),
     )
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     document_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("documents.id", ondelete="CASCADE"), index=True
     )
@@ -173,9 +172,7 @@ class DocumentChunk(Base):
     embedding_vector: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True)
     index_generation: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     document: Mapped[Document] = relationship(back_populates="chunks")
 
@@ -183,16 +180,12 @@ class DocumentChunk(Base):
 class DocumentTask(Base):
     __tablename__ = "document_tasks"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     document_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("documents.id", ondelete="CASCADE"), index=True
     )
     task_type: Mapped[str] = mapped_column(String(64), default="document_convert")
-    status: Mapped[str] = mapped_column(
-        String(32), default=TaskStatus.QUEUED.value, index=True
-    )
+    status: Mapped[str] = mapped_column(String(32), default=TaskStatus.QUEUED.value, index=True)
     stage: Mapped[str] = mapped_column(String(32), default=DocumentStatus.UPLOADED.value)
     progress: Mapped[float] = mapped_column(Float, default=0.0)
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -200,9 +193,7 @@ class DocumentTask(Base):
     error_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     request_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

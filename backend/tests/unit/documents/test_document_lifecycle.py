@@ -40,9 +40,7 @@ def _document() -> Document:
 
 
 def test_batch_request_removes_duplicate_document_ids() -> None:
-    request = DocumentIdBatchRequest(
-        document_ids=["document-1", "document-1", "document-2"]
-    )
+    request = DocumentIdBatchRequest(document_ids=["document-1", "document-1", "document-2"])
 
     assert request.document_ids == ["document-1", "document-2"]
 
@@ -110,3 +108,41 @@ async def test_reprocess_task_uses_real_document_task_progress() -> None:
     assert document.is_active_index is False
     session.add.assert_called_once_with(task)
     session.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_worker_stage_progress_is_committed() -> None:
+    document = _document()
+    task = SimpleNamespace(stage="uploaded", progress=5)
+    session = SimpleNamespace(
+        refresh=AsyncMock(),
+        flush=AsyncMock(),
+        commit=AsyncMock(),
+    )
+    service = object.__new__(DocumentService)
+    service.session = session
+    service.settings = SimpleNamespace(worker_inline=False)
+
+    await service._set_stage(document, task, DocumentStatus.CHUNKING)
+
+    assert task.stage == DocumentStatus.CHUNKING.value
+    assert task.progress == 80
+    session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_inline_stage_progress_stays_in_upload_transaction() -> None:
+    document = _document()
+    task = SimpleNamespace(stage="uploaded", progress=5)
+    session = SimpleNamespace(
+        refresh=AsyncMock(),
+        flush=AsyncMock(),
+        commit=AsyncMock(),
+    )
+    service = object.__new__(DocumentService)
+    service.session = session
+    service.settings = SimpleNamespace(worker_inline=True)
+
+    await service._set_stage(document, task, DocumentStatus.CHUNKING)
+
+    session.commit.assert_not_awaited()

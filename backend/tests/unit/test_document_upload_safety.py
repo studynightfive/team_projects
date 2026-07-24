@@ -92,6 +92,7 @@ async def test_batch_failure_removes_files_created_by_earlier_items(
     monkeypatch.setattr(document_service, "user_can_access_kb", AsyncMock(return_value=True))
     monkeypatch.setattr(service, "_get_kb", AsyncMock())
     monkeypatch.setattr(service, "_find_by_hash", AsyncMock(return_value=None))
+    monkeypatch.setattr(service, "_find_by_name", AsyncMock(return_value=None))
 
     with pytest.raises(AppException):
         await service.upload(
@@ -141,6 +142,7 @@ async def test_replace_failure_restores_original_and_derived_files(
     monkeypatch.setattr(document_service, "user_can_access_kb", AsyncMock(return_value=True))
     monkeypatch.setattr(service, "_get_kb", AsyncMock())
     monkeypatch.setattr(service, "_find_by_hash", AsyncMock(return_value=existing))
+    monkeypatch.setattr(service, "_find_by_name", AsyncMock(return_value=existing))
     monkeypatch.setattr(service, "_deactivate_index", AsyncMock())
 
     with pytest.raises(AppException):
