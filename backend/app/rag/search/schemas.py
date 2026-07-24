@@ -7,6 +7,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 SearchMode = Literal["keyword", "vector", "hybrid"]
+CacheMatch = Literal["exact", "similar"]
 
 
 class SearchRequest(BaseModel):
@@ -69,3 +70,5 @@ class RagAnswerResponse(BaseModel):
     conversation_id: str | None = None
     generated: bool = True
     from_cache: bool = False
+    cache_match: CacheMatch | None = None
+    cache_similarity: float | None = Field(default=None, ge=0.0, le=1.0)

@@ -4,6 +4,7 @@ import type {
   AiAnswer,
   AiSearchHomeData,
   AiSearchResponse,
+  AiSearchStreamObserver,
   SearchRequest,
   SearchSourceType,
 } from "../types/ai-search";
@@ -111,6 +112,7 @@ export const loadAiSearchHome = async (
 export const runAiSearch = async (
   request: SearchRequest,
   signal?: AbortSignal,
+  observer?: AiSearchStreamObserver,
 ): Promise<AiSearchResponse> => {
   const query = request.query.trim();
   if (query.length === 0) {
@@ -119,7 +121,7 @@ export const runAiSearch = async (
 
   if (isRealApiMode) {
     const { runRealSearch } = await import("./ai-search-real");
-    return runRealSearch(request, signal);
+    return runRealSearch(request, signal, observer);
   }
 
   await waitForMock(signal);
@@ -166,7 +168,7 @@ export const runAiSearch = async (
     ...citations.map((item) => item.sourceName),
   ]).size;
 
-  return {
+  const response: AiSearchResponse = {
     request: normalizedRequest,
     status,
     answer,
@@ -176,4 +178,6 @@ export const runAiSearch = async (
     notice: aiSearchMockData.meta.notice,
     elapsedLabel: "本地模拟，无真实耗时",
   };
+  observer?.onResponse?.(response);
+  return response;
 };

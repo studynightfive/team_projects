@@ -280,3 +280,18 @@ export interface AiSearchResponse {
   readonly notice: string;
   readonly elapsedLabel: string;
 }
+
+export type RagProcessingStageStatus = "running" | "completed";
+
+export interface RagProcessingStage {
+  readonly id: string;
+  readonly label: string;
+  readonly status: RagProcessingStageStatus;
+  readonly detail: string;
+  readonly elapsedMs: number;
+}
+
+export interface AiSearchStreamObserver {
+  readonly onStage?: (stage: RagProcessingStage) => void;
+  readonly onResponse?: (response: AiSearchResponse) => void;
+}

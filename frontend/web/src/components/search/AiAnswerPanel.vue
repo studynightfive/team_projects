@@ -16,6 +16,7 @@ import SearchStatusBadge from "./SearchStatusBadge.vue";
 const props = defineProps<{
   answer: AiAnswer;
   favorite?: boolean;
+  busy?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -56,18 +57,23 @@ watch(
 </script>
 
 <template>
-  <article class="ai-answer-panel" aria-labelledby="ai-answer-title">
+  <article
+    class="ai-answer-panel"
+    :aria-busy="busy"
+    aria-labelledby="ai-answer-title"
+  >
     <header class="ai-answer-heading">
       <div>
         <span class="answer-kicker">企业知识智能摘要</span>
         <h2 id="ai-answer-title">{{ answer.title }}</h2>
       </div>
       <div class="answer-heading-actions">
-        <SearchStatusBadge :status="answer.status" />
+        <SearchStatusBadge :status="busy ? 'searching' : answer.status" />
         <button
           class="answer-favorite-button"
           type="button"
           :aria-pressed="favorite"
+          :disabled="busy"
           @click="emit('toggle-favorite')"
         >
           <Bookmark :size="16" aria-hidden="true" />

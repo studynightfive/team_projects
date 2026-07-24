@@ -6,17 +6,20 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import time
 from typing import TypeAlias
 
 import structlog
-from sqlalchemy import text
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.config import settings
 from app.common.exceptions import ValidationException
 from app.common.models import User
+from app.documents.models import Document, DocumentChunk
 from app.models import service as model_service
 from app.models.providers.openai import OpenAICompatibleProvider, build_provider
 from app.models.security import decrypt_api_key
@@ -24,7 +27,7 @@ from app.rag._shared.permissions import (
     get_user_accessible_kb_ids,
     post_filter_hits,
 )
-from app.rag.answer_cache import get_cached_answer, set_cached_answer
+from app.rag.answer_cache import AnswerCacheScope, get_cached_answer, set_cached_answer
 from app.rag.guard import ensure_safe_query
 from app.rag.search.schemas import (
     RagAnswerRequest,
@@ -618,6 +621,163 @@ async def _resolve_chat_model(
     )
 
 
+async def _model_cache_token(
+    db: AsyncSession,
+    *,
+    model_id: str | None,
+    fallback: dict[str, object],
+) -> dict[str, object]:
+    if model_id is None:
+        return fallback
+    model = await model_service.get_model(db, model_id)
+    if model is None:
+        return {"id": model_id, "status": "missing"}
+    provider = await model_service.get_provider(db, model.provider_code)
+    return {
+        "id": model.id,
+        "name": model.model_name,
+        "kind": model.kind,
+        "enabled": model.enabled,
+        "updated_at": str(model.updated_at),
+        "parameters": model.parameters or {},
+        "provider": {
+            "code": model.provider_code,
+            "base_url": provider.base_url if provider is not None else None,
+            "updated_at": str(provider.updated_at) if provider is not None else None,
+        },
+    }
+
+
+async def _knowledge_version(
+    db: AsyncSession,
+    *,
+    knowledge_base_ids: set[str],
+) -> str:
+    if not knowledge_base_ids:
+        return hashlib.sha256(b"empty").hexdigest()
+
+    ordered_ids = sorted(knowledge_base_ids)
+    document_result = await db.execute(
+        select(
+            func.count(Document.id),
+            func.max(Document.updated_at),
+            func.coalesce(func.sum(Document.version), 0),
+        ).where(Document.knowledge_base_id.in_(ordered_ids))
+    )
+    document_count, document_updated_at, document_version_sum = document_result.one()
+    chunk_result = await db.execute(
+        select(
+            func.count(DocumentChunk.id),
+            func.max(DocumentChunk.created_at),
+            func.coalesce(func.max(DocumentChunk.index_generation), 0),
+        ).where(
+            DocumentChunk.knowledge_base_id.in_(ordered_ids),
+            DocumentChunk.is_active.is_(True),
+        )
+    )
+    chunk_count, chunk_created_at, chunk_generation = chunk_result.one()
+    payload = json.dumps(
+        {
+            "knowledge_base_ids": ordered_ids,
+            "document_count": int(document_count or 0),
+            "document_updated_at": str(document_updated_at or ""),
+            "document_version_sum": int(document_version_sum or 0),
+            "active_chunk_count": int(chunk_count or 0),
+            "active_chunk_created_at": str(chunk_created_at or ""),
+            "active_chunk_generation": int(chunk_generation or 0),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+async def _build_answer_cache_scope(
+    db: AsyncSession,
+    *,
+    user: User,
+    req: RagAnswerRequest,
+) -> tuple[AnswerCacheScope, RagAnswerRequest]:
+    accessible = await get_user_accessible_kb_ids(db, user)
+    knowledge_base_ids = (
+        {req.kb_id}
+        if req.kb_id is not None and req.kb_id in accessible
+        else (set() if req.kb_id is not None else accessible)
+    )
+    embedding_model_id = (
+        await _resolve_embedding_model_id(db, req.embedding_model_id)
+        if req.mode in {"vector", "hybrid"}
+        else None
+    )
+    rerank_enabled = req.rerank or req.top_k > settings.rag_max_top_k
+    rerank_model_id = (
+        await _resolve_rerank_model_id(db, req.rerank_model_id)
+        if rerank_enabled
+        else None
+    )
+    effective_request = req.model_copy(
+        update={
+            "embedding_model_id": embedding_model_id,
+            "rerank_model_id": rerank_model_id,
+        }
+    )
+    model_scope = json.dumps(
+        {
+            "chat": await _model_cache_token(
+                db,
+                model_id=req.chat_model_id,
+                fallback={
+                    "provider": "deepseek",
+                    "base_url": settings.deepseek_base_url,
+                    "name": settings.deepseek_chat_model,
+                    "max_tokens": settings.rag_answer_max_tokens,
+                },
+            ),
+            "embedding": await _model_cache_token(
+                db,
+                model_id=embedding_model_id,
+                fallback={"id": None},
+            ),
+            "rerank": await _model_cache_token(
+                db,
+                model_id=rerank_model_id,
+                fallback={"id": None},
+            ),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    )
+    retrieval_scope = json.dumps(
+        {
+            "mode": req.mode,
+            "top_k": req.top_k,
+            "threshold": req.threshold,
+            "rerank": rerank_enabled,
+            "metadata_filter": req.metadata_filter,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    )
+    return (
+        AnswerCacheScope(
+            user_id=user.id,
+            knowledge_scope=",".join(sorted(knowledge_base_ids)),
+            knowledge_version=await _knowledge_version(
+                db,
+                knowledge_base_ids=knowledge_base_ids,
+            ),
+            model_scope=model_scope,
+            retrieval_scope=retrieval_scope,
+        ),
+        effective_request,
+    )
+
+
 async def answer(
     db: AsyncSession,
     *,
@@ -626,9 +786,13 @@ async def answer(
 ) -> RagAnswerResponse:
     start = time.time()
     await ensure_safe_query(req.query)
+    cache_scope, effective_request = await _build_answer_cache_scope(
+        db,
+        user=user,
+        req=req,
+    )
     cached = await get_cached_answer(
-        user_id=user.id,
-        kb_id=req.kb_id,
+        scope=cache_scope,
         query=req.query,
     )
     if cached is not None:
@@ -636,7 +800,12 @@ async def answer(
         logger.info("rag_answer_cache_hit", kb_id=req.kb_id)
         return cached
 
-    search_resp = await search(db, user=user, req=req, guard_checked=True)
+    search_resp = await search(
+        db,
+        user=user,
+        req=effective_request,
+        guard_checked=True,
+    )
 
     if not search_resp.hits:
         return RagAnswerResponse(
@@ -708,8 +877,7 @@ async def answer(
         from_cache=False,
     )
     await set_cached_answer(
-        user_id=user.id,
-        kb_id=req.kb_id,
+        scope=cache_scope,
         query=req.query,
         response=response,
     )

@@ -1,11 +1,13 @@
 import { AxiosHeaders, type AxiosResponse } from "axios";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { apiClient } from "../api/client";
+import { apiClient, clearAccessToken, setAccessToken } from "../api/client";
 import type { ApiResponse } from "../api/contracts";
 import {
   listRealChatModelOptions,
   loadRealHome,
+  parseSseStream,
+  runRealSearch,
 } from "../services/ai-search-real";
 
 interface AvailableModelFixture {
@@ -25,7 +27,9 @@ const createResponse = <T>(data: ApiResponse<T>): AxiosResponse<ApiResponse<T>> 
 
 describe("AI 搜索真实工作台", () => {
   afterEach(() => {
+    clearAccessToken();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("普通用户通过可用模型接口读取聊天模型", async () => {
@@ -73,5 +77,81 @@ describe("AI 搜索真实工作台", () => {
       },
     ]);
     expect(home.meta.apiRequestsAllowed).toBe(true);
+  });
+
+  it("解析跨网络分片的 SSE 事件", async () => {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('event: delta\ndata: {"text":"第一'));
+        controller.enqueue(
+          encoder.encode('段"}\n\nevent: done\ndata: {"generated":true}\n\n'),
+        );
+        controller.close();
+      },
+    });
+
+    const events = [];
+    for await (const event of parseSseStream(stream)) {
+      events.push(event);
+    }
+
+    expect(events).toEqual([
+      { event: "delta", data: { text: "第一段" } },
+      { event: "done", data: { generated: true } },
+    ]);
+  });
+
+  it("流式接收处理阶段、引用与答案增量", async () => {
+    setAccessToken("access-token");
+    const eventStream = [
+      'event: start\ndata: {"event":"start","request_id":"request-1"}\n\n',
+      'event: stage\ndata: {"event":"stage","stage":"retrieval","label":"检索知识库","status":"running","detail":"正在检索","elapsed_ms":3}\n\n',
+      'event: citation\ndata: {"event":"citation","doc_id":"doc-1","chunk_id":"chunk-1","doc_title":"医疗信息化方案","page":1,"score":0.95,"vector_score":0.9,"keyword_score":0.8,"rerank_score":0.95,"text":"电子病历建设内容","highlights":null,"kb_id":"kb-1"}\n\n',
+      'event: delta\ndata: {"event":"delta","text":"电子病历"}\n\n',
+      'event: delta\ndata: {"event":"delta","text":"是核心模块。"}\n\n',
+      'event: done\ndata: {"event":"done","took_ms":88,"mode":"hybrid","model":"deepseek-chat","generated":true,"from_cache":false,"cache_match":null,"cache_similarity":null}\n\n',
+    ].join("");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(eventStream, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        }),
+      ),
+    );
+    const onStage = vi.fn();
+    const onResponse = vi.fn();
+
+    const result = await runRealSearch(
+      {
+        query: "电子病历有哪些核心模块",
+        mode: "smart",
+        sources: ["knowledge"],
+        workspaceId: "kb-1",
+        modelId: "chat-1",
+      },
+      undefined,
+      { onStage, onResponse },
+    );
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/v1/retrieval/answer/stream",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        headers: expect.objectContaining({
+          Authorization: "Bearer access-token",
+        }),
+      }),
+    );
+    expect(onStage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "retrieval", status: "running" }),
+    );
+    expect(onResponse).toHaveBeenCalled();
+    expect(result.answer.markdown).toBe("电子病历是核心模块。");
+    expect(result.answer.citations).toHaveLength(1);
+    expect(result.elapsedLabel).toBe("88ms");
   });
 });

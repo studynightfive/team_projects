@@ -8,6 +8,7 @@ import InlineState from "../../components/InlineState.vue";
 import AiAnswerPanel from "../../components/search/AiAnswerPanel.vue";
 import AiSearchBox from "../../components/search/AiSearchBox.vue";
 import DocumentPreviewDrawer from "../../components/search/DocumentPreviewDrawer.vue";
+import RagProcessingTimeline from "../../components/search/RagProcessingTimeline.vue";
 import SearchContextPanel from "../../components/search/SearchContextPanel.vue";
 import SearchStatusBadge from "../../components/search/SearchStatusBadge.vue";
 import SourceResultsPanel from "../../components/search/SourceResultsPanel.vue";
@@ -18,6 +19,7 @@ import {
   PanelRightOpen,
   RefreshCw,
   SlidersHorizontal,
+  Square,
 } from "../../components/icons";
 import { isRealApiMode } from "../../config/runtime";
 import { aiSearchMockData } from "../../mocks/ai-search";
@@ -42,6 +44,7 @@ import type {
   CitationSource,
   KnowledgeBaseOption,
   ModelOption,
+  RagProcessingStage,
   SearchMode,
   SearchRequest,
   SearchResultItem,
@@ -66,6 +69,7 @@ const modelOptions = ref<readonly ModelOption[]>(aiSearchMockData.modelOptions);
 const knowledgeBaseOptions = ref<readonly KnowledgeBaseOption[]>([]);
 const status = ref<SearchStatus>("idle");
 const response = ref<AiSearchResponse>();
+const processingStages = ref<readonly RagProcessingStage[]>([]);
 const errorMessage = ref("");
 const activeTab = ref<"answer" | "results">("answer");
 const isContextOpen = ref(false);
@@ -221,6 +225,8 @@ const executeSearch = async (): Promise<void> => {
   }
   searchController = new AbortController();
   status.value = "searching";
+  response.value = undefined;
+  processingStages.value = [];
   errorMessage.value = "";
   activeTab.value = "answer";
   answerFavorite.value = false;
@@ -236,6 +242,22 @@ const executeSearch = async (): Promise<void> => {
         modelId: modelId.value,
       },
       searchController.signal,
+      {
+        onStage: (stage) => {
+          const existingIndex = processingStages.value.findIndex(
+            (item) => item.id === stage.id,
+          );
+          processingStages.value =
+            existingIndex < 0
+              ? [...processingStages.value, stage]
+              : processingStages.value.map((item, index) =>
+                  index === existingIndex ? stage : item,
+                );
+        },
+        onResponse: (streamedResponse) => {
+          response.value = streamedResponse;
+        },
+      },
     );
     response.value = nextResponse;
     status.value = nextResponse.status;
@@ -255,6 +277,13 @@ const executeSearch = async (): Promise<void> => {
     errorMessage.value = publicError.message;
     status.value = "error";
   }
+};
+
+const cancelSearch = (): void => {
+  searchController?.abort();
+  searchController = undefined;
+  status.value = response.value?.status ?? "idle";
+  void message.info("已停止生成");
 };
 
 const submitSearch = (request: SearchRequest): void => {
@@ -630,9 +659,18 @@ onBeforeUnmount(() => {
       <div class="search-result-actions">
         <span class="mock-result-badge">{{ apiModeLabel }}</span>
         <button
+          v-if="status === 'searching'"
           class="secondary-button compact"
           type="button"
-          :disabled="status === 'searching'"
+          @click="cancelSearch"
+        >
+          <Square :size="15" aria-hidden="true" />
+          停止生成
+        </button>
+        <button
+          v-else
+          class="secondary-button compact"
+          type="button"
           @click="executeSearch"
         >
           <RefreshCw :size="16" aria-hidden="true" />
@@ -641,7 +679,7 @@ onBeforeUnmount(() => {
         <button
           class="secondary-button compact"
           type="button"
-          :disabled="response === undefined"
+          :disabled="response === undefined || status === 'searching'"
           @click="copyAnswer"
         >
           <Copy :size="16" aria-hidden="true" />
@@ -650,7 +688,9 @@ onBeforeUnmount(() => {
         <button
           class="secondary-button compact"
           type="button"
-          :disabled="response === undefined || isExporting"
+          :disabled="
+            response === undefined || status === 'searching' || isExporting
+          "
           @click="openAnswerExport"
         >
           <Download :size="16" aria-hidden="true" />
@@ -660,7 +700,7 @@ onBeforeUnmount(() => {
           class="secondary-button compact"
           type="button"
           :aria-pressed="answerFavorite"
-          :disabled="response === undefined"
+          :disabled="response === undefined || status === 'searching'"
           @click="toggleAnswerFavorite"
         >
           <Bookmark :size="16" aria-hidden="true" />
@@ -704,7 +744,10 @@ onBeforeUnmount(() => {
       :class="{ 'context-open': isContextOpen }"
     >
       <main class="search-result-main" aria-live="polite">
-        <div v-if="status === 'searching'" class="search-progress-state">
+        <div
+          v-if="status === 'searching' && response === undefined"
+          class="search-progress-state"
+        >
           <InlineState
             kind="loading"
             title="正在检索企业知识"
@@ -715,6 +758,10 @@ onBeforeUnmount(() => {
             <span />
             <span />
           </div>
+          <RagProcessingTimeline
+            :stages="processingStages"
+            :busy="status === 'searching'"
+          />
         </div>
 
         <div v-else-if="status === 'error'" class="search-error-state">
@@ -737,6 +784,11 @@ onBeforeUnmount(() => {
         </div>
 
         <template v-else-if="response !== undefined">
+          <RagProcessingTimeline
+            :stages="processingStages"
+            :busy="status === 'searching'"
+          />
+
           <div
             v-if="response.status === 'partial'"
             class="partial-result-notice"
@@ -785,6 +837,7 @@ onBeforeUnmount(() => {
             <AiAnswerPanel
               :answer="response.answer"
               :favorite="answerFavorite"
+              :busy="status === 'searching'"
               @preview="openPreview"
               @related="runRelatedSearch"
               @feedback="showFeedback"
