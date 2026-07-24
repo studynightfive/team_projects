@@ -155,3 +155,12 @@
   防止直接 API 绕过；不再对正常问题执行概率模型判定。
 - Docker 构建必须递归排除子目录虚拟环境和工具缓存；API/Worker 镜像只开放存储目录
   写权限，不得递归 `chown` 整个应用目录。
+
+## 2026-07-24 FastAPI 文档离线资源
+
+- `/api/v1/docs` 必须使用镜像内 Swagger UI 5 资源，兼容项目的 OpenAPI 3.1 契约；
+  演示和内网部署不能依赖外部 CDN。
+- Swagger 初始化逻辑必须使用同源外部脚本，不能为文档页面放宽全站
+  `Content-Security-Policy: script-src 'self'`。
+- Nginx 的 `/api/` 代理使用高优先级前缀，避免 `.js/.css` 规则将 FastAPI 文档资源
+  错当成前端静态文件。

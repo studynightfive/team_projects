@@ -5,12 +5,15 @@ import time
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+import fastapi_swagger  # type: ignore[import-untyped]
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
@@ -54,6 +57,7 @@ from app.users.router import router as users_router
 # 在创建任何 logger 前启用统一 JSON 输出和敏感字段过滤。
 setup_logging(level="DEBUG" if settings.debug else "INFO")
 logger = structlog.get_logger()
+swagger_ui_path = Path(fastapi_swagger.__file__).parent / "resources"
 
 
 # ============================================================
@@ -96,9 +100,60 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     openapi_url="/api/v1/openapi.json",
-    docs_url="/api/v1/docs",
+    docs_url=None,
+    redoc_url=None,
     lifespan=lifespan,
 )
+
+app.mount(
+    "/api/v1/docs-assets/vendor",
+    StaticFiles(directory=swagger_ui_path),
+    name="swagger-ui-vendor-assets",
+)
+
+
+@app.get("/api/v1/docs", include_in_schema=False)
+async def swagger_ui_html() -> HTMLResponse:
+    """使用镜像内静态资源渲染 Swagger UI，避免演示环境依赖外部 CDN。"""
+    return HTMLResponse(
+        """<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/api/v1/docs-assets/vendor/swagger-ui.css">
+  <link rel="icon" href="/api/v1/docs-assets/vendor/favicon-32x32.png">
+  <title>智能知识库平台 - Swagger UI</title>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="/api/v1/docs-assets/vendor/swagger-ui-bundle.js"></script>
+  <script src="/api/v1/docs-assets/swagger-initializer.js"></script>
+</body>
+</html>
+"""
+    )
+
+
+@app.get("/api/v1/docs-assets/swagger-initializer.js", include_in_schema=False)
+async def swagger_ui_initializer() -> PlainTextResponse:
+    """以同源外部脚本初始化 Swagger UI，保持严格的 Content-Security-Policy。"""
+    return PlainTextResponse(
+        """window.onload = function () {
+  window.ui = SwaggerUIBundle({
+    url: "/api/v1/openapi.json",
+    dom_id: "#swagger-ui",
+    deepLinking: true,
+    presets: [
+      SwaggerUIBundle.presets.apis
+    ],
+    layout: "BaseLayout"
+  });
+};
+""",
+        media_type="application/javascript",
+    )
+
 
 # ============================================================
 # CORS 中间件
