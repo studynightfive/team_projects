@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import structlog
+from pydantic import JsonValue
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,6 +37,7 @@ from app.documents.schemas import (
     DocumentDetail,
     DocumentSummary,
     MarkdownContent,
+    OcrSummary,
     ReprocessRequest,
     TaskResponse,
     UploadOptions,
@@ -47,6 +49,7 @@ from app.knowledge.models import KnowledgeBase
 from app.models import service as model_service
 from app.models.providers.openai import build_provider
 from app.models.security import decrypt_api_key
+from app.parsers.base import ParsedDocument
 from app.parsers.mime import detect_file
 from app.parsers.pdf import enrich_pdf_with_ocr
 from app.parsers.registry import get_parser_registry
@@ -75,6 +78,56 @@ STAGE_PROGRESS = {
     DocumentStatus.FAILED.value: 100,
     DocumentStatus.MANUAL_REVIEW.value: 100,
 }
+
+_LOW_OCR_CONFIDENCE = 0.70
+
+
+def _ocr_manifest(
+    document: Document,
+    parsed: ParsedDocument,
+) -> dict[str, JsonValue]:
+    if not document.ocr_enabled:
+        return {
+            "status": "disabled",
+            "language": document.language,
+            "average_confidence": None,
+            "review_required": False,
+            "message": "上传时未启用 OCR。",
+        }
+
+    ocr_blocks = [
+        block
+        for block in parsed.blocks
+        if block.metadata.get("source") == "ocr" or block.confidence is not None
+    ]
+    confidences = [
+        block.confidence
+        for block in ocr_blocks
+        if block.confidence is not None and block.confidence > 0
+    ]
+    ocr_unavailable = any(warning.startswith("ocr_") for warning in parsed.warnings)
+    average_confidence = (
+        round(sum(confidences) / len(confidences), 3) if confidences else None
+    )
+    if ocr_unavailable and average_confidence is None:
+        status = "unavailable"
+        message = "OCR 未识别到可用文本，请核对原文或重新处理。"
+    elif average_confidence is not None and average_confidence < _LOW_OCR_CONFIDENCE:
+        status = "low_confidence"
+        message = "OCR 置信度偏低，建议人工核对 Markdown 与原文。"
+    elif ocr_blocks:
+        status = "completed"
+        message = "OCR 已完成，可结合原文核对识别结果。"
+    else:
+        status = "not_required"
+        message = "解析器已直接提取文本，无需执行 OCR。"
+    return {
+        "status": status,
+        "language": document.language,
+        "average_confidence": average_confidence,
+        "review_required": status in {"low_confidence", "unavailable"},
+        "message": message,
+    }
 
 
 class DocumentService:
@@ -219,7 +272,82 @@ class DocumentService:
             raise NotFoundException(code=ErrorCode.DOCUMENT_NOT_FOUND, message="文档不存在")
         if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
             raise ForbiddenException(message="无权访问该知识库")
-        return DocumentDetail.model_validate(doc)
+        return self._document_detail(doc)
+
+    def _document_detail(self, doc: Document) -> DocumentDetail:
+        summary = DocumentSummary.model_validate(doc).model_dump()
+        return DocumentDetail(
+            **summary,
+            language=doc.language,
+            ocr_enabled=doc.ocr_enabled,
+            is_active_index=doc.is_active_index,
+            ocr=self._read_ocr_summary(doc),
+        )
+
+    def _read_ocr_summary(self, doc: Document) -> OcrSummary:
+        if not doc.ocr_enabled:
+            return OcrSummary(
+                status="disabled",
+                language=doc.language,
+                review_required=False,
+                message="上传时未启用 OCR。",
+            )
+        try:
+            manifest = self.storage.read_manifest(doc.id)
+        except (OSError, ValueError):
+            manifest = {}
+        raw_ocr = manifest.get("ocr")
+        if isinstance(raw_ocr, dict):
+            try:
+                return OcrSummary.model_validate(raw_ocr)
+            except ValueError:
+                pass
+        if doc.status != DocumentStatus.READY.value:
+            terminal_failure = doc.status in {
+                DocumentStatus.FAILED.value,
+                DocumentStatus.MANUAL_REVIEW.value,
+            }
+            return OcrSummary(
+                status="unavailable" if terminal_failure else "pending",
+                language=doc.language,
+                review_required=terminal_failure,
+                message=(
+                    "OCR 结果不可用，请查看处理错误并人工复核。"
+                    if terminal_failure
+                    else "文档仍在处理中，OCR 结果尚未生成。"
+                ),
+            )
+        if doc.parser_name == "image_ocr":
+            return OcrSummary(
+                status="completed",
+                language=doc.language,
+                review_required=True,
+                message="历史 OCR 文档未记录置信度，建议人工核对。",
+            )
+        return OcrSummary(
+            status="not_required",
+            language=doc.language,
+            review_required=False,
+            message="解析器已直接提取文本，或历史处理未记录 OCR 摘要。",
+        )
+
+    async def get_original_path(
+        self,
+        user: User,
+        document_id: str,
+    ) -> tuple[Path, DocumentDetail]:
+        doc = await self.session.get(Document, document_id)
+        if doc is None:
+            raise NotFoundException(code=ErrorCode.DOCUMENT_NOT_FOUND, message="文档不存在")
+        if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
+            raise ForbiddenException(message="无权访问该知识库")
+        path = self.storage.resolve_original(doc.id, doc.stored_filename)
+        if not path.is_file():
+            raise NotFoundException(
+                code=ErrorCode.DOCUMENT_NOT_FOUND,
+                message="原始文件不存在",
+            )
+        return path, self._document_detail(doc)
 
     async def get_markdown(self, user: User, document_id: str) -> MarkdownContent:
         doc = await self.get_document(user, document_id)
@@ -235,14 +363,45 @@ class DocumentService:
         document_id: str,
         *,
         active_only: bool = True,
-    ) -> list[ChunkItem]:
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[ChunkItem], int]:
         await self.get_document(user, document_id)
         stmt = select(DocumentChunk).where(DocumentChunk.document_id == document_id)
         if active_only:
             stmt = stmt.where(DocumentChunk.is_active.is_(True))
-        stmt = stmt.order_by(DocumentChunk.chunk_no)
-        result = await self.session.execute(stmt)
-        return [ChunkItem.model_validate(c) for c in result.scalars()]
+        total = (
+            await self.session.execute(select(func.count()).select_from(stmt.subquery()))
+        ).scalar() or 0
+        result = await self.session.execute(
+            stmt.order_by(DocumentChunk.chunk_no)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        items = [
+            ChunkItem(
+                id=chunk.id,
+                chunk_no=chunk.chunk_no,
+                section_no=chunk.section_no,
+                heading=chunk.heading,
+                page_no=chunk.page_no,
+                content=chunk.content,
+                char_start=chunk.char_start,
+                char_end=chunk.char_end,
+                token_estimate=chunk.token_estimate,
+                index_generation=chunk.index_generation,
+                is_active=chunk.is_active,
+                embedding_status=(
+                    "vector"
+                    if chunk.embedding_vector is not None
+                    else "fallback"
+                    if chunk.embedding_json is not None
+                    else "missing"
+                ),
+            )
+            for chunk in result.scalars()
+        ]
+        return items, total
 
     async def get_asset_path(
         self, user: User, document_id: str, asset_id: str
@@ -600,6 +759,7 @@ class DocumentService:
             content_hash=doc.content_hash,
             original_filename=doc.original_filename,
         )
+        package.manifest["ocr"] = _ocr_manifest(doc, parsed)
         self.storage.clear_derived(doc.id)
         md_path, manifest_path, asset_paths = self.storage.write_markdown_package(
             doc.id,

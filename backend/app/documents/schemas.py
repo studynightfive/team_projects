@@ -9,6 +9,23 @@ from pydantic import BaseModel, Field, JsonValue, model_validator
 
 from app.documents.models import DocumentTask, DuplicatePolicy
 
+OcrStatus = Literal[
+    "disabled",
+    "pending",
+    "not_required",
+    "completed",
+    "low_confidence",
+    "unavailable",
+]
+
+
+class OcrSummary(BaseModel):
+    status: OcrStatus
+    language: str
+    average_confidence: float | None = Field(default=None, ge=0, le=1)
+    review_required: bool
+    message: str
+
 
 class DocumentSummary(BaseModel):
     id: str
@@ -39,6 +56,7 @@ class DocumentDetail(DocumentSummary):
     language: str
     ocr_enabled: bool
     is_active_index: bool = False
+    ocr: OcrSummary
 
 
 class UploadResultItem(BaseModel):
@@ -67,7 +85,10 @@ class ChunkItem(BaseModel):
     content: str
     char_start: int
     char_end: int
+    token_estimate: int
+    index_generation: int
     is_active: bool
+    embedding_status: Literal["vector", "fallback", "missing"]
 
     model_config = {"from_attributes": True}
 

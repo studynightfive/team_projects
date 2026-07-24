@@ -25,6 +25,9 @@ export type DocumentDetailRecord = Readonly<
 >;
 
 export type MarkdownContent = Readonly<Required<ApiSchema<"MarkdownContent">>>;
+export type DocumentChunkRecord = Readonly<
+  Required<ApiSchema<"ChunkItem">>
+>;
 
 export type UploadResult = Readonly<
   Omit<Required<ApiSchema<"UploadResultItem">>, "document"> & {
@@ -41,6 +44,12 @@ type KnowledgeBasePage = Readonly<
 type DocumentPage = Readonly<
   Omit<ApiSchema<"PaginatedData_DocumentSummary_">, "items"> & {
     readonly items: readonly DocumentRecord[];
+  }
+>;
+
+export type DocumentChunkPage = Readonly<
+  Omit<ApiSchema<"PaginatedData_ChunkItem_">, "items"> & {
+    readonly items: readonly DocumentChunkRecord[];
   }
 >;
 
@@ -139,6 +148,36 @@ export const getDocumentMarkdown = async (
   const response = await apiClient.get<ApiResponse<MarkdownContent>>(
     `/v1/documents/${documentId}/markdown`,
     { signal },
+  );
+  return unwrapApiData(response.data);
+};
+
+export const getDocumentOriginal = async (
+  documentId: string,
+  signal?: AbortSignal,
+): Promise<Blob> => {
+  const response = await apiClient.get<Blob>(
+    `/v1/documents/${documentId}/original`,
+    {
+      responseType: "blob",
+      signal,
+    },
+  );
+  return response.data;
+};
+
+export const getDocumentChunks = async (
+  documentId: string,
+  page: number,
+  pageSize: number,
+  signal?: AbortSignal,
+): Promise<DocumentChunkPage> => {
+  const response = await apiClient.get<ApiResponse<DocumentChunkPage>>(
+    `/v1/documents/${documentId}/chunks`,
+    {
+      params: { page, page_size: pageSize },
+      signal,
+    },
   );
   return unwrapApiData(response.data);
 };

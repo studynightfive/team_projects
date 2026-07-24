@@ -206,15 +206,51 @@ async def get_markdown(
     return APIResponse(data=data, request_id=str(uuid.uuid4()))
 
 
-@router.get("/documents/{document_id}/chunks")
-async def get_chunks(
+@router.get("/documents/{document_id}/original")
+async def get_original(
     document_id: str,
+    download: bool = Query(False),
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_permission("document.view")),
     service: DocumentService = Depends(get_service),
-) -> APIResponse[list[ChunkItem]]:
-    data = await service.get_chunks(user, document_id)
-    return APIResponse(data=data, request_id=str(uuid.uuid4()))
+) -> FileResponse:
+    path, document = await service.get_original_path(user, document_id)
+    return FileResponse(
+        path,
+        media_type=document.mime_type,
+        filename=document.original_filename,
+        content_disposition_type="attachment" if download else "inline",
+        headers={
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@router.get("/documents/{document_id}/chunks")
+async def get_chunks(
+    document_id: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(require_permission("document.view")),
+    service: DocumentService = Depends(get_service),
+) -> APIResponse[PaginatedData[ChunkItem]]:
+    items, total = await service.get_chunks(
+        user,
+        document_id,
+        page=page,
+        page_size=page_size,
+    )
+    return APIResponse(
+        data=PaginatedData(
+            items=items,
+            page=page,
+            page_size=page_size,
+            total=total,
+        ),
+        request_id=str(uuid.uuid4()),
+    )
 
 
 @router.get("/documents/{document_id}/assets/{asset_id}")
