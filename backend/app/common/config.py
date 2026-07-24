@@ -87,6 +87,7 @@ class Settings(BaseSettings):
     # 文档处理（员工 4）
     # ============================================================
     max_upload_files: int = 20
+    document_recycle_days: int = 30
     allowed_upload_extensions: str = (
         ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.md,.markdown,.txt,.log,.rst,.org,"
         ".csv,.tsv,.html,.htm,.xml,.json,.epub,.odt,.ods,.odp,.rtf,"

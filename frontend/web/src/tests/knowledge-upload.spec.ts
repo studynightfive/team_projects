@@ -120,12 +120,10 @@ const renderKnowledgeDetail = async () => {
 };
 
 describe("个人知识库移动上传流程", () => {
-  it("展示可点击上传区、单文档操作列标识并提交所选切分配置", async () => {
+  it("将多个文件加入队列并在确认后统一提交所选切分配置", async () => {
     const wrapper = await renderKnowledgeDetail();
 
-    const uploadZone = wrapper.get(".upload-drop-zone");
-    expect(uploadZone.attributes("role")).toBe("button");
-    expect(uploadZone.attributes("tabindex")).toBe("0");
+    expect(wrapper.get(".upload-drop-zone").attributes("type")).toBe("button");
     expect(wrapper.get(".chunk-options").findAll("label")).toHaveLength(3);
     expect(
       wrapper.get(".document-table").classes("mobile-sticky-actions"),
@@ -138,20 +136,33 @@ describe("个人知识库移动上传流程", () => {
     await numericInputs[0]?.setValue(600);
     await numericInputs[1]?.setValue(80);
 
-    const file = new File(["医疗信息化"], "方案.md", {
-      type: "text/markdown",
-    });
+    const files = Array.from(
+      { length: 6 },
+      (_, index) =>
+        new File([`医疗信息化-${index}`], `方案-${index + 1}.md`, {
+          type: "text/markdown",
+          lastModified: index + 1,
+        }),
+    );
     const input = wrapper.get<HTMLInputElement>('input[type="file"]');
     Object.defineProperty(input.element, "files", {
       configurable: true,
-      value: [file],
+      value: files,
     });
     await input.trigger("change");
     await flushPromises();
 
+    expect(serviceMocks.uploadDocuments).not.toHaveBeenCalled();
+    expect(wrapper.findAll(".queued-file-list li")).toHaveLength(6);
+
+    await wrapper
+      .get(".queue-actions .primary-button")
+      .trigger("click");
+    await flushPromises();
+
     expect(serviceMocks.uploadDocuments).toHaveBeenCalledWith(
       "personal-kb",
-      [file],
+      files,
       {
         chunkStrategy: "semantic",
         chunkSize: 600,

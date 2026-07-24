@@ -48,6 +48,8 @@ class DocumentSummary(BaseModel):
     error_message: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    deleted_at: datetime | None = None
+    purge_after: datetime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -148,6 +150,38 @@ class ReprocessRequest(BaseModel):
         max_length=32,
         description="Optional safe restart stage; default rebuilds derived data",
     )
+
+
+class DocumentIdBatchRequest(BaseModel):
+    document_ids: list[str] = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def normalize_document_ids(self) -> DocumentIdBatchRequest:
+        self.document_ids = list(dict.fromkeys(self.document_ids))
+        return self
+
+
+class BatchReprocessRequest(DocumentIdBatchRequest):
+    options: ReprocessRequest | None = None
+
+
+class BatchTaskItem(BaseModel):
+    document_id: str
+    document_title: str
+    task: TaskResponse
+
+
+class BatchTaskResponse(BaseModel):
+    items: list[BatchTaskItem]
+
+
+class BatchDeleteResponse(BaseModel):
+    deleted_count: int
+    items: list[DocumentSummary]
+
+
+class RecycleBinItem(AdminDocumentItem):
+    deleted_by: str | None = None
 
 
 class UploadOptions(BaseModel):

@@ -662,7 +662,10 @@ async def _knowledge_version(
             func.count(Document.id),
             func.max(Document.updated_at),
             func.coalesce(func.sum(Document.version), 0),
-        ).where(Document.knowledge_base_id.in_(ordered_ids))
+        ).where(
+            Document.knowledge_base_id.in_(ordered_ids),
+            Document.deleted_at.is_(None),
+        )
     )
     document_count, document_updated_at, document_version_sum = document_result.one()
     chunk_result = await db.execute(

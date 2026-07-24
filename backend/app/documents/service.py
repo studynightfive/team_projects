@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import structlog
@@ -30,14 +30,24 @@ from app.documents.models import (
     TaskStatus,
 )
 from app.documents.permissions import require_any_permission, user_can_access_kb
+from app.documents.retrieval_sync import (
+    publish_document_to_retrieval,
+    unpublish_document_from_retrieval,
+)
 from app.documents.schemas import (
     AdminDocumentItem,
     AdminTaskItem,
+    BatchDeleteResponse,
+    BatchReprocessRequest,
+    BatchTaskItem,
+    BatchTaskResponse,
     ChunkItem,
     DocumentDetail,
+    DocumentIdBatchRequest,
     DocumentSummary,
     MarkdownContent,
     OcrSummary,
+    RecycleBinItem,
     ReprocessRequest,
     TaskResponse,
     UploadOptions,
@@ -80,6 +90,10 @@ STAGE_PROGRESS = {
 }
 
 _LOW_OCR_CONFIDENCE = 0.70
+
+
+class _DocumentDeletedError(Exception):
+    """Worker observed a concurrent soft delete and must stop publishing."""
 
 
 def _ocr_manifest(
@@ -162,7 +176,10 @@ class DocumentService:
         if not await user_can_access_kb(self.session, user, str(kb_id)):
             raise ForbiddenException(message="无权访问该知识库")
         await self._get_kb(kb_id)
-        condition = Document.knowledge_base_id == kb_id
+        condition = (
+            (Document.knowledge_base_id == kb_id)
+            & Document.deleted_at.is_(None)
+        )
         total = (
             await self.session.execute(
                 select(func.count()).select_from(Document).where(condition)
@@ -189,6 +206,9 @@ class DocumentService:
     ) -> tuple[list[AdminDocumentItem], int]:
         stmt = select(Document, KnowledgeBase.name).join(
             KnowledgeBase, KnowledgeBase.id == Document.knowledge_base_id
+        ).where(
+            Document.deleted_at.is_(None),
+            KnowledgeBase.kind == "enterprise",
         )
         if not is_super_admin(user):
             if user.department_id is None:
@@ -229,6 +249,10 @@ class DocumentService:
             select(DocumentTask, Document, KnowledgeBase.name)
             .join(Document, Document.id == DocumentTask.document_id)
             .join(KnowledgeBase, KnowledgeBase.id == Document.knowledge_base_id)
+            .where(
+                Document.deleted_at.is_(None),
+                KnowledgeBase.kind == "enterprise",
+            )
         )
         if not is_super_admin(user):
             if user.department_id is None:
@@ -268,7 +292,7 @@ class DocumentService:
 
     async def get_document(self, user: User, document_id: str) -> DocumentDetail:
         doc = await self.session.get(Document, document_id)
-        if doc is None:
+        if doc is None or doc.deleted_at is not None:
             raise NotFoundException(code=ErrorCode.DOCUMENT_NOT_FOUND, message="文档不存在")
         if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
             raise ForbiddenException(message="无权访问该知识库")
@@ -337,7 +361,7 @@ class DocumentService:
         document_id: str,
     ) -> tuple[Path, DocumentDetail]:
         doc = await self.session.get(Document, document_id)
-        if doc is None:
+        if doc is None or doc.deleted_at is not None:
             raise NotFoundException(code=ErrorCode.DOCUMENT_NOT_FOUND, message="文档不存在")
         if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
             raise ForbiddenException(message="无权访问该知识库")
@@ -420,7 +444,7 @@ class DocumentService:
         if task is None:
             raise NotFoundException(code=ErrorCode.TASK_NOT_FOUND, message="任务不存在")
         doc = await self.session.get(Document, task.document_id)
-        if doc is None:
+        if doc is None or doc.deleted_at is not None:
             raise NotFoundException(code=ErrorCode.DOCUMENT_NOT_FOUND, message="文档不存在")
         if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
             raise ForbiddenException(message="无权访问该知识库")
@@ -619,58 +643,8 @@ class DocumentService:
         document_id: str,
         body: ReprocessRequest | None = None,
     ) -> TaskResponse:
-        doc = await self.session.get(Document, document_id)
-        if doc is None:
-            raise NotFoundException(code=ErrorCode.DOCUMENT_NOT_FOUND, message="文档不存在")
-        if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
-            raise ForbiddenException(message="无权访问该知识库")
-        kb = await self._get_kb(str(doc.knowledge_base_id))
-        if kb.kind == "personal":
-            require_any_permission(user, "personal.document.upload")
-            if kb.owner_user_id != user.id:
-                raise ForbiddenException(message="只能重处理自己的个人文档")
-        else:
-            require_any_permission(user, "admin.document.upload")
-
-        if doc.status not in {
-            DocumentStatus.FAILED.value,
-            DocumentStatus.MANUAL_REVIEW.value,
-            DocumentStatus.READY.value,
-        }:
-            raise AppException(code=ErrorCode.TASK_NOT_RETRYABLE, message="当前状态不可重试", status_code=409)
-
-        if body:
-            if body.ocr_enabled is not None:
-                doc.ocr_enabled = body.ocr_enabled
-            if body.language:
-                doc.language = body.language
-            if body.chunk_strategy is not None:
-                doc.chunk_strategy = body.chunk_strategy
-            if body.chunk_size is not None:
-                doc.chunk_size = body.chunk_size
-            if body.chunk_overlap is not None:
-                doc.chunk_overlap = body.chunk_overlap
-            self.chunker.validate_params(doc.chunk_size, doc.chunk_overlap)
-
-        latest = await self._latest_task(doc.id)
-        retry_count = (latest.retry_count + 1) if latest else 1
-        request_id = new_request_id()
-        task = DocumentTask(
-            id=str(uuid.uuid4()),
-            document_id=doc.id,
-            task_type="document_convert",
-            status=TaskStatus.QUEUED.value,
-            stage=DocumentStatus.UPLOADED.value,
-            progress=0,
-            retry_count=retry_count,
-            idempotency_key=f"{doc.id}:{doc.content_hash}:retry:{retry_count}",
-            request_id=request_id,
-        )
-        self.session.add(task)
-        doc.status = DocumentStatus.UPLOADED.value
-        doc.error_code = None
-        doc.error_message = None
-        await self.session.flush()
+        doc = await self._get_reprocessable_document(user, document_id)
+        task = await self._create_reprocess_task(doc, body)
 
         if self.settings.worker_inline:
             await self.process_document(doc.id, task.id)
@@ -680,22 +654,192 @@ class DocumentService:
         await self.session.refresh(task)
         return TaskResponse.from_orm_task(task)
 
-    async def delete_document(self, user: User, document_id: str) -> None:
-        require_any_permission(user, "admin.document.delete")
-        doc = await self.session.get(Document, document_id)
-        if doc is None:
-            raise NotFoundException(code=ErrorCode.DOCUMENT_NOT_FOUND, message="文档不存在")
-        if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
-            raise ForbiddenException(message="无权访问该知识库")
-        await self._deactivate_index(doc.id)
-        await self.session.delete(doc)
+    async def batch_reprocess(
+        self,
+        user: User,
+        body: BatchReprocessRequest,
+    ) -> BatchTaskResponse:
+        documents = [
+            await self._get_reprocessable_document(user, document_id)
+            for document_id in body.document_ids
+        ]
+        pairs = [
+            (document, await self._create_reprocess_task(document, body.options))
+            for document in documents
+        ]
+        if self.settings.worker_inline:
+            for document, task in pairs:
+                await self.process_document(document.id, task.id)
         await self.session.commit()
-        self.storage.delete_document(doc.id)
+        if not self.settings.worker_inline:
+            await self._enqueue_tasks([(document.id, task.id) for document, task in pairs])
+        for _, task in pairs:
+            await self.session.refresh(task)
+        return BatchTaskResponse(
+            items=[
+                BatchTaskItem(
+                    document_id=document.id,
+                    document_title=document.title,
+                    task=TaskResponse.from_orm_task(task),
+                )
+                for document, task in pairs
+            ]
+        )
+
+    async def delete_document(self, user: User, document_id: str) -> None:
+        await self.batch_delete(
+            user,
+            DocumentIdBatchRequest(document_ids=[document_id]),
+        )
+
+    async def batch_delete(
+        self,
+        user: User,
+        body: DocumentIdBatchRequest,
+    ) -> BatchDeleteResponse:
+        require_any_permission(user, "admin.document.delete")
+        documents: list[Document] = []
+        for document_id in body.document_ids:
+            doc = await self.session.get(Document, document_id)
+            if doc is None or doc.deleted_at is not None:
+                raise NotFoundException(
+                    code=ErrorCode.DOCUMENT_NOT_FOUND,
+                    message="文档不存在",
+                )
+            if not await user_can_access_kb(
+                self.session, user, str(doc.knowledge_base_id)
+            ):
+                raise ForbiddenException(message="无权访问该知识库")
+            documents.append(doc)
+
+        now = datetime.now(timezone.utc)
+        purge_after = now + timedelta(days=self.settings.document_recycle_days)
+        for doc in documents:
+            doc.deleted_at = now
+            doc.deleted_by = str(user.id)
+            doc.purge_after = purge_after
+            doc.status = DocumentStatus.CANCELLED.value
+            await self._cancel_open_tasks(doc.id)
+            await self._deactivate_index(doc.id)
+            await unpublish_document_from_retrieval(self.session, doc.id)
+        await self.session.commit()
+        return BatchDeleteResponse(
+            deleted_count=len(documents),
+            items=[DocumentSummary.model_validate(doc) for doc in documents],
+        )
+
+    async def list_recycle_bin(
+        self,
+        user: User,
+        *,
+        page: int,
+        page_size: int,
+    ) -> tuple[list[RecycleBinItem], int]:
+        require_any_permission(user, "admin.document.view")
+        stmt = (
+            select(Document, KnowledgeBase.name)
+            .join(KnowledgeBase, KnowledgeBase.id == Document.knowledge_base_id)
+            .where(
+                Document.deleted_at.is_not(None),
+                KnowledgeBase.kind == "enterprise",
+            )
+        )
+        if not is_super_admin(user):
+            if user.department_id is None:
+                return [], 0
+            stmt = stmt.where(KnowledgeBase.department_id == user.department_id)
+        total = (
+            await self.session.execute(
+                select(func.count()).select_from(stmt.subquery())
+            )
+        ).scalar() or 0
+        rows = await self.session.execute(
+            stmt.order_by(Document.deleted_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        items = []
+        for document, kb_name in rows.all():
+            data = DocumentSummary.model_validate(document).model_dump()
+            items.append(
+                RecycleBinItem(
+                    **data,
+                    knowledge_base_name=kb_name,
+                    deleted_by=document.deleted_by,
+                )
+            )
+        return items, total
+
+    async def batch_restore(
+        self,
+        user: User,
+        body: DocumentIdBatchRequest,
+    ) -> BatchTaskResponse:
+        require_any_permission(user, "admin.document.delete")
+        documents: list[Document] = []
+        for document_id in body.document_ids:
+            doc = await self.session.get(Document, document_id)
+            if doc is None or doc.deleted_at is None:
+                raise NotFoundException(
+                    code=ErrorCode.DOCUMENT_NOT_FOUND,
+                    message="回收站中不存在该文档",
+                )
+            if not await user_can_access_kb(
+                self.session, user, str(doc.knowledge_base_id)
+            ):
+                raise ForbiddenException(message="无权访问该知识库")
+            doc.deleted_at = None
+            doc.deleted_by = None
+            doc.purge_after = None
+            documents.append(doc)
+
+        pairs = [
+            (document, await self._create_reprocess_task(document, None))
+            for document in documents
+        ]
+        if self.settings.worker_inline:
+            for document, task in pairs:
+                await self.process_document(document.id, task.id)
+        await self.session.commit()
+        if not self.settings.worker_inline:
+            await self._enqueue_tasks(
+                [(document.id, task.id) for document, task in pairs]
+            )
+        return BatchTaskResponse(
+            items=[
+                BatchTaskItem(
+                    document_id=document.id,
+                    document_title=document.title,
+                    task=TaskResponse.from_orm_task(task),
+                )
+                for document, task in pairs
+            ]
+        )
+
+    async def purge_expired_documents(self) -> int:
+        now = datetime.now(timezone.utc)
+        result = await self.session.execute(
+            select(Document).where(
+                Document.deleted_at.is_not(None),
+                Document.purge_after <= now,
+            )
+        )
+        documents = list(result.scalars())
+        for document in documents:
+            await unpublish_document_from_retrieval(self.session, document.id)
+            await self.session.delete(document)
+        await self.session.commit()
+        for document in documents:
+            self.storage.delete_document(document.id)
+        return len(documents)
 
     async def process_document(self, document_id: str, task_id: str) -> None:
         doc = await self.session.get(Document, document_id)
         task = await self.session.get(DocumentTask, task_id)
         if doc is None or task is None:
+            return
+        if doc.deleted_at is not None:
+            await self._cancel_task(task)
             return
 
         task.status = TaskStatus.RUNNING.value
@@ -704,6 +848,8 @@ class DocumentService:
 
         try:
             await self._run_pipeline(doc, task)
+        except _DocumentDeletedError:
+            await self._cancel_task(task)
         except AppException as exc:
             await self._fail(doc, task, exc.code, exc.message, manual=exc.code == ErrorCode.MANUAL_REVIEW)
         except Exception as exc:  # noqa: BLE001
@@ -832,8 +978,12 @@ class DocumentService:
                 )
             )
         await self.session.flush()
+        await self.session.refresh(doc, attribute_names=["deleted_at"])
+        if doc.deleted_at is not None:
+            raise _DocumentDeletedError
         # Activate new generation only after full success; deactivate previous
         await self._activate_generation(doc.id, next_generation)
+        await publish_document_to_retrieval(self.session, doc.id)
 
         doc.status = DocumentStatus.READY.value
         doc.is_active_index = True
@@ -846,6 +996,9 @@ class DocumentService:
         await self.session.flush()
 
     async def _set_stage(self, doc: Document, task: DocumentTask, stage: DocumentStatus) -> None:
+        await self.session.refresh(doc, attribute_names=["deleted_at"])
+        if doc.deleted_at is not None:
+            raise _DocumentDeletedError
         doc.status = stage.value
         task.stage = stage.value
         task.progress = float(STAGE_PROGRESS.get(stage.value, task.progress))
@@ -964,6 +1117,114 @@ class DocumentService:
                 message="任务队列暂不可用，请稍后重试",
                 status_code=503,
             ) from exc
+
+    async def _enqueue_tasks(self, tasks: list[tuple[str, str]]) -> None:
+        failures = await enqueue_document_tasks(tasks, self.settings.redis_url)
+        if not failures:
+            return
+        for document_id, task_id in tasks:
+            if task_id in failures:
+                await self._mark_enqueue_failed(document_id, task_id)
+        await self.session.commit()
+        raise AppException(
+            code=ErrorCode.CONVERSION_FAILED,
+            message="部分任务未能加入处理队列，请稍后重试",
+            status_code=503,
+        )
+
+    async def _get_reprocessable_document(
+        self,
+        user: User,
+        document_id: str,
+    ) -> Document:
+        doc = await self.session.get(Document, document_id)
+        if doc is None or doc.deleted_at is not None:
+            raise NotFoundException(
+                code=ErrorCode.DOCUMENT_NOT_FOUND,
+                message="文档不存在",
+            )
+        if not await user_can_access_kb(
+            self.session, user, str(doc.knowledge_base_id)
+        ):
+            raise ForbiddenException(message="无权访问该知识库")
+        kb = await self._get_kb(str(doc.knowledge_base_id))
+        if kb.kind == "personal":
+            require_any_permission(user, "personal.document.upload")
+            if kb.owner_user_id != user.id:
+                raise ForbiddenException(message="只能重处理自己的个人文档")
+        else:
+            require_any_permission(user, "admin.document.upload")
+        if doc.status not in {
+            DocumentStatus.FAILED.value,
+            DocumentStatus.MANUAL_REVIEW.value,
+            DocumentStatus.READY.value,
+        }:
+            raise AppException(
+                code=ErrorCode.TASK_NOT_RETRYABLE,
+                message="当前状态不可重新处理",
+                status_code=409,
+            )
+        return doc
+
+    async def _create_reprocess_task(
+        self,
+        doc: Document,
+        body: ReprocessRequest | None,
+    ) -> DocumentTask:
+        if body:
+            if body.ocr_enabled is not None:
+                doc.ocr_enabled = body.ocr_enabled
+            if body.language:
+                doc.language = body.language
+            if body.chunk_strategy is not None:
+                doc.chunk_strategy = body.chunk_strategy
+            if body.chunk_size is not None:
+                doc.chunk_size = body.chunk_size
+            if body.chunk_overlap is not None:
+                doc.chunk_overlap = body.chunk_overlap
+            self.chunker.validate_params(doc.chunk_size, doc.chunk_overlap)
+        latest = await self._latest_task(doc.id)
+        retry_count = (latest.retry_count + 1) if latest else 1
+        request_id = new_request_id()
+        task = DocumentTask(
+            id=str(uuid.uuid4()),
+            document_id=doc.id,
+            task_type="document_convert",
+            status=TaskStatus.QUEUED.value,
+            stage=DocumentStatus.UPLOADED.value,
+            progress=0,
+            retry_count=retry_count,
+            idempotency_key=(
+                f"{doc.id}:{doc.content_hash}:retry:{retry_count}:{request_id}"
+            ),
+            request_id=request_id,
+        )
+        self.session.add(task)
+        doc.status = DocumentStatus.UPLOADED.value
+        doc.is_active_index = False
+        doc.error_code = None
+        doc.error_message = None
+        await self.session.flush()
+        return task
+
+    async def _cancel_open_tasks(self, document_id: str) -> None:
+        result = await self.session.execute(
+            select(DocumentTask).where(
+                DocumentTask.document_id == document_id,
+                DocumentTask.status.in_(
+                    [TaskStatus.QUEUED.value, TaskStatus.RUNNING.value]
+                ),
+            )
+        )
+        for task in result.scalars():
+            await self._cancel_task(task)
+
+    async def _cancel_task(self, task: DocumentTask) -> None:
+        task.status = TaskStatus.CANCELLED.value
+        task.stage = DocumentStatus.CANCELLED.value
+        task.progress = 100
+        task.finished_at = datetime.now(timezone.utc)
+        await self.session.flush()
 
     async def _mark_enqueue_failed(self, document_id: str, task_id: str) -> None:
         document = await self.session.get(Document, document_id)

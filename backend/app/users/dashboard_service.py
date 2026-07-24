@@ -102,6 +102,7 @@ def _document_contribution_subquery(
             User.status == "active",
             Document.status == DocumentStatus.READY.value,
             Document.is_active_index.is_(True),
+            Document.deleted_at.is_(None),
         )
         .group_by(User.department_id, User.id)
     )
@@ -287,6 +288,7 @@ async def get_dashboard_metrics(
             KnowledgeBase.kind == "enterprise",
             Document.status == DocumentStatus.READY.value,
             Document.is_active_index.is_(True),
+            Document.deleted_at.is_(None),
         )
     )
     if scope_department_id is not None:
@@ -318,6 +320,7 @@ async def get_dashboard_metrics(
         .where(
             Document.updated_at >= started_at,
             Document.updated_at <= ended_at,
+            Document.deleted_at.is_(None),
             Document.status.in_(
                 [
                     DocumentStatus.READY.value,
@@ -462,6 +465,7 @@ async def get_user_incentives(
             Document.created_by == user.id,
             Document.status == DocumentStatus.READY.value,
             Document.is_active_index.is_(True),
+            Document.deleted_at.is_(None),
         )
         .subquery()
     )

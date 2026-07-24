@@ -7,6 +7,7 @@ import InlineState from "../../components/InlineState.vue";
 import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import DocumentUploadQueue from "../../components/documents/DocumentUploadQueue.vue";
 import { useListPagination } from "../../composables/useListPagination";
 import {
   createKnowledgeBase,
@@ -33,8 +34,8 @@ const isCreating = ref(false);
 const loading = ref(false);
 const saving = ref(false);
 const uploadKnowledgeBase = ref<KnowledgeBaseRecord>();
-const uploadInputRef = ref<HTMLInputElement>();
 const uploading = ref(false);
+const uploadResetToken = ref(0);
 const uploadStrategy = ref<ChunkStrategy>("recursive");
 const uploadChunkSize = ref(800);
 const uploadChunkOverlap = ref(120);
@@ -178,20 +179,13 @@ const uploadFiles = async (files: readonly File[]): Promise<void> => {
       chunkOverlap: uploadChunkOverlap.value,
     });
     message.success(`已提交 ${files.length} 个文档处理任务`);
-    uploadKnowledgeBase.value = undefined;
+    uploadResetToken.value += 1;
     await loadData();
   } catch (err) {
     message.error(toPublicApiError(err).message);
   } finally {
     uploading.value = false;
   }
-};
-
-const handleUpload = async (event: Event): Promise<void> => {
-  const input = event.target as HTMLInputElement;
-  const files = Array.from(input.files ?? []);
-  input.value = "";
-  await uploadFiles(files);
 };
 
 const confirmArchive = (item: KnowledgeBaseRecord): void => {
@@ -402,24 +396,10 @@ onMounted(loadData);
             <input v-model.number="uploadChunkOverlap" type="number" min="0" max="1000" />
           </label>
         </div>
-        <button
-          class="upload-drop-zone"
-          type="button"
-          :disabled="uploading"
-          @click="uploadInputRef?.click()"
-          @dragover.prevent
-          @drop.prevent="uploadFiles(Array.from($event.dataTransfer?.files ?? []))"
-        >
-          <strong>{{ uploading ? "正在上传并处理" : "点击或拖拽文件到这里上传" }}</strong>
-          <span>文件会先转为 Markdown、清洗，再按所选方法切分和向量化</span>
-        </button>
-        <input
-          ref="uploadInputRef"
-          class="visually-hidden"
-          type="file"
-          multiple
-          accept=".pdf,.doc,.docx,.md,.markdown,.txt,.csv,.xlsx,.pptx,.html,.json"
-          @change="handleUpload"
+        <DocumentUploadQueue
+          :uploading="uploading"
+          :reset-token="uploadResetToken"
+          @submit="uploadFiles"
         />
       </div>
     </Drawer>
@@ -431,19 +411,6 @@ onMounted(loadData);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
-}
-
-.upload-drop-zone {
-  display: grid;
-  min-height: 150px;
-  place-items: center;
-  align-content: center;
-  gap: var(--space-2);
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-8);
-  color: var(--color-text-muted);
-  background: var(--color-surface-subtle);
-  cursor: pointer;
 }
 
 @media (max-width: 767px) {
