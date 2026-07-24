@@ -54,4 +54,3 @@ Authorization: Bearer <access-token>
 5. 重建本地 API 与 Web 容器。
 6. 通过管理员 API重新保存演示用户部门。
 7. 使用医疗部门普通用户登录，验证工作台和知识库范围。
-
