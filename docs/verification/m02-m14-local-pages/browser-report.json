@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-21T23:13:59.763Z",
-  "sourceCommit": "d8c83bab48bc0c6405763033e6dffa829e28c88e",
+  "generatedAt": "2026-07-24T07:38:53.926Z",
+  "sourceCommit": "6675dd445bfc5b199074c97c052acc5cf601ef7a",
   "sourceWorktreeDirty": true,
-  "sourceWorktreeFingerprint": "0d1fb4e0d47e20e16f27c8a502fd769592b503a63305fd56235cad79d69c673e",
-  "baseUrl": "http://127.0.0.1:5174",
-  "browser": "Chrome/150.0.7871.129",
+  "sourceWorktreeFingerprint": "44b6a1ceac42a9ea1850ba24ad73fee1df967264b2c9e9f5a9f962c1723951b3",
+  "baseUrl": "http://127.0.0.1:5173",
+  "browser": "Chrome/150.0.7871.181",
   "results": [
     {
       "group": "local-pages",
@@ -48,12 +48,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 22,
+        "minimumInteractiveTarget": "a.card-link",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -69,6 +72,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -175,12 +179,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 22,
+        "minimumInteractiveTarget": "a.card-link",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -196,6 +203,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -302,12 +310,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -329,6 +340,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -378,7 +390,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -465,12 +477,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 1,
+        "minimumInteractiveTarget": "input.visually-hidden",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -486,6 +501,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -592,12 +608,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 1,
+        "minimumInteractiveTarget": "input.visually-hidden",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -613,6 +632,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -719,12 +739,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -746,6 +769,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -795,7 +819,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -882,12 +906,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 24,
+        "minimumInteractiveTarget": "input#global-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -903,6 +930,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -1009,12 +1037,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 24,
+        "minimumInteractiveTarget": "input#global-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -1030,6 +1061,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -1105,7 +1137,7 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 1943,
+        "scrollHeight": 1894,
         "h1Count": 1,
         "businessPageCount": 1,
         "rootTheme": "light",
@@ -1136,12 +1168,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -1163,6 +1198,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -1212,7 +1248,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -1298,12 +1334,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 24,
+        "minimumInteractiveTarget": "input#global-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -1319,6 +1358,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -1424,12 +1464,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 24,
+        "minimumInteractiveTarget": "input#global-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -1445,6 +1488,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -1550,12 +1594,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -1577,6 +1624,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -1626,7 +1674,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -1713,12 +1761,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 24,
+        "minimumInteractiveTarget": "input#global-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -1734,6 +1785,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -1840,12 +1892,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 24,
+        "minimumInteractiveTarget": "input#global-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -1861,6 +1916,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -1967,12 +2023,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -1994,6 +2053,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -2043,7 +2103,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -2130,12 +2190,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -2151,6 +2214,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -2257,12 +2321,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -2278,6 +2345,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -2384,12 +2452,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -2411,6 +2482,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -2460,7 +2532,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -2547,12 +2619,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -2568,6 +2643,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -2674,12 +2750,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -2695,6 +2774,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -2801,12 +2881,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -2828,6 +2911,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -2877,7 +2961,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -2964,12 +3048,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -2985,6 +3072,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -3091,12 +3179,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -3112,6 +3203,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -3218,12 +3310,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -3245,6 +3340,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -3294,7 +3390,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -3381,12 +3477,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -3402,6 +3501,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -3508,12 +3608,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -3529,6 +3632,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -3604,7 +3708,7 @@
         "innerHeight": 812,
         "clientWidth": 375,
         "scrollWidth": 375,
-        "scrollHeight": 1475,
+        "scrollHeight": 1513,
         "h1Count": 1,
         "businessPageCount": 1,
         "rootTheme": "light",
@@ -3635,12 +3739,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -3662,6 +3769,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -3711,7 +3819,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -3798,12 +3906,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -3819,6 +3930,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -3925,12 +4037,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -3946,6 +4061,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -4052,12 +4168,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -4079,6 +4198,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -4128,7 +4248,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -4215,12 +4335,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -4236,6 +4359,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -4342,12 +4466,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -4363,6 +4490,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -4469,12 +4597,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -4496,6 +4627,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -4545,7 +4677,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -4632,12 +4764,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -4653,6 +4788,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -4759,12 +4895,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -4780,6 +4919,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -4886,12 +5026,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -4913,6 +5056,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -4962,7 +5106,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -5049,12 +5193,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 20,
+        "minimumInteractiveTarget": "select",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -5070,6 +5217,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -5176,12 +5324,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 20,
+        "minimumInteractiveTarget": "select",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -5197,6 +5348,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -5303,12 +5455,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -5330,6 +5485,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -5379,7 +5535,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -5466,12 +5622,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1408,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -5487,6 +5646,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -5593,12 +5753,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1248,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -5614,6 +5777,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -5720,12 +5884,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 363,
         "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -5747,6 +5914,7 @@
         "bodyUnlocked": true
       },
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -5796,7 +5964,7 @@
         {
           "label": "主要交互高度至少 44px",
           "pass": true,
-          "actual": 44
+          "actual": "44/button.mobile-menu-button.icon-button"
         },
         {
           "label": "移动端侧栏无占位",
@@ -5883,12 +6051,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1392,
         "minimumInteractiveHeight": 24,
+        "minimumInteractiveTarget": "input#global-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -5904,6 +6075,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -6010,12 +6182,15 @@
         "dataSourceCardCount": 0,
         "sparklineCount": 0,
         "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
         "adminRefreshButtonCount": 0,
         "loginBrandRatio": 0,
         "loginFormWidth": 0,
         "loginColumnCount": 0,
         "maximumContentRight": 1392,
         "minimumInteractiveHeight": 30,
+        "minimumInteractiveTarget": "input#rc_select_0.ant-select-selection-search-input",
         "notificationPreviewDisplay": "none",
         "notificationPreviewItemCount": 4,
         "notificationPreviewWithinViewport": true,
@@ -6031,6 +6206,7 @@
       },
       "drawer": {},
       "loginState": {},
+      "interactionState": {},
       "checks": [
         {
           "label": "视口宽度精确",
@@ -6091,6 +6267,565 @@
           "label": "内容有效宽度不超过 1280px",
           "pass": true,
           "actual": 1280
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "admin-users-editor-375",
+      "path": "/admin/users",
+      "viewport": "375x812",
+      "screenshot": "admin-users-editor-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 1038,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "surfaceBackground": "rgb(255, 255, 255)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
+        "topbarTitle": "用户管理",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 16,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
+        "adminRefreshButtonCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 375,
+        "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 285,
+        "profilePreviewVisible": false,
+        "profilePreviewWithinViewport": false,
+        "profileDetailCount": 0,
+        "profileDetailColumnCount": 0,
+        "profileActionVisible": false,
+        "notificationPreviewHoverVisible": false,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 12,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "interactionState": {
+        "withinViewport": true,
+        "bounds": "0,0,375,812",
+        "minimumActionHeight": 44,
+        "closeHeight": 44
+      },
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 16
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "用户管理/可见"
+        },
+        {
+          "label": "移动端用户编辑抽屉未超出视口",
+          "pass": true,
+          "actual": "0,0,375,812"
+        },
+        {
+          "label": "移动端用户编辑抽屉关闭按钮至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "移动端用户编辑抽屉操作按钮至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": "44/button.mobile-menu-button.icon-button"
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 12
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "search-answer-export-375",
+      "path": "/search",
+      "viewport": "375x812",
+      "screenshot": "search-answer-export-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 2506,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
+        "topbarTitle": "搜索结果",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 33,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
+        "adminRefreshButtonCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 363,
+        "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 233,
+        "profilePreviewVisible": false,
+        "profilePreviewWithinViewport": false,
+        "profileDetailCount": 0,
+        "profileDetailColumnCount": 0,
+        "profileActionVisible": false,
+        "notificationPreviewHoverVisible": false,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 5,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "interactionState": {
+        "withinViewport": true,
+        "bounds": "12,228,363,584",
+        "minimumActionHeight": 44,
+        "optionCount": 3
+      },
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 33
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "搜索结果/可见"
+        },
+        {
+          "label": "移动端答案导出弹窗未超出视口",
+          "pass": true,
+          "actual": "12,228,363,584"
+        },
+        {
+          "label": "移动端答案导出格式完整",
+          "pass": true,
+          "actual": 3
+        },
+        {
+          "label": "移动端答案导出操作至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 363
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": "44/button.mobile-menu-button.icon-button"
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 5
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "group": "local-pages",
+      "name": "search-result-filter-375",
+      "path": "/search",
+      "viewport": "375x812",
+      "screenshot": "search-result-filter-375.png",
+      "metrics": {
+        "innerWidth": 375,
+        "innerHeight": 812,
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "scrollHeight": 2161,
+        "h1Count": 1,
+        "businessPageCount": 1,
+        "rootTheme": "light",
+        "themeStorageValue": null,
+        "localStorageLength": 0,
+        "sessionStorageLength": 0,
+        "bodyBackground": "rgb(248, 250, 252)",
+        "themeOptionCount": 0,
+        "themeOptionColumnCount": 0,
+        "topbarTitle": "搜索结果",
+        "topbarTitleVisible": true,
+        "hasEmoji": false,
+        "svgIconCount": 41,
+        "sidebarDisplay": "none",
+        "sidebarWidth": 0,
+        "topbarHeight": 56,
+        "mobileMenuDisplay": "grid",
+        "contentPaddingLeft": 16,
+        "contentPaddingRight": 16,
+        "contentInnerWidth": 343,
+        "statColumnCount": 0,
+        "statCardCount": 0,
+        "activityCount": 0,
+        "searchHeroCount": 0,
+        "quickActionCount": 0,
+        "homeInformationSectionCount": 0,
+        "dataSourceCardCount": 0,
+        "sparklineCount": 0,
+        "sparklinePointCount": 0,
+        "qualityFactCount": 0,
+        "leaderboardTableCount": 0,
+        "adminRefreshButtonCount": 0,
+        "loginBrandRatio": 0,
+        "loginFormWidth": 0,
+        "loginColumnCount": 0,
+        "maximumContentRight": 375,
+        "minimumInteractiveHeight": 44,
+        "minimumInteractiveTarget": "button.mobile-menu-button.icon-button",
+        "notificationPreviewDisplay": "none",
+        "notificationPreviewItemCount": 4,
+        "notificationPreviewWithinViewport": true,
+        "notificationPreviewCenterOffset": 233,
+        "profilePreviewVisible": false,
+        "profilePreviewWithinViewport": false,
+        "profileDetailCount": 0,
+        "profileDetailColumnCount": 0,
+        "profileActionVisible": false,
+        "notificationPreviewHoverVisible": false,
+        "screenshotWidth": 375,
+        "screenshotHeight": 812
+      },
+      "drawer": {
+        "navigationCount": 5,
+        "focusEntered": true,
+        "closed": true,
+        "focusReturned": true,
+        "bodyUnlocked": true
+      },
+      "loginState": {},
+      "interactionState": {
+        "withinViewport": true,
+        "bounds": "0,216,375,812",
+        "minimumActionHeight": 44,
+        "selectCount": 5
+      },
+      "checks": [
+        {
+          "label": "视口宽度精确",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "根节点无横向溢出",
+          "pass": true,
+          "actual": "375/375"
+        },
+        {
+          "label": "页面只有一个主标题",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "截图尺寸精确",
+          "pass": true,
+          "actual": "375x812"
+        },
+        {
+          "label": "页面文案无 emoji",
+          "pass": true,
+          "actual": false
+        },
+        {
+          "label": "页面使用线性 SVG 图标",
+          "pass": true,
+          "actual": 41
+        },
+        {
+          "label": "业务页使用统一 business-page 根节点",
+          "pass": true,
+          "actual": 1
+        },
+        {
+          "label": "顶栏标题与路由一致",
+          "pass": true,
+          "actual": "搜索结果/可见"
+        },
+        {
+          "label": "移动端结果筛选面板未超出视口",
+          "pass": true,
+          "actual": "0,216,375,812"
+        },
+        {
+          "label": "移动端结果筛选字段完整",
+          "pass": true,
+          "actual": 5
+        },
+        {
+          "label": "移动端结果筛选操作至少 44px",
+          "pass": true,
+          "actual": 44
+        },
+        {
+          "label": "关键内容未越过视口",
+          "pass": true,
+          "actual": 375
+        },
+        {
+          "label": "主要交互高度至少 44px",
+          "pass": true,
+          "actual": "44/button.mobile-menu-button.icon-button"
+        },
+        {
+          "label": "移动端侧栏无占位",
+          "pass": true,
+          "actual": "none"
+        },
+        {
+          "label": "移动端顶栏高度 56px",
+          "pass": true,
+          "actual": 56
+        },
+        {
+          "label": "移动端内容 gutter 16px",
+          "pass": true,
+          "actual": "16/16"
+        },
+        {
+          "label": "移动完整导航项正确",
+          "pass": true,
+          "actual": 5
+        },
+        {
+          "label": "抽屉打开后焦点进入关闭按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "Escape 关闭抽屉",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后焦点返回菜单按钮",
+          "pass": true,
+          "actual": true
+        },
+        {
+          "label": "关闭后解除滚动锁",
+          "pass": true,
+          "actual": true
         }
       ],
       "passed": true

@@ -348,6 +348,11 @@ describe("M03-M07 用户页面本地交互", () => {
     knowledge.wrapper.unmount();
 
     const directory = await renderAppAt("/knowledge/product-handbook");
+    expect(
+      directory.wrapper
+        .get(".document-table")
+        .classes("mobile-sticky-actions"),
+    ).toBe(true);
     await directory.wrapper.get('tbody input[type="checkbox"]').setValue(true);
     expect(getButton(directory.wrapper, "导出所选").text()).toContain("1");
     expect(
@@ -498,6 +503,9 @@ describe("M09-M14 管理页面真实 API 渲染", () => {
     await flushPromises();
     expect(users.wrapper.text()).toContain("admin");
     expect(users.wrapper.text()).toContain("liuhaiwang");
+    expect(
+      users.wrapper.get(".data-table").classes("mobile-sticky-actions"),
+    ).toBe(true);
     await users.wrapper
       .get('input[placeholder="账号 ID、姓名或角色"]')
       .setValue("不存在的用户");
@@ -590,12 +598,20 @@ describe("M09-M14 管理页面真实 API 渲染", () => {
     await flushPromises();
     expect(knowledgeBases.wrapper.text()).toContain("默认知识库");
     expect(knowledgeBases.wrapper.text()).toContain("医疗信息化知识库");
+    expect(
+      knowledgeBases.wrapper
+        .get(".data-table")
+        .classes("mobile-sticky-actions"),
+    ).toBe(true);
     knowledgeBases.wrapper.unmount();
 
     const documents = await renderAppAt("/admin/documents");
     await flushPromises();
     expect(documents.wrapper.text()).toContain("医疗信息化IT系统分析文档");
     expect(documents.wrapper.text()).toContain("服务降级复盘模板");
+    expect(
+      documents.wrapper.get(".data-table").classes("mobile-sticky-actions"),
+    ).toBe(true);
     await getButton(documents.wrapper, "详情").trigger("click");
     await flushPromises();
     expect(document.body.textContent).toContain("文档详情");
@@ -603,6 +619,9 @@ describe("M09-M14 管理页面真实 API 渲染", () => {
 
     const tasks = await renderAppAt("/admin/tasks");
     await flushPromises();
+    expect(
+      tasks.wrapper.get(".data-table").classes("mobile-sticky-actions"),
+    ).toBe(true);
     expect(tasks.wrapper.get("progress").attributes("aria-label")).toContain(
       "处理进度",
     );

@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
         tabindex="0"
         aria-label="导出任务表格，可横向滚动"
       >
-        <table class="data-table download-table">
+        <table class="data-table download-table mobile-sticky-actions">
           <thead>
             <tr>
               <th scope="col">文件</th>

@@ -1174,6 +1174,8 @@ onBeforeUnmount(() => {
   .search-result-actions > * {
     width: 100%;
     min-height: 44px;
+    min-width: 0;
+    white-space: normal;
   }
 
   .mock-result-badge {
@@ -1193,6 +1195,14 @@ onBeforeUnmount(() => {
 
   .search-query-meta button {
     min-height: 44px;
+  }
+
+  .answer-export-summary > div {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .answer-export-summary dd {
+    overflow-wrap: anywhere;
   }
 }
 </style>

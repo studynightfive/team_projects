@@ -142,7 +142,7 @@ onMounted(loadData);
         description="创建第一个部门后即可分配用户和知识库。"
       />
       <div v-else class="data-table-scroll" tabindex="0">
-        <table class="data-table">
+        <table class="data-table mobile-sticky-actions">
           <thead>
             <tr>
               <th scope="col">部门</th>

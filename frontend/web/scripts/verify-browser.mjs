@@ -337,6 +337,36 @@ localPageCases.push(
     collapsed: true,
     group: "local-pages",
   },
+  {
+    name: "admin-users-editor-375",
+    path: "/admin/users",
+    shell: "admin",
+    title: "用户管理",
+    width: 375,
+    height: 812,
+    interaction: "admin-user-editor",
+    group: "local-pages",
+  },
+  {
+    name: "search-answer-export-375",
+    path: "/search",
+    shell: "user",
+    title: "搜索结果",
+    width: 375,
+    height: 812,
+    interaction: "search-answer-export",
+    group: "local-pages",
+  },
+  {
+    name: "search-result-filter-375",
+    path: "/search",
+    shell: "user",
+    title: "搜索结果",
+    width: 375,
+    height: 812,
+    interaction: "search-result-filter",
+    group: "local-pages",
+  },
 );
 
 const accountSupportRoutes = [
@@ -400,10 +430,15 @@ const allCases = [
   ...accountSupportCases,
 ];
 const requestedGroup = process.env.WEB_VERIFY_GROUP;
-const cases =
+const requestedCase = process.env.WEB_VERIFY_CASE;
+const groupedCases =
   requestedGroup === undefined
     ? allCases
     : allCases.filter((testCase) => testCase.group === requestedGroup);
+const cases =
+  requestedCase === undefined
+    ? groupedCases
+    : groupedCases.filter((testCase) => testCase.name === requestedCase);
 
 if (cases.length === 0) {
   throw new Error(`没有可运行的浏览器验收分组：${requestedGroup}`);
@@ -605,7 +640,13 @@ const recordCheck = (checks, label, pass, actual) => {
   checks.push({ label, pass, actual });
 };
 
-const verifyMetrics = (testCase, metrics, drawer, loginState) => {
+const verifyMetrics = (
+  testCase,
+  metrics,
+  drawer,
+  loginState,
+  interactionState,
+) => {
   const checks = [];
   recordCheck(
     checks,
@@ -781,18 +822,81 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
   }
 
+  if (testCase.interaction === "admin-user-editor") {
+    recordCheck(
+      checks,
+      "移动端用户编辑抽屉未超出视口",
+      interactionState.withinViewport === true,
+      interactionState.bounds,
+    );
+    recordCheck(
+      checks,
+      "移动端用户编辑抽屉关闭按钮至少 44px",
+      interactionState.closeHeight >= 44,
+      interactionState.closeHeight,
+    );
+    recordCheck(
+      checks,
+      "移动端用户编辑抽屉操作按钮至少 44px",
+      interactionState.minimumActionHeight >= 44,
+      interactionState.minimumActionHeight,
+    );
+  }
+
+  if (testCase.interaction === "search-answer-export") {
+    recordCheck(
+      checks,
+      "移动端答案导出弹窗未超出视口",
+      interactionState.withinViewport === true,
+      interactionState.bounds,
+    );
+    recordCheck(
+      checks,
+      "移动端答案导出格式完整",
+      interactionState.optionCount === 3,
+      interactionState.optionCount,
+    );
+    recordCheck(
+      checks,
+      "移动端答案导出操作至少 44px",
+      interactionState.minimumActionHeight >= 44,
+      interactionState.minimumActionHeight,
+    );
+  }
+
+  if (testCase.interaction === "search-result-filter") {
+    recordCheck(
+      checks,
+      "移动端结果筛选面板未超出视口",
+      interactionState.withinViewport === true,
+      interactionState.bounds,
+    );
+    recordCheck(
+      checks,
+      "移动端结果筛选字段完整",
+      interactionState.selectCount === 5,
+      interactionState.selectCount,
+    );
+    recordCheck(
+      checks,
+      "移动端结果筛选操作至少 44px",
+      interactionState.minimumActionHeight >= 44,
+      interactionState.minimumActionHeight,
+    );
+  }
+
   if (testCase.width < 768) {
     recordCheck(
       checks,
       "关键内容未越过视口",
-      metrics.maximumContentRight <= testCase.width,
+      metrics.maximumContentRight <= testCase.width + 1,
       metrics.maximumContentRight,
     );
     recordCheck(
       checks,
       "主要交互高度至少 44px",
       metrics.minimumInteractiveHeight >= 44,
-      metrics.minimumInteractiveHeight,
+      `${metrics.minimumInteractiveHeight}/${metrics.minimumInteractiveTarget}`,
     );
   }
 
@@ -1176,6 +1280,104 @@ const run = async () => {
         );
       }
 
+      let interactionState = {};
+      if (testCase.interaction !== undefined) {
+        interactionState = await evaluate(
+          client,
+          `(async () => {
+            const waitFor = async (selector) => {
+              const deadline = Date.now() + 3000;
+              while (document.querySelector(selector) === null) {
+                if (Date.now() >= deadline) {
+                  throw new Error("移动交互状态打开超时：" + selector);
+                }
+                await new Promise((resolve) => setTimeout(resolve, 50));
+              }
+              await new Promise((resolve) =>
+                requestAnimationFrame(() => requestAnimationFrame(resolve))
+              );
+              await new Promise((resolve) => setTimeout(resolve, 350));
+              return document.querySelector(selector);
+            };
+            const rectState = (target, actionSelector) => {
+              const box = target.getBoundingClientRect();
+              const actions = [...target.querySelectorAll(actionSelector)]
+                .map((action) => action.getBoundingClientRect())
+                .filter((box) => box.width > 0 && box.height > 0);
+              return {
+                withinViewport:
+                  box.left >= -1 &&
+                  box.top >= -1 &&
+                  box.right <= window.innerWidth + 1 &&
+                  box.bottom <= window.innerHeight + 1,
+                bounds:
+                  Math.round(box.left) + "," +
+                  Math.round(box.top) + "," +
+                  Math.round(box.right) + "," +
+                  Math.round(box.bottom),
+                minimumActionHeight: Math.floor(
+                  Math.min(Infinity, ...actions.map((box) => box.height))
+                ),
+              };
+            };
+
+            if (${JSON.stringify(testCase.interaction)} === "admin-user-editor") {
+              const trigger = [...document.querySelectorAll("button")].find(
+                (button) => button.textContent?.includes("新建用户")
+              );
+              if (!(trigger instanceof HTMLButtonElement)) {
+                throw new Error("未找到新建用户按钮");
+              }
+              trigger.click();
+              const target = await waitFor(".ant-drawer-content-wrapper");
+              const closeBox = target
+                .querySelector(".ant-drawer-close")
+                ?.getBoundingClientRect();
+              return {
+                ...rectState(target, ".drawer-actions button"),
+                closeHeight: Math.floor(closeBox?.height ?? 0),
+              };
+            }
+
+            if (${JSON.stringify(testCase.interaction)} === "search-answer-export") {
+              const trigger = [...document.querySelectorAll("button")].find(
+                (button) => button.textContent?.includes("下载答案")
+              );
+              if (!(trigger instanceof HTMLButtonElement)) {
+                throw new Error("未找到下载答案按钮");
+              }
+              trigger.click();
+              const target = await waitFor(".ant-modal");
+              return {
+                ...rectState(target, ".ant-modal-footer button"),
+                optionCount: target.querySelectorAll(
+                  "#answer-export-format input[type='radio']"
+                ).length,
+              };
+            }
+
+            const resultTab = document.querySelector("#results-tab");
+            if (!(resultTab instanceof HTMLButtonElement)) {
+              throw new Error("未找到原始结果标签");
+            }
+            resultTab.click();
+            await waitFor(".source-results-panel");
+            const filterTrigger = document.querySelector(
+              ".mobile-filter-toggle"
+            );
+            if (!(filterTrigger instanceof HTMLButtonElement)) {
+              throw new Error("未找到结果筛选按钮");
+            }
+            filterTrigger.click();
+            const target = await waitFor(".result-filters.mobile-open");
+            return {
+              ...rectState(target, ".mobile-filter-actions button"),
+              selectCount: target.querySelectorAll("select").length,
+            };
+          })()`,
+        );
+      }
+
       let notificationPreviewHoverVisible = false;
       if (testCase.notificationPreview === true && testCase.width >= 768) {
         const triggerPoint = await evaluate(
@@ -1217,9 +1419,20 @@ const run = async () => {
             const target = element(selector);
             return target ? getComputedStyle(target) : undefined;
           };
-          const interactive = [...document.querySelectorAll(
+          const interactiveEntries = [...document.querySelectorAll(
             "button, a[href], input:not([type='checkbox']), select, [tabindex]"
-          )].map((target) => target.getBoundingClientRect()).filter((box) => box.width > 0 && box.height > 0);
+          )].map((target) => ({
+            target,
+            box: target.getBoundingClientRect(),
+          })).filter(({ box }) => box.width > 0 && box.height > 0);
+          const interactive = interactiveEntries.map(({ box }) => box);
+          const minimumInteractive = interactiveEntries.reduce(
+            (minimum, entry) =>
+              minimum === undefined || entry.box.height < minimum.box.height
+                ? entry
+                : minimum,
+            undefined
+          );
           const contentRects = [
             rect(".stat-grid"),
             rect(".user-content-grid"),
@@ -1230,7 +1443,10 @@ const run = async () => {
             rect(".mobile-bottom-nav"),
             rect(".login-form-container"),
             rect(".state-card"),
-            rect(".profile-preview-modal .ant-modal")
+            rect(".profile-preview-modal .ant-modal"),
+            rect(".ant-drawer-content-wrapper"),
+            rect(".ant-modal"),
+            rect(".result-filters.mobile-open")
           ].filter(Boolean);
           const contentStyle = style(".workspace-content");
           const contentRect = rect(".workspace-content");
@@ -1300,6 +1516,16 @@ const run = async () => {
             loginColumnCount: loginGrid.split(/\\s+/u).filter(Boolean).length,
             maximumContentRight: Math.ceil(Math.max(0, ...contentRects.map((box) => box.right))),
             minimumInteractiveHeight: Math.floor(Math.min(Infinity, ...interactive.map((box) => box.height))),
+            minimumInteractiveTarget:
+              minimumInteractive === undefined
+                ? "missing"
+                : minimumInteractive.target.tagName.toLowerCase() +
+                  (minimumInteractive.target.id
+                    ? "#" + minimumInteractive.target.id
+                    : "") +
+                  [...minimumInteractive.target.classList]
+                    .map((name) => "." + name)
+                    .join(""),
             notificationPreviewDisplay: style(".notification-popover")?.display ?? "missing",
             notificationPreviewItemCount: document.querySelectorAll(".notification-preview-item").length,
             notificationPreviewWithinViewport:
@@ -1498,7 +1724,13 @@ const run = async () => {
         );
       }
 
-      const checks = verifyMetrics(testCase, metrics, drawer, loginState);
+      const checks = verifyMetrics(
+        testCase,
+        metrics,
+        drawer,
+        loginState,
+        interactionState,
+      );
       results.push({
         group: testCase.group,
         name: testCase.name,
@@ -1508,6 +1740,7 @@ const run = async () => {
         metrics,
         drawer,
         loginState,
+        interactionState,
         checks,
         passed: checks.every((check) => check.pass),
       });

@@ -492,7 +492,7 @@ onBeforeUnmount(clearSensitiveState);
         description="供应商已就绪，可以新增聊天或向量模型配置。"
       />
       <div v-else class="data-table-scroll" tabindex="0">
-        <table class="data-table">
+        <table class="data-table mobile-sticky-actions">
           <thead>
             <tr>
               <th scope="col">供应商 / 模型</th>
