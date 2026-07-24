@@ -847,7 +847,8 @@ class DocumentService:
         await self.session.flush()
 
         try:
-            await self._run_pipeline(doc, task)
+            async with self.session.begin_nested():
+                await self._run_pipeline(doc, task)
         except _DocumentDeletedError:
             await self._cancel_task(task)
         except AppException as exc:
@@ -1194,9 +1195,7 @@ class DocumentService:
             stage=DocumentStatus.UPLOADED.value,
             progress=0,
             retry_count=retry_count,
-            idempotency_key=(
-                f"{doc.id}:{doc.content_hash}:retry:{retry_count}:{request_id}"
-            ),
+            idempotency_key=f"{doc.id}:retry:{retry_count}:{request_id}",
             request_id=request_id,
         )
         self.session.add(task)

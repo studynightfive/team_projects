@@ -235,6 +235,18 @@ async def validation_exception_handler(
 ) -> JSONResponse:
     """校验失败不回显原始输入，保持所有 API 错误使用统一响应契约。"""
     request_id = _request_id(request)
+    logger.warning(
+        "request_validation_failed",
+        method=request.method,
+        path=request.url.path,
+        errors=[
+            {
+                "location": [str(part) for part in error.get("loc", ())],
+                "type": str(error.get("type", "unknown")),
+            }
+            for error in _exc.errors()
+        ],
+    )
     return JSONResponse(
         status_code=422,
         content=APIResponse(

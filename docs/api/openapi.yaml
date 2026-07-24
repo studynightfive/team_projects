@@ -1584,14 +1584,8 @@
             "in": "query",
             "required": false,
             "schema": {
-              "enum": [
-                7,
-                30,
-                90
-              ],
-              "type": "integer",
-              "default": 30,
-              "title": "Days"
+              "$ref": "#/components/schemas/DashboardDays",
+              "default": 30
             }
           },
           {
@@ -1626,14 +1620,8 @@
             "in": "query",
             "required": false,
             "schema": {
-              "enum": [
-                10,
-                20,
-                50
-              ],
-              "type": "integer",
-              "default": 10,
-              "title": "Leaderboard Page Size"
+              "$ref": "#/components/schemas/DashboardPageSize",
+              "default": 10
             }
           }
         ],
@@ -1710,14 +1698,8 @@
             "in": "query",
             "required": false,
             "schema": {
-              "enum": [
-                10,
-                20,
-                50
-              ],
-              "type": "integer",
-              "default": 10,
-              "title": "Page Size"
+              "$ref": "#/components/schemas/DashboardPageSize",
+              "default": 10
             }
           }
         ],
@@ -8191,6 +8173,15 @@
         "title": "CreateUserRequest",
         "description": "创建用户请求"
       },
+      "DashboardDays": {
+        "type": "integer",
+        "enum": [
+          7,
+          30,
+          90
+        ],
+        "title": "DashboardDays"
+      },
       "DashboardMetrics": {
         "properties": {
           "total_users": {
@@ -8300,6 +8291,15 @@
         ],
         "title": "DashboardMetrics",
         "description": "管理首页真实业务指标，保留旧总量字段以兼容已有客户端。"
+      },
+      "DashboardPageSize": {
+        "type": "integer",
+        "enum": [
+          10,
+          20,
+          50
+        ],
+        "title": "DashboardPageSize"
       },
       "DashboardPeriod": {
         "properties": {

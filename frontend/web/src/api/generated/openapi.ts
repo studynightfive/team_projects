@@ -2050,6 +2050,11 @@ export interface components {
             department_id?: string | null;
         };
         /**
+         * DashboardDays
+         * @enum {integer}
+         */
+        DashboardDays: 7 | 30 | 90;
+        /**
          * DashboardMetrics
          * @description 管理首页真实业务指标，保留旧总量字段以兼容已有客户端。
          */
@@ -2123,6 +2128,11 @@ export interface components {
             response_time: components["schemas"]["ResponseTimeMetric"];
             department_leaderboard: components["schemas"]["PaginatedData_DepartmentLeaderboardItem_"];
         };
+        /**
+         * DashboardPageSize
+         * @enum {integer}
+         */
+        DashboardPageSize: 10 | 20 | 50;
         /** DashboardPeriod */
         DashboardPeriod: {
             /**
@@ -4192,10 +4202,10 @@ export interface operations {
     dashboard_endpoint_api_v1_admin_dashboard_get: {
         parameters: {
             query?: {
-                days?: 7 | 30 | 90;
+                days?: components["schemas"]["DashboardDays"];
                 department_id?: string | null;
                 leaderboard_page?: number;
-                leaderboard_page_size?: 10 | 20 | 50;
+                leaderboard_page_size?: components["schemas"]["DashboardPageSize"];
             };
             header?: never;
             path?: never;
@@ -4245,7 +4255,7 @@ export interface operations {
         parameters: {
             query?: {
                 page?: number;
-                page_size?: 10 | 20 | 50;
+                page_size?: components["schemas"]["DashboardPageSize"];
             };
             header?: never;
             path?: never;

@@ -70,6 +70,28 @@ describe("M01 V2 工作区布局", () => {
     expect(wrapper.text()).toContain("答案缓存命中率");
   });
 
+  it("知识库编辑者从用户工作区进入首个有权管理页", async () => {
+    const { wrapper } = await renderAppAt("/", {
+      id: "editor-user",
+      username: "editor",
+      display_name: "知识库编辑者",
+      department: { id: "medical", name: "医疗信息部门" },
+      roles: [{ id: "editor-role", name: "知识库编辑者" }],
+      permissions: [
+        "admin.knowledge_base.view",
+        "admin.document.view",
+        "admin.task.view",
+      ],
+      knowledge_base_access: [],
+    });
+
+    expect(
+      wrapper
+        .get(".topbar-workspace-link")
+        .attributes("href"),
+    ).toBe("/admin/knowledge-bases");
+  });
+
   it("侧边栏可折叠并保留明确的 ARIA 状态", async () => {
     const { wrapper } = await renderAppAt("/");
     const toggle = wrapper.get(".sidebar-collapse-button");
