@@ -4,18 +4,27 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 
 import InlineState from "../components/InlineState.vue";
+import ListPagination from "../components/ListPagination.vue";
 import AiSearchBox from "../components/search/AiSearchBox.vue";
 import SearchContextPanel from "../components/search/SearchContextPanel.vue";
 import {
+  Award,
+  BadgeCheck,
   ChevronRight,
   Database,
+  FileText,
   FileUp,
   FolderHeart,
   PanelRightOpen,
+  RefreshCw,
   SquareLibrary,
 } from "../components/icons";
 import { isRealApiMode } from "../config/runtime";
 import { loadAiSearchHome } from "../services/ai-search";
+import {
+  getMyIncentives,
+  type UserIncentives,
+} from "../services/incentives";
 import { listKnowledgeBases } from "../services/knowledge";
 import { useSessionStore } from "../stores/session";
 import type {
@@ -40,8 +49,14 @@ const modelId = ref("enterprise-general");
 const knowledgeBaseOptions = ref<readonly KnowledgeBaseOption[]>([]);
 const isContextOpen = ref(false);
 const contextTrigger = ref<HTMLElement>();
+const incentives = ref<UserIncentives>();
+const incentivesLoading = ref(false);
+const incentivesError = ref("");
+const incentivePage = ref(1);
+const incentivePageSize = ref(10);
 
 let loadController: AbortController | undefined;
+let incentiveController: AbortController | undefined;
 let desktopContextQuery: MediaQueryList | undefined;
 
 const quickActionIcons = {
@@ -113,6 +128,40 @@ const initializeHome = async (): Promise<void> => {
   }
 };
 
+const loadIncentives = async (): Promise<void> => {
+  if (!isRealApiMode) return;
+  incentiveController?.abort();
+  const controller = new AbortController();
+  incentiveController = controller;
+  incentivesLoading.value = true;
+  incentivesError.value = "";
+  try {
+    incentives.value = await getMyIncentives(
+      {
+        page: incentivePage.value,
+        page_size: incentivePageSize.value,
+      },
+      controller.signal,
+    );
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    incentivesError.value = "贡献数据暂时无法加载，请稍后重试。";
+  } finally {
+    if (incentiveController === controller) {
+      incentivesLoading.value = false;
+    }
+  }
+};
+
+const changeIncentivePage = (page: number, pageSize: number): void => {
+  incentivePage.value = pageSize === incentivePageSize.value ? page : 1;
+  incentivePageSize.value = pageSize;
+  void loadIncentives();
+};
+
+const formatContributionDate = (value: string): string =>
+  new Date(value).toLocaleDateString("zh-CN");
+
 const showNotice = (notice: string): void => {
   void message.info(notice);
 };
@@ -177,6 +226,7 @@ const syncDesktopContext = (
 
 onMounted(() => {
   void initializeHome();
+  void loadIncentives();
   if (typeof window.matchMedia !== "function") return;
   desktopContextQuery = window.matchMedia("(min-width: 1440px)");
   syncDesktopContext(desktopContextQuery);
@@ -185,6 +235,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   loadController?.abort();
+  incentiveController?.abort();
   desktopContextQuery?.removeEventListener("change", syncDesktopContext);
 });
 </script>
@@ -282,6 +333,117 @@ onBeforeUnmount(() => {
               <ChevronRight :size="16" aria-hidden="true" />
             </button>
           </div>
+        </section>
+
+        <section
+          v-if="isRealApiMode"
+          class="home-section incentive-section"
+          aria-labelledby="incentive-title"
+        >
+          <header class="home-section-heading">
+            <div>
+              <span>知识共建</span>
+              <h2 id="incentive-title">我的贡献</h2>
+            </div>
+            <button
+              class="secondary-button compact"
+              type="button"
+              :disabled="incentivesLoading"
+              @click="loadIncentives"
+            >
+              <RefreshCw :size="15" aria-hidden="true" />
+              刷新
+            </button>
+          </header>
+
+          <InlineState
+            v-if="incentivesLoading && incentives === undefined"
+            kind="loading"
+            title="正在统计贡献"
+            description="正在核对已成功处理并启用索引的文档。"
+          />
+          <InlineState
+            v-else-if="incentivesError && incentives === undefined"
+            kind="error"
+            title="贡献数据加载失败"
+            :description="incentivesError"
+          />
+          <template v-else-if="incentives !== undefined">
+            <div class="incentive-summary">
+              <div>
+                <Award :size="20" aria-hidden="true" />
+                <span>
+                  <small>累计积分</small>
+                  <strong>{{ incentives.points }}</strong>
+                </span>
+              </div>
+              <div>
+                <FileText :size="20" aria-hidden="true" />
+                <span>
+                  <small>有效贡献</small>
+                  <strong>{{ incentives.contribution_count }} 份</strong>
+                </span>
+              </div>
+              <div>
+                <BadgeCheck :size="20" aria-hidden="true" />
+                <span>
+                  <small>部门排名</small>
+                  <strong>
+                    {{
+                      incentives.department_rank === null ||
+                        incentives.department_rank === undefined
+                        ? "-"
+                        : `第 ${incentives.department_rank} 名`
+                    }}
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            <div class="badge-list" aria-label="贡献徽章">
+              <span
+                v-for="badge in incentives.badges"
+                :key="badge.code"
+                :class="{ earned: badge.earned }"
+              >
+                <BadgeCheck :size="15" aria-hidden="true" />
+                {{ badge.name }}
+              </span>
+            </div>
+
+            <p v-if="incentives.next_badge" class="next-badge">
+              距离“{{ incentives.next_badge.name }}”还差
+              {{ incentives.next_badge.remaining_points }} 分
+            </p>
+
+            <div
+              v-if="incentives.contributions.items.length > 0"
+              class="contribution-list"
+            >
+              <div
+                v-for="item in incentives.contributions.items"
+                :key="item.id"
+              >
+                <FileText :size="17" aria-hidden="true" />
+                <span>
+                  <strong>{{ item.title }}</strong>
+                  <small>{{ formatContributionDate(item.occurred_at) }}</small>
+                </span>
+                <b>+{{ item.points }}</b>
+              </div>
+            </div>
+            <p v-else class="contribution-empty">
+              暂无有效贡献。文档成功处理并启用索引后将在这里计分。
+            </p>
+
+            <ListPagination
+              v-if="incentives.contributions.total > 0"
+              :page="incentives.contributions.page"
+              :page-size="incentives.contributions.page_size"
+              :total="incentives.contributions.total"
+              @change="changeIncentivePage"
+            />
+          </template>
         </section>
 
         <div class="home-information-grid">
@@ -595,6 +757,108 @@ onBeforeUnmount(() => {
   height: 34px;
 }
 
+.incentive-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.incentive-summary > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  color: var(--color-primary);
+  background: var(--color-surface-muted);
+}
+
+.incentive-summary span,
+.contribution-list span {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.incentive-summary small,
+.contribution-list small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-12);
+}
+
+.incentive-summary strong {
+  color: var(--color-text);
+  font-size: var(--font-size-18);
+}
+
+.badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.badge-list span {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-subtle);
+  background: var(--color-surface-muted);
+  font-size: var(--font-size-12);
+}
+
+.badge-list span.earned {
+  border-color: var(--green-300);
+  color: var(--color-success-text);
+  background: var(--green-50);
+}
+
+.next-badge,
+.contribution-empty {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-12);
+}
+
+.contribution-list {
+  display: grid;
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.contribution-list > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 24px minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 58px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.contribution-list > div > svg {
+  color: var(--color-primary);
+}
+
+.contribution-list strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-size-13);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contribution-list b {
+  color: var(--color-success-text);
+  font-size: var(--font-size-13);
+}
+
 @media (min-width: 1440px) {
   .workbench-home-layout.context-open {
     display: grid;
@@ -663,6 +927,10 @@ onBeforeUnmount(() => {
 
   .home-section-heading .secondary-button {
     width: auto;
+  }
+
+  .incentive-summary {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

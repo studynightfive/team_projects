@@ -12,6 +12,7 @@ _MODEL_MODULES = (
     "app.models.repository",
     "app.notifications.models",
     "app.rag.conversations.all",
+    "app.rag.metrics",
     "app.rag.search.repository",
     "app.rag.tests.all",
 )

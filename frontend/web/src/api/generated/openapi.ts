@@ -398,12 +398,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Dashboard Endpoint
-         * @description 系统概览（管理员权限）
-         *     返回用户、角色等核心指标
-         */
+        /** Dashboard Endpoint */
         get: operations["dashboard_endpoint_api_v1_admin_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/incentives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Incentives Endpoint */
+        get: operations["my_incentives_endpoint_api_v1_me_incentives_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1176,6 +1189,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** APIResponse[DashboardMetrics] */
+        APIResponse_DashboardMetrics_: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            data?: components["schemas"]["DashboardMetrics"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
         /** APIResponse[DepartmentListResponse] */
         APIResponse_DepartmentListResponse_: {
             /**
@@ -1456,6 +1488,25 @@ export interface components {
              */
             message: string;
             data?: components["schemas"]["UploadResponse"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
+        /** APIResponse[UserIncentives] */
+        APIResponse_UserIncentives_: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            data?: components["schemas"]["UserIncentives"] | null;
             /**
              * Request Id
              * @default
@@ -1764,6 +1815,25 @@ export interface components {
              */
             embedding_status: "vector" | "fallback" | "missing";
         };
+        /** ContributionItem */
+        ContributionItem: {
+            /** Id */
+            id: string;
+            /**
+             * Type
+             * @constant
+             */
+            type: "ready_document";
+            /** Title */
+            title: string;
+            /** Points */
+            points: number;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+        };
         /** ConversationCreate */
         ConversationCreate: {
             /** Kb Id */
@@ -1824,6 +1894,105 @@ export interface components {
             /** Department Id */
             department_id?: string | null;
         };
+        /**
+         * DashboardMetrics
+         * @description 管理首页真实业务指标，保留旧总量字段以兼容已有客户端。
+         */
+        DashboardMetrics: {
+            /**
+             * Total Users
+             * @default 0
+             */
+            total_users: number;
+            /**
+             * Active Users
+             * @default 0
+             */
+            active_users: number;
+            /**
+             * Disabled Users
+             * @default 0
+             */
+            disabled_users: number;
+            /**
+             * Total Roles
+             * @default 0
+             */
+            total_roles: number;
+            /**
+             * Total Knowledge Bases
+             * @default 0
+             */
+            total_knowledge_bases: number;
+            /**
+             * Total Documents
+             * @default 0
+             */
+            total_documents: number;
+            /**
+             * Total Conversations
+             * @default 0
+             */
+            total_conversations: number;
+            /**
+             * Total Chats Today
+             * @default 0
+             */
+            total_chats_today: number;
+            /**
+             * Success Rate
+             * @default 0
+             */
+            success_rate: number;
+            /**
+             * Avg Response Time Ms
+             * @default 0
+             */
+            avg_response_time_ms: number;
+            /**
+             * Total Tokens Used
+             * @default 0
+             */
+            total_tokens_used: number;
+            period: components["schemas"]["DashboardPeriod"];
+            scope: components["schemas"]["DashboardScope"];
+            knowledge_coverage: components["schemas"]["RateMetric"];
+            /** Active Searches */
+            active_searches: number;
+            /** Effective Answers */
+            effective_answers: number;
+            /** Unanswered Queries */
+            unanswered_queries: number;
+            document_processing: components["schemas"]["RateMetric"];
+            answer_cache: components["schemas"]["RateMetric"];
+            response_time: components["schemas"]["ResponseTimeMetric"];
+            department_leaderboard: components["schemas"]["PaginatedData_DepartmentLeaderboardItem_"];
+        };
+        /** DashboardPeriod */
+        DashboardPeriod: {
+            /**
+             * Days
+             * @enum {integer}
+             */
+            days: 7 | 30 | 90;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Ended At
+             * Format: date-time
+             */
+            ended_at: string;
+        };
+        /** DashboardScope */
+        DashboardScope: {
+            /** Department Id */
+            department_id?: string | null;
+            /** Department Name */
+            department_name: string;
+        };
         /** DepartmentCreate */
         DepartmentCreate: {
             /** Name */
@@ -1832,6 +2001,21 @@ export interface components {
             description?: string | null;
             /** Admin User Id */
             admin_user_id: string;
+        };
+        /** DepartmentLeaderboardItem */
+        DepartmentLeaderboardItem: {
+            /** Rank */
+            rank: number;
+            /** Department Id */
+            department_id: string;
+            /** Department Name */
+            department_name: string;
+            /** Points */
+            points: number;
+            /** Contribution Count */
+            contribution_count: number;
+            /** Contributor Count */
+            contributor_count: number;
         };
         /** DepartmentListResponse */
         DepartmentListResponse: {
@@ -2110,6 +2294,30 @@ export interface components {
             /** Timestamp */
             timestamp: string;
         };
+        /** IncentiveBadge */
+        IncentiveBadge: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Threshold */
+            threshold: number;
+            /** Earned */
+            earned: boolean;
+        };
+        /** IncentiveRule */
+        IncentiveRule: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Points */
+            points: number;
+        };
         JsonValue: unknown;
         /** KnowledgeBaseCreate */
         KnowledgeBaseCreate: {
@@ -2273,6 +2481,17 @@ export interface components {
             /** Top N */
             top_n?: number | null;
         };
+        /** NextBadge */
+        NextBadge: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Threshold */
+            threshold: number;
+            /** Remaining Points */
+            remaining_points: number;
+        };
         /** OcrSummary */
         OcrSummary: {
             /**
@@ -2315,6 +2534,28 @@ export interface components {
         PaginatedData_ChunkItem_: {
             /** Items */
             items: components["schemas"]["ChunkItem"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** PaginatedData[ContributionItem] */
+        PaginatedData_ContributionItem_: {
+            /** Items */
+            items: components["schemas"]["ContributionItem"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** PaginatedData[DepartmentLeaderboardItem] */
+        PaginatedData_DepartmentLeaderboardItem_: {
+            /** Items */
+            items: components["schemas"]["DepartmentLeaderboardItem"][];
             /** Page */
             page: number;
             /** Page Size */
@@ -2392,6 +2633,15 @@ export interface components {
             /** Chat Model Id */
             chat_model_id?: string | null;
         };
+        /** RateMetric */
+        RateMetric: {
+            /** Rate */
+            rate: number;
+            /** Numerator */
+            numerator: number;
+            /** Denominator */
+            denominator: number;
+        };
         /**
          * ReadyCheckResponse
          * @description 就绪检查响应模型
@@ -2443,6 +2693,13 @@ export interface components {
         ResetPasswordRequest: {
             /** New Password */
             new_password: string;
+        };
+        /** ResponseTimeMetric */
+        ResponseTimeMetric: {
+            /** Average Ms */
+            average_ms: number;
+            /** Sample Count */
+            sample_count: number;
         };
         /** RetrievalTestConfig */
         RetrievalTestConfig: {
@@ -2635,6 +2892,23 @@ export interface components {
             skipped: boolean;
             /** Message */
             message?: string | null;
+        };
+        /** UserIncentives */
+        UserIncentives: {
+            /** Points */
+            points: number;
+            /** Contribution Count */
+            contribution_count: number;
+            /** Department Rank */
+            department_rank?: number | null;
+            /** Department Member Count */
+            department_member_count: number;
+            /** Badges */
+            badges: components["schemas"]["IncentiveBadge"][];
+            next_badge?: components["schemas"]["NextBadge"] | null;
+            /** Rules */
+            rules: components["schemas"]["IncentiveRule"][];
+            contributions: components["schemas"]["PaginatedData_ContributionItem_"];
         };
         /** ValidationError */
         ValidationError: {
@@ -3687,7 +3961,12 @@ export interface operations {
     };
     dashboard_endpoint_api_v1_admin_dashboard_get: {
         parameters: {
-            query?: never;
+            query?: {
+                days?: 7 | 30 | 90;
+                department_id?: string | null;
+                leaderboard_page?: number;
+                leaderboard_page_size?: 10 | 20 | 50;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3700,7 +3979,57 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse_dict_str__object__"];
+                    "application/json": components["schemas"]["APIResponse_DashboardMetrics_"];
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    my_incentives_endpoint_api_v1_me_incentives_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: 10 | 20 | 50;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_UserIncentives_"];
                 };
             };
             /** @description 未登录、Token 无效或已过期 */
