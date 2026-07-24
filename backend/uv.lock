@@ -395,6 +395,18 @@ wheels = [
 ]
 
 [[package]]
+name = "fastapi-swagger"
+version = "0.4.55"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastapi" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b7/4d/5e964ec33201e5f1a759b384bc59ab329a6d97d035a5aad093fe3935081c/fastapi_swagger-0.4.55.tar.gz", hash = "sha256:7f836fe859884dd807d42af8ea87e2e7a1e2fbf1dc7bfb537c3523c826ff1ac3", size = 451048, upload-time = "2026-07-23T02:34:06.72Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/6d/d42c84be91009229911c602bf96b863a9caa7dec2e67a941bfc2e5e61555/fastapi_swagger-0.4.55-py3-none-any.whl", hash = "sha256:3213a06d0a43daedac72e2dad2454c329fd2a9ca2e1c8f6c398d4816b8782fb9", size = 454032, upload-time = "2026-07-23T02:34:05.048Z" },
+]
+
+[[package]]
 name = "fonttools"
 version = "4.63.0"
 source = { registry = "https://pypi.org/simple" }
@@ -540,6 +552,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "ebooklib" },
     { name = "fastapi" },
+    { name = "fastapi-swagger" },
     { name = "httpx" },
     { name = "lxml" },
     { name = "markdown-it-py" },
@@ -583,6 +596,7 @@ requires-dist = [
     { name = "cryptography", specifier = "==46.0.3" },
     { name = "ebooklib", specifier = "==0.18" },
     { name = "fastapi", specifier = "==0.139.0" },
+    { name = "fastapi-swagger", specifier = "==0.4.55" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "lxml", specifier = "==5.3.0" },
     { name = "markdown-it-py", specifier = "==4.0.0" },
