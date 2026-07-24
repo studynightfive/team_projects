@@ -3236,6 +3236,86 @@
         ]
       }
     },
+    "/models/available": {
+      "get": {
+        "tags": [
+          "models"
+        ],
+        "summary": "List Available Models Endpoint",
+        "description": "返回普通用户可选择的已启用模型，不暴露管理配置。",
+        "operationId": "list_available_models_endpoint_api_v1_models_available_get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "chat",
+                    "embedding",
+                    "rerank"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse_list_AvailableModelResponse__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录、Token 无效或已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "已登录但权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/models/{model_id}": {
       "patch": {
         "tags": [
@@ -6324,6 +6404,41 @@
         "type": "object",
         "title": "APIResponse[dict[str, object]]"
       },
+      "APIResponse_list_AvailableModelResponse__": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AvailableModelResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "APIResponse[list[AvailableModelResponse]]"
+      },
       "APIResponse_list_ChunkItem__": {
         "properties": {
           "code": {
@@ -6710,6 +6825,52 @@
           "answer"
         ],
         "title": "AnswerExportRequest"
+      },
+      "AvailableModelResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "provider_code": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "anthropic",
+              "deepseek",
+              "moonshot",
+              "zhipu",
+              "minimax",
+              "volcengine",
+              "qianfan",
+              "ollama",
+              "custom",
+              "dashscope"
+            ],
+            "title": "Provider Code"
+          },
+          "model_name": {
+            "type": "string",
+            "title": "Model Name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "chat",
+              "embedding",
+              "rerank"
+            ],
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "provider_code",
+          "model_name",
+          "kind"
+        ],
+        "title": "AvailableModelResponse"
       },
       "Body_upload_documents_api_v1_knowledge_bases__kb_id__documents_post": {
         "properties": {

@@ -21,6 +21,7 @@ from app.common.organization import SUPER_ADMIN_ROLE_NAME, is_super_admin
 from app.common.schemas import ErrorCode
 from app.departments.models import Department
 from app.departments.schemas import DepartmentBrief
+from app.knowledge.models import KnowledgeBase
 from app.users.schemas import (
     CreateUserRequest,
     RoleBrief,
@@ -237,6 +238,14 @@ async def update_user(
         if user.department_id != department.id:
             user.department_id = department.id
             invalidate_sessions = True
+        await db.execute(
+            update(KnowledgeBase)
+            .where(
+                KnowledgeBase.kind == "personal",
+                KnowledgeBase.owner_user_id == user.id,
+            )
+            .values(department_id=department.id)
+        )
 
     if invalidate_sessions:
         await _invalidate_user_sessions(db, user)

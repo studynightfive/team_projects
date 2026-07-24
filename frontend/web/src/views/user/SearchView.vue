@@ -452,11 +452,13 @@ const runRelatedSearch = (question: string): void => {
 
 const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
   if (!isRealApiMode) return;
-  try {
-    const [knowledgeBases, chatModels] = await Promise.all([
-      listKnowledgeBases(),
-      listRealChatModelOptions(),
-    ]);
+  const [knowledgeBaseResult, chatModelResult] = await Promise.allSettled([
+    listKnowledgeBases(),
+    listRealChatModelOptions(),
+  ]);
+
+  if (chatModelResult.status === "fulfilled") {
+    const chatModels = chatModelResult.value;
     modelOptions.value = chatModels;
     if (
       modelOptions.value.length > 0 &&
@@ -464,6 +466,20 @@ const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
     ) {
       modelId.value = modelOptions.value[0]?.value ?? "env-deepseek";
     }
+  } else {
+    modelOptions.value = [
+      {
+        value: "env-deepseek",
+        label: "DeepSeek / 环境默认模型",
+        description: "模型列表暂不可用，后端将使用环境默认模型。",
+      },
+    ];
+    modelId.value = "env-deepseek";
+    void message.warning("模型列表暂不可用，已使用环境默认模型");
+  }
+
+  if (knowledgeBaseResult.status === "fulfilled") {
+    const knowledgeBases = knowledgeBaseResult.value;
     knowledgeBaseOptions.value = knowledgeBases.map((item) => ({
       id: item.id,
       name: item.name,
@@ -477,8 +493,10 @@ const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
     ) {
       workspaceId.value = knowledgeBaseOptions.value[0]?.id;
     }
-  } catch (error: unknown) {
-    void message.warning(toPublicApiError(error).message);
+  } else {
+    knowledgeBaseOptions.value = [];
+    workspaceId.value = undefined;
+    void message.warning(toPublicApiError(knowledgeBaseResult.reason).message);
   }
 };
 

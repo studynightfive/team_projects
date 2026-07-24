@@ -94,17 +94,11 @@ const REAL_QUICK_ACTIONS = [
 type BackendSearchMode = ApiSchema<"RagAnswerRequest">["mode"];
 type BackendSearchRequest = ApiSchema<"RagAnswerRequest">;
 
-interface BackendModelItem {
+interface BackendAvailableModelItem {
   readonly id: string;
   readonly provider_code: string;
   readonly model_name: string;
   readonly kind: string;
-  readonly parameters: Record<string, unknown>;
-  readonly api_key_set: boolean;
-  readonly enabled: boolean;
-  readonly dimensions: number | null;
-  readonly distance: string | null;
-  readonly top_n: number | null;
 }
 
 interface BackendSearchHit {
@@ -149,31 +143,29 @@ const providerLabel = (code: string): string =>
     code
   ] ?? code;
 
-const toModelOption = (model: BackendModelItem): ModelOption => ({
+const DEFAULT_CHAT_MODEL_OPTIONS = [
+  {
+    value: "env-deepseek",
+    label: "DeepSeek / 环境默认模型",
+    description: "模型列表暂不可用，后端将使用环境默认模型。",
+  },
+] as const satisfies readonly ModelOption[];
+
+const toModelOption = (model: BackendAvailableModelItem): ModelOption => ({
   value: model.id,
   label: `${providerLabel(model.provider_code)} / ${model.model_name}`,
-  description: model.api_key_set
-    ? "已配置密钥，可用于真实 RAG 回答。"
-    : "未配置密钥；若直接选择，后端可能回退到环境配置或返回连通性错误。",
+  description: "管理员已启用，可用于真实 RAG 回答。",
 });
 
 export const listRealChatModelOptions = async (
   signal?: AbortSignal,
 ): Promise<readonly ModelOption[]> => {
   const response = await apiClient.get<
-    ApiResponse<readonly BackendModelItem[]>
-  >("/v1/models", { params: { kind: "chat" }, signal });
-  const models = unwrap(response.data).filter((model) => model.enabled);
+    ApiResponse<readonly BackendAvailableModelItem[]>
+  >("/v1/models/available", { params: { kind: "chat" }, signal });
+  const models = unwrap(response.data);
   const options = models.map(toModelOption);
-  return options.length > 0
-    ? options
-    : [
-        {
-          value: "env-deepseek",
-          label: "DeepSeek / 环境默认模型",
-          description: "后端将使用环境配置中的 DeepSeek RAG 模型。",
-        },
-      ];
+  return options.length > 0 ? options : DEFAULT_CHAT_MODEL_OPTIONS;
 };
 
 // ============================================================
@@ -313,7 +305,15 @@ export const loadRealHome = async (
   if (signal?.aborted === true) {
     throw new DOMException("加载已取消。", "AbortError");
   }
-  const modelOptions = await listRealChatModelOptions(signal);
+  let modelOptions: readonly ModelOption[];
+  try {
+    modelOptions = await listRealChatModelOptions(signal);
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw error;
+    }
+    modelOptions = DEFAULT_CHAT_MODEL_OPTIONS;
+  }
 
   return {
     meta: {
