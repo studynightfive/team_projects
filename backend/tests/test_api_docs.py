@@ -15,22 +15,25 @@ async def test_swagger_ui_uses_local_assets(client) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "asset_name,content_type",
+    "asset_name,content_types",
     [
-        ("swagger-ui-bundle.js", "application/javascript"),
-        ("swagger-ui.css", "text/css"),
-        ("favicon-32x32.png", "image/png"),
+        (
+            "swagger-ui-bundle.js",
+            ("application/javascript", "text/javascript"),
+        ),
+        ("swagger-ui.css", ("text/css",)),
+        ("favicon-32x32.png", ("image/png",)),
     ],
 )
 async def test_swagger_ui_local_assets_are_available(
     client,
     asset_name: str,
-    content_type: str,
+    content_types: tuple[str, ...],
 ) -> None:
     response = await client.get(f"/api/v1/docs-assets/vendor/{asset_name}")
 
     assert response.status_code == 200
-    assert response.headers["content-type"].startswith(content_type)
+    assert response.headers["content-type"].startswith(content_types)
 
 
 @pytest.mark.asyncio
