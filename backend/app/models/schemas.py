@@ -83,6 +83,13 @@ class ModelResponse(ModelBase):
     model_config = {"from_attributes": True}
 
 
+class AvailableModelResponse(BaseModel):
+    id: str
+    provider_code: ProviderCode
+    model_name: str
+    kind: ModelKind
+
+
 class TestModelResponse(BaseModel):
     ok: bool
     latency_ms: int

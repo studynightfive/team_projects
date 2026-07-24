@@ -14,6 +14,7 @@ from app.users.service import (
     _ensure_assignable_role,
     _ensure_role_change_allowed,
     create_user,
+    update_user,
 )
 
 
@@ -81,3 +82,43 @@ async def test_create_user_maps_unique_race_to_conflict() -> None:
     assert exc_info.value.code == ErrorCode.USER_ALREADY_EXISTS
     assert exc_info.value.status_code == 409
     db.rollback.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_update_user_synchronizes_personal_knowledge_base_department() -> None:
+    target_department_id = "department-medical"
+    user = User(
+        id="normal-user",
+        username="normal-user",
+        display_name="普通用户",
+        department_id="department-old",
+        status="active",
+    )
+    user.roles = []
+    target_department = Mock()
+    target_department.id = target_department_id
+    target_department.name = "医疗信息部门"
+    locked_user = Mock()
+    locked_user.scalar_one_or_none.return_value = user
+    managed_department = Mock()
+    managed_department.scalar_one_or_none.return_value = None
+    db = AsyncMock()
+    db.execute.side_effect = [locked_user, managed_department, Mock()]
+    db.get = AsyncMock(return_value=target_department)
+    db.refresh = AsyncMock()
+
+    with patch(
+        "app.users.service._invalidate_user_sessions",
+        new=AsyncMock(),
+    ):
+        await update_user(
+            db,
+            user.id,
+            UpdateUserRequest(department_id=target_department_id),
+        )
+
+    assert user.department_id == target_department_id
+    personal_kb_update = db.execute.await_args_list[2].args[0]
+    compiled = personal_kb_update.compile()
+    assert compiled.params["department_id"] == target_department_id
+    db.commit.assert_awaited_once()

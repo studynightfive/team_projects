@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,10 +14,13 @@ from app.common.schemas import APIResponse
 from app.models import service
 from app.models.repository import Model, ModelProvider
 from app.models.schemas import (
+    AvailableModelResponse,
     ModelCreate,
+    ModelKind,
     ModelProviderCreate,
     ModelProviderUpdate,
     ModelUpdate,
+    ProviderCode,
 )
 from app.rag._shared.audit_helper import audit
 
@@ -133,6 +138,27 @@ async def list_models_endpoint(
 ) -> dict[str, object]:
     models = await service.list_models(db, provider_code=provider_code, kind=kind)
     return APIResponse(data=[_to_model_response(m) for m in models]).model_dump()
+
+
+@router.get("/available", response_model=APIResponse[list[AvailableModelResponse]])
+async def list_available_models_endpoint(
+    kind: ModelKind | None = None,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse[list[AvailableModelResponse]]:
+    """返回普通用户可选择的已启用模型，不暴露管理配置。"""
+    models = await service.list_models(db, kind=kind)
+    items = [
+        AvailableModelResponse(
+            id=model.id,
+            provider_code=cast(ProviderCode, model.provider_code),
+            model_name=model.model_name,
+            kind=cast(ModelKind, model.kind),
+        )
+        for model in models
+        if model.enabled
+    ]
+    return APIResponse(data=items)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)

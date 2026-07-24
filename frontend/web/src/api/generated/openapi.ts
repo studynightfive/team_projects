@@ -693,6 +693,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/models/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Available Models Endpoint
+         * @description 返回普通用户可选择的已启用模型，不暴露管理配置。
+         */
+        get: operations["list_available_models_endpoint_api_v1_models_available_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/models/{model_id}": {
         parameters: {
             query?: never;
@@ -1433,6 +1453,26 @@ export interface components {
              */
             request_id: string;
         };
+        /** APIResponse[list[AvailableModelResponse]] */
+        APIResponse_list_AvailableModelResponse__: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            /** Data */
+            data?: components["schemas"]["AvailableModelResponse"][] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
         /** APIResponse[list[ChunkItem]] */
         APIResponse_list_ChunkItem__: {
             /**
@@ -1571,6 +1611,23 @@ export interface components {
             citations?: {
                 [key: string]: components["schemas"]["JsonValue"];
             }[];
+        };
+        /** AvailableModelResponse */
+        AvailableModelResponse: {
+            /** Id */
+            id: string;
+            /**
+             * Provider Code
+             * @enum {string}
+             */
+            provider_code: "openai" | "anthropic" | "deepseek" | "moonshot" | "zhipu" | "minimax" | "volcengine" | "qianfan" | "ollama" | "custom" | "dashscope";
+            /** Model Name */
+            model_name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "chat" | "embedding" | "rerank";
         };
         /** Body_upload_documents_api_v1_knowledge_bases__kb_id__documents_post */
         Body_upload_documents_api_v1_knowledge_bases__kb_id__documents_post: {
@@ -4665,6 +4722,55 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    list_available_models_endpoint_api_v1_models_available_get: {
+        parameters: {
+            query?: {
+                kind?: ("chat" | "embedding" | "rerank") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_list_AvailableModelResponse__"];
                 };
             };
             /** @description 未登录、Token 无效或已过期 */
