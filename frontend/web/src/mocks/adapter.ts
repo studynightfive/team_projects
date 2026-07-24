@@ -231,6 +231,13 @@ const tasks = [
   },
 ];
 
+const recycledDocuments: Array<{
+  document: (typeof documents)[number];
+  deletedAt: string;
+  purgeAfter: string;
+  deletedBy: string;
+}> = [];
+
 const auditLogs = [
   {
     id: "audit-1",
@@ -426,6 +433,40 @@ const requestBody = (data: unknown): Record<string, unknown> => {
     : {};
 };
 
+const documentIdsFromRequest = (data: unknown): string[] => {
+  const documentIds = requestBody(data).document_ids;
+  return Array.isArray(documentIds)
+    ? documentIds.filter((item): item is string => typeof item === "string")
+    : [];
+};
+
+const createCompletedDocumentTask = (
+  document: (typeof documents)[number],
+) => {
+  const taskId = `task-mock-${document.id}-${tasks.length + 1}`;
+  const task = {
+    task_id: taskId,
+    task_type: "document_reprocess",
+    status: "succeeded",
+    stage: "done",
+    progress: 100,
+    retry_count: 0,
+    error_message: "",
+    request_id: `mock-${taskId}`,
+    created_at: now,
+    finished_at: now,
+  };
+  tasks.push({
+    ...task,
+    started_at: now,
+    document_id: document.id,
+    document_title: document.title,
+    knowledge_base_id: document.knowledge_base_id,
+    knowledge_base_name: document.knowledge_base_name,
+  });
+  return task;
+};
+
 export const mockAdapter: AxiosAdapter = (config) => {
   const method = (config.method ?? "get").toLowerCase();
   const url = config.url ?? "";
@@ -502,6 +543,88 @@ export const mockAdapter: AxiosAdapter = (config) => {
   if (method === "get" && url === "/v1/audit-logs") return Promise.resolve(ok(config, page(auditLogs)));
   if (method === "get" && url === "/v1/knowledge-bases") return Promise.resolve(ok(config, page(knowledgeBases)));
   if (method === "get" && url === "/v1/admin/documents") return Promise.resolve(ok(config, page(documents)));
+  if (method === "get" && url === "/v1/admin/documents/recycle-bin") {
+    const items = recycledDocuments.map(({ document, deletedAt, purgeAfter, deletedBy }) => ({
+      ...document,
+      folder_path: "",
+      content_hash: `mock-${document.id}`,
+      version: 1,
+      chunk_strategy: "recursive",
+      chunk_size: 800,
+      chunk_overlap: 120,
+      deleted_at: deletedAt,
+      purge_after: purgeAfter,
+      deleted_by: deletedBy,
+    }));
+    return Promise.resolve(ok(config, page(items)));
+  }
+  if (method === "post" && url === "/v1/documents/batch/reprocess") {
+    const items = documentIdsFromRequest(config.data)
+      .map((documentId) => documents.find((item) => item.id === documentId))
+      .filter((document): document is (typeof documents)[number] => document !== undefined)
+      .map((document) => ({
+        document_id: document.id,
+        document_title: document.title,
+        task: createCompletedDocumentTask(document),
+      }));
+    return Promise.resolve(ok(config, { items }));
+  }
+  if (method === "post" && url === "/v1/documents/batch/delete") {
+    let deletedCount = 0;
+    for (const documentId of documentIdsFromRequest(config.data)) {
+      const index = documents.findIndex((item) => item.id === documentId);
+      if (index < 0) continue;
+      const [document] = documents.splice(index, 1);
+      if (document === undefined) continue;
+      recycledDocuments.push({
+        document,
+        deletedAt: now,
+        purgeAfter: "2026-08-18T12:00:00+08:00",
+        deletedBy: "admin",
+      });
+      deletedCount += 1;
+    }
+    return Promise.resolve(ok(config, { deleted_count: deletedCount }));
+  }
+  if (method === "post" && url === "/v1/documents/batch/restore") {
+    const items = documentIdsFromRequest(config.data)
+      .map((documentId) => {
+        const index = recycledDocuments.findIndex(
+          (item) => item.document.id === documentId,
+        );
+        if (index < 0) return null;
+        const [record] = recycledDocuments.splice(index, 1);
+        if (record === undefined) return null;
+        documents.push(record.document);
+        return {
+          document_id: record.document.id,
+          document_title: record.document.title,
+          task: createCompletedDocumentTask(record.document),
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+    return Promise.resolve(ok(config, { items }));
+  }
+  const taskMatch = /^\/v1\/tasks\/([^/]+)$/.exec(url);
+  if (method === "get" && taskMatch !== null) {
+    const task = tasks.find((item) => item.task_id === taskMatch[1]);
+    if (task === undefined) {
+      return Promise.reject(new AxiosError("任务不存在", "ERR_BAD_RESPONSE", config));
+    }
+    return Promise.resolve(ok(config, {
+      task_id: task.task_id,
+      task_type: task.task_type,
+      status: task.status,
+      stage: task.stage,
+      progress: task.progress,
+      retry_count: task.retry_count,
+      error_code: null,
+      error_message: task.error_message,
+      request_id: task.request_id,
+      created_at: task.created_at,
+      finished_at: task.finished_at,
+    }));
+  }
   if (method === "get" && url === "/v1/admin/tasks") return Promise.resolve(ok(config, page(tasks)));
   if (method === "get" && url === "/v1/models/providers") return Promise.resolve(ok(config, providers));
   if (method === "post" && url === "/v1/models/providers") {

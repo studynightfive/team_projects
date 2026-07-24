@@ -8,17 +8,21 @@ import InlineState from "../../components/InlineState.vue";
 import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
+import DocumentTaskProgress from "../../components/documents/DocumentTaskProgress.vue";
+import DocumentUploadQueue from "../../components/documents/DocumentUploadQueue.vue";
 import { useListPagination } from "../../composables/useListPagination";
-import { ChevronLeft, Download, Eye, FileUp } from "../../components/icons";
+import { ChevronLeft, Download, Eye, RotateCcw } from "../../components/icons";
 import { localPageData } from "../../data/local-pages";
 import { toPublicApiError } from "../../api/client";
 import { useSessionStore } from "../../stores/session";
 import { createExportTask } from "../../services/downloads";
 import {
+  batchReprocessDocuments,
   listDocuments,
   listKnowledgeBases,
   uploadDocuments,
   type ChunkStrategy,
+  type DocumentBatchTaskItem,
   type DocumentRecord,
   type KnowledgeBaseRecord,
 } from "../../services/knowledge";
@@ -36,14 +40,15 @@ const loadState = ref<"idle" | "loading" | "error">(
   isRealApiMode ? "loading" : "idle",
 );
 const loadError = ref("");
-const uploadInputRef = ref<HTMLInputElement>();
 const uploadZoneRef = ref<HTMLElement>();
 const isUploading = ref(false);
-const isDraggingUpload = ref(false);
+const uploadResetToken = ref(0);
 const chunkStrategy = ref<ChunkStrategy>("recursive");
 const chunkSize = ref(800);
 const chunkOverlap = ref(120);
 const isExporting = ref(false);
+const isReprocessing = ref(false);
+const batchTasks = ref<readonly DocumentBatchTaskItem[]>([]);
 
 let loadController: AbortController | undefined;
 
@@ -85,6 +90,15 @@ const canUploadKnowledge = computed(() => {
   return (
     realKnowledgeBase.value?.kind === "personal" &&
     permissions.includes("personal.document.upload")
+  );
+});
+const canReprocessKnowledge = computed(() => {
+  const permissions = sessionStore.currentUser?.permissions ?? [];
+  return (
+    (realKnowledgeBase.value?.kind === "personal" &&
+      permissions.includes("personal.document.upload")) ||
+    (realKnowledgeBase.value?.kind === "enterprise" &&
+      permissions.includes("admin.document.upload"))
   );
 });
 
@@ -194,6 +208,22 @@ const exportSelected = async (): Promise<void> => {
   }
 };
 
+const reprocessSelected = async (): Promise<void> => {
+  if (selectedDocumentIds.value.length === 0) return;
+  isReprocessing.value = true;
+  try {
+    batchTasks.value = await batchReprocessDocuments(
+      selectedDocumentIds.value,
+    );
+    message.success("文档已进入重新处理队列");
+    await loadRealDetail();
+  } catch (error: unknown) {
+    message.error(toPublicApiError(error).message);
+  } finally {
+    isReprocessing.value = false;
+  }
+};
+
 const loadRealDetail = async (): Promise<void> => {
   if (!isRealApiMode) return;
   const kbId = String(route.params.kb_id ?? "");
@@ -220,14 +250,6 @@ const loadRealDetail = async (): Promise<void> => {
   }
 };
 
-const openUploadPicker = (): void => {
-  if (!canUploadKnowledge.value) {
-    void message.warning("当前账号没有上传文档权限");
-    return;
-  }
-  uploadInputRef.value?.click();
-};
-
 const focusUploadZone = async (): Promise<void> => {
   await nextTick();
   uploadZoneRef.value?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -247,7 +269,7 @@ const consumeUploadActionQuery = async (): Promise<void> => {
   });
 };
 
-const uploadFiles = async (files: File[]): Promise<void> => {
+const uploadFiles = async (files: readonly File[]): Promise<void> => {
   if (!isRealApiMode || files.length === 0) return;
   if (chunkOverlap.value >= chunkSize.value) {
     message.warning("重叠字符必须小于切分大小");
@@ -265,24 +287,13 @@ const uploadFiles = async (files: File[]): Promise<void> => {
       (item) => item.document.status === "ready",
     ).length;
     message.success(`已上传 ${results.length} 个文档，${readyCount} 个已完成索引`);
+    uploadResetToken.value += 1;
     await loadRealDetail();
   } catch (error: unknown) {
     message.error(toPublicApiError(error).message);
   } finally {
     isUploading.value = false;
   }
-};
-
-const handleUpload = async (event: Event): Promise<void> => {
-  const input = event.target as HTMLInputElement;
-  const files = Array.from(input.files ?? []);
-  input.value = "";
-  await uploadFiles(files);
-};
-
-const handleUploadDrop = async (event: DragEvent): Promise<void> => {
-  isDraggingUpload.value = false;
-  await uploadFiles(Array.from(event.dataTransfer?.files ?? []));
 };
 
 watch(
@@ -322,14 +333,20 @@ onBeforeUnmount(() => {
           <ChevronLeft :size="17" aria-hidden="true" />
           返回知识库
         </RouterLink>
-        <input
-          ref="uploadInputRef"
-          class="visually-hidden"
-          type="file"
-          multiple
-          accept=".pdf,.doc,.docx,.md,.markdown,.txt,.csv,.xlsx,.pptx,.html,.json"
-          @change="handleUpload"
-        />
+        <button
+          v-if="canReprocessKnowledge"
+          class="secondary-button"
+          type="button"
+          :disabled="selectedDocumentIds.length === 0 || isReprocessing"
+          @click="reprocessSelected"
+        >
+          <RotateCcw :size="17" aria-hidden="true" />
+          {{
+            isReprocessing
+              ? "正在提交"
+              : `重新处理（${selectedDocumentIds.length}）`
+          }}
+        </button>
         <button
           class="primary-button"
           type="button"
@@ -385,22 +402,14 @@ onBeforeUnmount(() => {
       <div
         v-if="isRealApiMode && canUploadKnowledge"
         ref="uploadZoneRef"
-        class="upload-drop-zone"
-        :class="{ dragging: isDraggingUpload, uploading: isUploading }"
-        role="button"
-        tabindex="0"
-        :aria-disabled="isUploading"
-        @click="openUploadPicker"
-        @keydown.enter.prevent="openUploadPicker"
-        @keydown.space.prevent="openUploadPicker"
-        @dragenter.prevent="isDraggingUpload = true"
-        @dragover.prevent="isDraggingUpload = true"
-        @dragleave.prevent="isDraggingUpload = false"
-        @drop.prevent="handleUploadDrop"
+        class="upload-workbench"
+        tabindex="-1"
       >
-        <FileUp :size="30" aria-hidden="true" />
-        <strong>{{ isUploading ? "正在上传并处理文档" : "点击或拖拽文件到这里上传" }}</strong>
-        <span>支持 PDF、Word、Markdown、文本、表格、演示文稿等格式</span>
+        <DocumentUploadQueue
+          :uploading="isUploading"
+          :reset-token="uploadResetToken"
+          @submit="uploadFiles"
+        />
       </div>
 
       <div v-if="isRealApiMode && canUploadKnowledge" class="chunk-options">
@@ -422,6 +431,19 @@ onBeforeUnmount(() => {
           <input v-model.number="chunkOverlap" type="number" min="0" max="1000" />
         </label>
       </div>
+
+      <div v-if="canReprocessKnowledge" class="reprocess-guide">
+        <RotateCcw :size="18" aria-hidden="true" />
+        <p>
+          更换 Embedding 模型或修改切分配置后，请勾选文档重新处理，完成前旧索引不会混入新模型向量。
+        </p>
+      </div>
+
+      <DocumentTaskProgress
+        v-if="batchTasks.length > 0"
+        :items="batchTasks"
+        @finished="loadRealDetail"
+      />
 
       <div class="filter-bar">
         <label class="filter-field grow">
@@ -581,67 +603,28 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.upload-drop-zone {
-  display: grid;
-  min-height: 148px;
-  place-items: center;
-  align-content: center;
-  gap: var(--space-2);
-  padding: var(--space-5);
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-8);
-  color: var(--color-text-muted);
-  background: var(--color-surface-subtle);
-  cursor: pointer;
-  text-align: center;
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.upload-drop-zone strong {
-  color: var(--color-text);
-  font-size: var(--font-size-16);
-}
-
-.upload-drop-zone span {
-  max-width: 560px;
-  font-size: var(--font-size-13);
-}
-
-.upload-drop-zone:hover,
-.upload-drop-zone:focus-visible,
-.upload-drop-zone.dragging {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  outline: none;
-}
-
-.upload-drop-zone.uploading {
-  cursor: progress;
-  opacity: 0.72;
-  pointer-events: none;
-}
-
 .chunk-options {
   display: grid;
   grid-template-columns: minmax(180px, 1.4fr) repeat(2, minmax(120px, 1fr));
   gap: var(--space-3);
 }
 
+.reprocess-guide {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-left: 3px solid var(--color-primary);
+  color: var(--color-text-secondary);
+  background: var(--color-primary-soft);
+}
+
+.reprocess-guide p {
+  margin: 0;
+  line-height: 1.6;
+}
+
 @media (max-width: 767px) {
-  .upload-drop-zone {
-    min-height: 120px;
-    padding: var(--space-4);
-  }
-
-  .upload-drop-zone strong,
-  .upload-drop-zone span {
-    overflow-wrap: anywhere;
-  }
-
   .chunk-options {
     grid-template-columns: minmax(0, 1fr);
   }

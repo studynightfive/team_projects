@@ -82,6 +82,13 @@ async def cleanup_export_tasks(ctx: dict[str, object]) -> int:
         return await cleanup_expired(session)
 
 
+async def cleanup_deleted_documents(ctx: dict[str, object]) -> int:
+    """周期性物理清理已超过回收站保留期的文档。"""
+    del ctx
+    async with async_session_factory() as session:
+        return await DocumentService(session).purge_expired_documents()
+
+
 async def redis_is_reachable() -> bool:
     """同时验证 Redis 与 ARQ Worker 最近写入的事件循环心跳。"""
     redis = await create_pool(RedisSettings.from_dsn(settings.redis_url))
@@ -102,6 +109,7 @@ class WorkerSettings:
         cron(reconcile_document_tasks, second={15, 45}),
         cron(reconcile_export_tasks, second={20, 50}),
         cron(cleanup_export_tasks, minute=0),
+        cron(cleanup_deleted_documents, hour=2, minute=30),
     ]
     job_timeout = 3600
     keep_result = 3600

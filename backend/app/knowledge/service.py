@@ -129,7 +129,10 @@ async def _summaries(
             func.count(Document.id),
             func.sum(case((Document.status == DocumentStatus.READY.value, 1), else_=0)),
         )
-        .where(Document.knowledge_base_id.in_(kb_ids))
+        .where(
+            Document.knowledge_base_id.in_(kb_ids),
+            Document.deleted_at.is_(None),
+        )
         .group_by(Document.knowledge_base_id)
     )
     chunk_rows = await db.execute(

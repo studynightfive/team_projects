@@ -172,8 +172,10 @@ describe("AI 搜索工作台关键链路", () => {
       spaces.wrapper.get(".knowledge-space-grid article.selected").text(),
     ).toContain(targetSpace.name);
     expect(
-      spaces.wrapper.get(".space-browser-layout > .space-detail-panel").text(),
-    ).toContain(targetSpace.name);
+      spaces.wrapper
+        .get(".knowledge-space-grid article.selected .secondary-button")
+        .attributes("href"),
+    ).toBe(`/knowledge/${targetSpace.id}`);
     expect(spaces.wrapper.find(".lucide-arrow-up-right").exists()).toBe(false);
     expect(
       spaces.wrapper.findAll(".knowledge-space-grid .lucide-chevron-right"),

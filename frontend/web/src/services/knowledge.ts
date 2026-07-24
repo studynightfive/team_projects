@@ -28,6 +28,17 @@ export type MarkdownContent = Readonly<Required<ApiSchema<"MarkdownContent">>>;
 export type DocumentChunkRecord = Readonly<
   Required<ApiSchema<"ChunkItem">>
 >;
+export type DocumentTaskRecord = Readonly<
+  Required<ApiSchema<"TaskResponse">>
+>;
+export type DocumentBatchTaskItem = Readonly<
+  Omit<Required<ApiSchema<"BatchTaskItem">>, "task"> & {
+    readonly task: DocumentTaskRecord;
+  }
+>;
+export type RecycleBinRecord = Readonly<
+  Required<ApiSchema<"RecycleBinItem">>
+>;
 
 export type UploadResult = Readonly<
   Omit<Required<ApiSchema<"UploadResultItem">>, "document"> & {
@@ -210,6 +221,87 @@ export const reprocessDocument = async (documentId: string): Promise<void> => {
     ApiResponse<Readonly<Required<ApiSchema<"TaskResponse">>>>
   >(`/v1/documents/${documentId}/reprocess`, {});
   unwrapApiData(response.data);
+};
+
+export const batchReprocessDocuments = async (
+  documentIds: readonly string[],
+): Promise<readonly DocumentBatchTaskItem[]> => {
+  const response = await apiClient.post<
+    ApiResponse<
+      Readonly<{
+        readonly items: readonly DocumentBatchTaskItem[];
+      }>
+    >
+  >("/v1/documents/batch/reprocess", {
+    document_ids: [...documentIds],
+  });
+  return unwrapApiData(response.data).items;
+};
+
+export const getDocumentTask = async (
+  taskId: string,
+  signal?: AbortSignal,
+): Promise<DocumentTaskRecord> => {
+  const response = await apiClient.get<ApiResponse<DocumentTaskRecord>>(
+    `/v1/tasks/${taskId}`,
+    { signal },
+  );
+  return unwrapApiData(response.data);
+};
+
+export const batchDeleteDocuments = async (
+  documentIds: readonly string[],
+): Promise<number> => {
+  const response = await apiClient.post<
+    ApiResponse<Readonly<Required<ApiSchema<"BatchDeleteResponse">>>>
+  >("/v1/documents/batch/delete", {
+    document_ids: [...documentIds],
+  });
+  return unwrapApiData(response.data).deleted_count;
+};
+
+export const listRecycleBin = async (
+  signal?: AbortSignal,
+): Promise<readonly RecycleBinRecord[]> => {
+  const items: RecycleBinRecord[] = [];
+  let page = 1;
+  let total = 0;
+  do {
+    const response = await apiClient.get<
+      ApiResponse<
+        Readonly<{
+          readonly items: readonly RecycleBinRecord[];
+          readonly page: number;
+          readonly page_size: number;
+          readonly total: number;
+        }>
+      >
+    >("/v1/admin/documents/recycle-bin", {
+      params: { page, page_size: 100 },
+      signal,
+    });
+    const data = unwrapApiData(response.data);
+    items.push(...data.items);
+    total = data.total;
+    page += 1;
+    if (data.items.length === 0) break;
+  } while (items.length < total);
+  return items;
+};
+
+export const restoreDocuments = async (
+  documentIds: readonly string[],
+): Promise<readonly DocumentBatchTaskItem[]> => {
+  const response = await apiClient.post<
+    ApiResponse<
+      Readonly<{
+        readonly items: readonly DocumentBatchTaskItem[];
+      }>
+    >
+  >("/v1/documents/batch/restore", {
+    document_ids: [...documentIds],
+  });
+  return unwrapApiData(response.data).items;
 };
 
 export const deleteDocument = async (documentId: string): Promise<void> => {

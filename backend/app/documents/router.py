@@ -19,10 +19,15 @@ from app.documents.models import DuplicatePolicy
 from app.documents.schemas import (
     AdminDocumentItem,
     AdminTaskItem,
+    BatchDeleteResponse,
+    BatchReprocessRequest,
+    BatchTaskResponse,
     ChunkItem,
     DocumentDetail,
+    DocumentIdBatchRequest,
     DocumentSummary,
     MarkdownContent,
+    RecycleBinItem,
     ReprocessRequest,
     TaskResponse,
     UploadOptions,
@@ -113,6 +118,30 @@ async def list_admin_tasks(
     )
     return APIResponse(
         data=PaginatedData(items=items, page=page, page_size=page_size, total=total),
+        request_id=str(uuid.uuid4()),
+    )
+
+
+@router.get("/admin/documents/recycle-bin")
+async def list_recycle_bin(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(require_permission("admin.document.view")),
+    service: DocumentService = Depends(get_service),
+) -> APIResponse[PaginatedData[RecycleBinItem]]:
+    items, total = await service.list_recycle_bin(
+        user,
+        page=page,
+        page_size=page_size,
+    )
+    return APIResponse(
+        data=PaginatedData(
+            items=items,
+            page=page,
+            page_size=page_size,
+            total=total,
+        ),
         request_id=str(uuid.uuid4()),
     )
 
@@ -263,6 +292,41 @@ async def get_asset(
 ) -> FileResponse:
     path = await service.get_asset_path(user, document_id, asset_id)
     return FileResponse(path)
+
+
+@router.post("/documents/batch/reprocess")
+async def batch_reprocess_documents(
+    body: BatchReprocessRequest,
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(
+        require_any_permission("admin.document.upload", "personal.document.upload")
+    ),
+    service: DocumentService = Depends(get_service),
+) -> APIResponse[BatchTaskResponse]:
+    data = await service.batch_reprocess(user, body)
+    return APIResponse(data=data, request_id=str(uuid.uuid4()))
+
+
+@router.post("/documents/batch/delete")
+async def batch_delete_documents(
+    body: DocumentIdBatchRequest,
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(require_permission("admin.document.delete")),
+    service: DocumentService = Depends(get_service),
+) -> APIResponse[BatchDeleteResponse]:
+    data = await service.batch_delete(user, body)
+    return APIResponse(data=data, request_id=str(uuid.uuid4()))
+
+
+@router.post("/documents/batch/restore")
+async def batch_restore_documents(
+    body: DocumentIdBatchRequest,
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(require_permission("admin.document.delete")),
+    service: DocumentService = Depends(get_service),
+) -> APIResponse[BatchTaskResponse]:
+    data = await service.batch_restore(user, body)
+    return APIResponse(data=data, request_id=str(uuid.uuid4()))
 
 
 @router.post("/documents/{document_id}/reprocess")

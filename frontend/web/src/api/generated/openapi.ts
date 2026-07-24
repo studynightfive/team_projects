@@ -529,6 +529,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/documents/recycle-bin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Recycle Bin */
+        get: operations["list_recycle_bin_api_v1_admin_documents_recycle_bin_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}": {
         parameters: {
             query?: never;
@@ -609,6 +626,57 @@ export interface paths {
         get: operations["get_asset_api_v1_documents__document_id__assets__asset_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/batch/reprocess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch Reprocess Documents */
+        post: operations["batch_reprocess_documents_api_v1_documents_batch_reprocess_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/batch/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch Delete Documents */
+        post: operations["batch_delete_documents_api_v1_documents_batch_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/batch/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch Restore Documents */
+        post: operations["batch_restore_documents_api_v1_documents_batch_restore_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1189,6 +1257,44 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** APIResponse[BatchDeleteResponse] */
+        APIResponse_BatchDeleteResponse_: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            data?: components["schemas"]["BatchDeleteResponse"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
+        /** APIResponse[BatchTaskResponse] */
+        APIResponse_BatchTaskResponse_: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            data?: components["schemas"]["BatchTaskResponse"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
         /** APIResponse[DashboardMetrics] */
         APIResponse_DashboardMetrics_: {
             /**
@@ -1456,6 +1562,25 @@ export interface components {
              */
             request_id: string;
         };
+        /** APIResponse[PaginatedData[RecycleBinItem]] */
+        APIResponse_PaginatedData_RecycleBinItem__: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            data?: components["schemas"]["PaginatedData_RecycleBinItem_"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
         /** APIResponse[TaskResponse] */
         APIResponse_TaskResponse_: {
             /**
@@ -1641,6 +1766,10 @@ export interface components {
             created_at?: string | null;
             /** Updated At */
             updated_at?: string | null;
+            /** Deleted At */
+            deleted_at?: string | null;
+            /** Purge After */
+            purge_after?: string | null;
             /** Knowledge Base Name */
             knowledge_base_name: string;
         };
@@ -1712,6 +1841,32 @@ export interface components {
              * @enum {string}
              */
             kind: "chat" | "embedding" | "rerank";
+        };
+        /** BatchDeleteResponse */
+        BatchDeleteResponse: {
+            /** Deleted Count */
+            deleted_count: number;
+            /** Items */
+            items: components["schemas"]["DocumentSummary"][];
+        };
+        /** BatchReprocessRequest */
+        BatchReprocessRequest: {
+            /** Document Ids */
+            document_ids: string[];
+            options?: components["schemas"]["ReprocessRequest"] | null;
+        };
+        /** BatchTaskItem */
+        BatchTaskItem: {
+            /** Document Id */
+            document_id: string;
+            /** Document Title */
+            document_title: string;
+            task: components["schemas"]["TaskResponse"];
+        };
+        /** BatchTaskResponse */
+        BatchTaskResponse: {
+            /** Items */
+            items: components["schemas"]["BatchTaskItem"][];
         };
         /** Body_upload_documents_api_v1_knowledge_bases__kb_id__documents_post */
         Body_upload_documents_api_v1_knowledge_bases__kb_id__documents_post: {
@@ -2104,6 +2259,10 @@ export interface components {
             created_at?: string | null;
             /** Updated At */
             updated_at?: string | null;
+            /** Deleted At */
+            deleted_at?: string | null;
+            /** Purge After */
+            purge_after?: string | null;
             /** Language */
             language: string;
             /** Ocr Enabled */
@@ -2114,6 +2273,11 @@ export interface components {
              */
             is_active_index: boolean;
             ocr: components["schemas"]["OcrSummary"];
+        };
+        /** DocumentIdBatchRequest */
+        DocumentIdBatchRequest: {
+            /** Document Ids */
+            document_ids: string[];
         };
         /** DocumentSummary */
         DocumentSummary: {
@@ -2157,6 +2321,10 @@ export interface components {
             created_at?: string | null;
             /** Updated At */
             updated_at?: string | null;
+            /** Deleted At */
+            deleted_at?: string | null;
+            /** Purge After */
+            purge_after?: string | null;
         };
         /** ExportOptions */
         ExportOptions: {
@@ -2596,6 +2764,17 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** PaginatedData[RecycleBinItem] */
+        PaginatedData_RecycleBinItem_: {
+            /** Items */
+            items: components["schemas"]["RecycleBinItem"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
         /** RagAnswerRequest */
         RagAnswerRequest: {
             /** Query */
@@ -2655,6 +2834,57 @@ export interface components {
             };
             /** Timestamp */
             timestamp: string;
+        };
+        /** RecycleBinItem */
+        RecycleBinItem: {
+            /** Id */
+            id: string;
+            /** Knowledge Base Id */
+            knowledge_base_id: string;
+            /** Title */
+            title: string;
+            /** Original Filename */
+            original_filename: string;
+            /** Folder Path */
+            folder_path: string;
+            /** Extension */
+            extension: string;
+            /** Mime Type */
+            mime_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Content Hash */
+            content_hash: string;
+            /** Version */
+            version: number;
+            /** Status */
+            status: string;
+            /** Parser Name */
+            parser_name?: string | null;
+            /** Chunk Strategy */
+            chunk_strategy: string;
+            /** Chunk Size */
+            chunk_size: number;
+            /** Chunk Overlap */
+            chunk_overlap: number;
+            /** Page Count */
+            page_count?: number | null;
+            /** Error Code */
+            error_code?: number | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Deleted At */
+            deleted_at?: string | null;
+            /** Purge After */
+            purge_after?: string | null;
+            /** Knowledge Base Name */
+            knowledge_base_name: string;
+            /** Deleted By */
+            deleted_by?: string | null;
         };
         /**
          * RegisterRequest
@@ -4471,6 +4701,56 @@ export interface operations {
             };
         };
     };
+    list_recycle_bin_api_v1_admin_documents_recycle_bin_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_PaginatedData_RecycleBinItem__"];
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
     get_document_api_v1_documents__document_id__get: {
         parameters: {
             query?: never;
@@ -4740,6 +5020,159 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    batch_reprocess_documents_api_v1_documents_batch_reprocess_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchReprocessRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_BatchTaskResponse_"];
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    batch_delete_documents_api_v1_documents_batch_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentIdBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_BatchDeleteResponse_"];
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    batch_restore_documents_api_v1_documents_batch_restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentIdBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_BatchTaskResponse_"];
                 };
             };
             /** @description 未登录、Token 无效或已过期 */
