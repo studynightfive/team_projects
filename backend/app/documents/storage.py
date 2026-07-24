@@ -136,6 +136,13 @@ class DocumentStorage:
             return {}
         return _MANIFEST_ADAPTER.validate_json(path.read_bytes())
 
+    def resolve_original(self, document_id: str, stored_filename: str) -> Path:
+        base = self.original_dir(document_id).resolve()
+        candidate = (base / sanitize_filename(stored_filename)).resolve()
+        if candidate.parent != base:
+            raise ValueError("path traversal blocked")
+        return candidate
+
     def resolve_asset(self, document_id: str, relative_path: str) -> Path:
         base = self.document_dir(document_id).resolve()
         candidate = (base / relative_path).resolve()

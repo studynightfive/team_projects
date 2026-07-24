@@ -551,6 +551,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/{document_id}/original": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Original */
+        get: operations["get_original_api_v1_documents__document_id__original_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}/chunks": {
         parameters: {
             query?: never;
@@ -1331,6 +1348,25 @@ export interface components {
              */
             request_id: string;
         };
+        /** APIResponse[PaginatedData[ChunkItem]] */
+        APIResponse_PaginatedData_ChunkItem__: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            data?: components["schemas"]["PaginatedData_ChunkItem_"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
         /** APIResponse[PaginatedData[DocumentSummary]] */
         APIResponse_PaginatedData_DocumentSummary__: {
             /**
@@ -1484,26 +1520,6 @@ export interface components {
             message: string;
             /** Data */
             data?: components["schemas"]["AvailableModelResponse"][] | null;
-            /**
-             * Request Id
-             * @default
-             */
-            request_id: string;
-        };
-        /** APIResponse[list[ChunkItem]] */
-        APIResponse_list_ChunkItem__: {
-            /**
-             * Code
-             * @default 0
-             */
-            code: number;
-            /**
-             * Message
-             * @default success
-             */
-            message: string;
-            /** Data */
-            data?: components["schemas"]["ChunkItem"][] | null;
             /**
              * Request Id
              * @default
@@ -1736,8 +1752,17 @@ export interface components {
             char_start: number;
             /** Char End */
             char_end: number;
+            /** Token Estimate */
+            token_estimate: number;
+            /** Index Generation */
+            index_generation: number;
             /** Is Active */
             is_active: boolean;
+            /**
+             * Embedding Status
+             * @enum {string}
+             */
+            embedding_status: "vector" | "fallback" | "missing";
         };
         /** ConversationCreate */
         ConversationCreate: {
@@ -1904,6 +1929,7 @@ export interface components {
              * @default false
              */
             is_active_index: boolean;
+            ocr: components["schemas"]["OcrSummary"];
         };
         /** DocumentSummary */
         DocumentSummary: {
@@ -2247,6 +2273,22 @@ export interface components {
             /** Top N */
             top_n?: number | null;
         };
+        /** OcrSummary */
+        OcrSummary: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "disabled" | "pending" | "not_required" | "completed" | "low_confidence" | "unavailable";
+            /** Language */
+            language: string;
+            /** Average Confidence */
+            average_confidence?: number | null;
+            /** Review Required */
+            review_required: boolean;
+            /** Message */
+            message: string;
+        };
         /** PaginatedData[AdminDocumentItem] */
         PaginatedData_AdminDocumentItem_: {
             /** Items */
@@ -2262,6 +2304,17 @@ export interface components {
         PaginatedData_AdminTaskItem_: {
             /** Items */
             items: components["schemas"]["AdminTaskItem"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** PaginatedData[ChunkItem] */
+        PaginatedData_ChunkItem_: {
+            /** Items */
+            items: components["schemas"]["ChunkItem"][];
             /** Page */
             page: number;
             /** Page Size */
@@ -4236,9 +4289,11 @@ export interface operations {
             };
         };
     };
-    get_chunks_api_v1_documents__document_id__chunks_get: {
+    get_original_api_v1_documents__document_id__original_get: {
         parameters: {
-            query?: never;
+            query?: {
+                download?: boolean;
+            };
             header?: never;
             path: {
                 document_id: string;
@@ -4253,7 +4308,59 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse_list_ChunkItem__"];
+                    "application/json": unknown;
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    get_chunks_api_v1_documents__document_id__chunks_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_PaginatedData_ChunkItem__"];
                 };
             };
             /** @description 未登录、Token 无效或已过期 */

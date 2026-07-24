@@ -2496,6 +2496,81 @@
         ]
       }
     },
+    "/documents/{document_id}/original": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Get Original",
+        "operationId": "get_original_api_v1_documents__document_id__original_get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "download",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Download"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录、Token 无效或已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "已登录但权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/documents/{document_id}/chunks": {
       "get": {
         "tags": [
@@ -2512,6 +2587,29 @@
               "type": "string",
               "title": "Document Id"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
           }
         ],
         "responses": {
@@ -2520,7 +2618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse_list_ChunkItem__"
+                  "$ref": "#/components/schemas/APIResponse_PaginatedData_ChunkItem__"
                 }
               }
             }
@@ -6247,6 +6345,37 @@
         "type": "object",
         "title": "APIResponse[PaginatedData[AdminTaskItem]]"
       },
+      "APIResponse_PaginatedData_ChunkItem__": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaginatedData_ChunkItem_"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "APIResponse[PaginatedData[ChunkItem]]"
+      },
       "APIResponse_PaginatedData_DocumentSummary__": {
         "properties": {
           "code": {
@@ -6504,41 +6633,6 @@
         },
         "type": "object",
         "title": "APIResponse[list[AvailableModelResponse]]"
-      },
-      "APIResponse_list_ChunkItem__": {
-        "properties": {
-          "code": {
-            "type": "integer",
-            "title": "Code",
-            "default": 0
-          },
-          "message": {
-            "type": "string",
-            "title": "Message",
-            "default": "success"
-          },
-          "data": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ChunkItem"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Data"
-          },
-          "request_id": {
-            "type": "string",
-            "title": "Request Id",
-            "default": ""
-          }
-        },
-        "type": "object",
-        "title": "APIResponse[list[ChunkItem]]"
       },
       "APIResponse_list_dict_str__object___": {
         "properties": {
@@ -7147,9 +7241,26 @@
             "type": "integer",
             "title": "Char End"
           },
+          "token_estimate": {
+            "type": "integer",
+            "title": "Token Estimate"
+          },
+          "index_generation": {
+            "type": "integer",
+            "title": "Index Generation"
+          },
           "is_active": {
             "type": "boolean",
             "title": "Is Active"
+          },
+          "embedding_status": {
+            "type": "string",
+            "enum": [
+              "vector",
+              "fallback",
+              "missing"
+            ],
+            "title": "Embedding Status"
           }
         },
         "type": "object",
@@ -7159,7 +7270,10 @@
           "content",
           "char_start",
           "char_end",
-          "is_active"
+          "token_estimate",
+          "index_generation",
+          "is_active",
+          "embedding_status"
         ],
         "title": "ChunkItem"
       },
@@ -7683,6 +7797,9 @@
             "type": "boolean",
             "title": "Is Active Index",
             "default": false
+          },
+          "ocr": {
+            "$ref": "#/components/schemas/OcrSummary"
           }
         },
         "type": "object",
@@ -7702,7 +7819,8 @@
           "chunk_size",
           "chunk_overlap",
           "language",
-          "ocr_enabled"
+          "ocr_enabled",
+          "ocr"
         ],
         "title": "DocumentDetail"
       },
@@ -8712,6 +8830,55 @@
         "type": "object",
         "title": "ModelUpdate"
       },
+      "OcrSummary": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "pending",
+              "not_required",
+              "completed",
+              "low_confidence",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "average_confidence": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Confidence"
+          },
+          "review_required": {
+            "type": "boolean",
+            "title": "Review Required"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "language",
+          "review_required",
+          "message"
+        ],
+        "title": "OcrSummary"
+      },
       "PaginatedData_AdminDocumentItem_": {
         "properties": {
           "items": {
@@ -8773,6 +8940,37 @@
           "total"
         ],
         "title": "PaginatedData[AdminTaskItem]"
+      },
+      "PaginatedData_ChunkItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ChunkItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "title": "PaginatedData[ChunkItem]"
       },
       "PaginatedData_DocumentSummary_": {
         "properties": {
