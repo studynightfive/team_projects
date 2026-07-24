@@ -901,8 +901,8 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
     recordCheck(
       checks,
-      "继续工作与常用知识板块存在",
-      metrics.homeInformationSectionCount === 2,
+      "常用知识板块存在",
+      metrics.homeInformationSectionCount === 1,
       metrics.homeInformationSectionCount,
     );
     recordCheck(
@@ -922,21 +922,21 @@ const verifyMetrics = (testCase, metrics, drawer, loginState) => {
     );
     recordCheck(
       checks,
-      "四张管理卡均有 Sparkline",
-      metrics.sparklineCount === 4,
+      "管理指标不展示虚构趋势",
+      metrics.sparklineCount === 0,
       metrics.sparklineCount,
     );
     recordCheck(
       checks,
-      "Sparkline 共 24 个数据点",
-      metrics.sparklinePointCount === 24,
-      metrics.sparklinePointCount,
+      "效率与质量包含三项真实口径",
+      metrics.qualityFactCount === 3,
+      metrics.qualityFactCount,
     );
     recordCheck(
       checks,
-      "审计表头使用 slate-100",
-      metrics.auditHeaderBackground === "rgb(241, 245, 249)",
-      metrics.auditHeaderBackground,
+      "部门知识贡献榜存在",
+      metrics.leaderboardTableCount === 1,
+      metrics.leaderboardTableCount,
     );
     recordCheck(
       checks,
@@ -1292,6 +1292,8 @@ const run = async () => {
             sparklineCount: document.querySelectorAll(".admin-stat-grid .sparkline").length,
             sparklinePointCount: document.querySelectorAll(".admin-stat-grid .sparkline-point").length,
             auditHeaderBackground: style(".audit-table thead th")?.backgroundColor,
+            qualityFactCount: document.querySelectorAll(".quality-card .dashboard-facts > div").length,
+            leaderboardTableCount: document.querySelectorAll(".leaderboard-table").length,
             adminRefreshButtonCount: document.querySelectorAll(".admin-heading-actions button").length,
             loginBrandRatio: loginBrandWidth / window.innerWidth,
             loginFormWidth: rect(".login-form-container")?.width ?? 0,

@@ -134,19 +134,11 @@ export interface PermissionItem {
   readonly action: string;
 }
 
-export interface DashboardMetrics {
-  readonly total_users: number;
-  readonly active_users: number;
-  readonly disabled_users: number;
-  readonly total_roles: number;
-  readonly total_knowledge_bases: number;
-  readonly total_documents: number;
-  readonly total_conversations: number;
-  readonly total_chats_today: number;
-  readonly success_rate: number;
-  readonly avg_response_time_ms: number;
-  readonly total_tokens_used: number;
-}
+export type DashboardMetrics = Readonly<ApiSchema<"DashboardMetrics">>;
+export type DepartmentLeaderboardItem = Readonly<
+  ApiSchema<"DepartmentLeaderboardItem">
+>;
+export type DashboardDays = ApiSchema<"DashboardPeriod">["days"];
 
 export interface AuditLogItem {
   readonly id: string;
@@ -408,9 +400,17 @@ export const setAdminRolePermissions = async (
   return unwrap(response.data);
 };
 
-export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
+export const getDashboardMetrics = async (
+  params: {
+    readonly days?: DashboardDays;
+    readonly department_id?: string;
+    readonly leaderboard_page?: number;
+    readonly leaderboard_page_size?: number;
+  } = {},
+): Promise<DashboardMetrics> => {
   const response = await apiClient.get<ApiResponse<DashboardMetrics>>(
     "/v1/admin/dashboard",
+    { params },
   );
   return unwrap(response.data);
 };

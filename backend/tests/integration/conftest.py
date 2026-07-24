@@ -20,6 +20,7 @@ import app.common.models  # noqa: F401
 import app.documents.models  # noqa: F401
 import app.knowledge.models  # noqa: F401
 import app.models.repository  # noqa: F401
+import app.rag.metrics  # noqa: F401
 import app.rag.search.repository  # noqa: F401
 from app.common.database import Base
 

@@ -450,9 +450,53 @@ export const mockAdapter: AxiosAdapter = (config) => {
       total_documents: documents.length,
       total_conversations: 1,
       total_chats_today: 2,
-      success_rate: 0,
-      avg_response_time_ms: 0,
+      success_rate: 92.3,
+      avg_response_time_ms: 860,
       total_tokens_used: 0,
+      period: {
+        days: 30,
+        started_at: "2026-06-19T12:00:00+08:00",
+        ended_at: now,
+      },
+      scope: {
+        department_id: null,
+        department_name: "全部部门",
+      },
+      knowledge_coverage: {
+        rate: 75,
+        numerator: 3,
+        denominator: 4,
+      },
+      active_searches: 28,
+      effective_answers: 21,
+      unanswered_queries: 3,
+      document_processing: {
+        rate: 92.3,
+        numerator: 12,
+        denominator: 13,
+      },
+      answer_cache: {
+        rate: 33.3,
+        numerator: 7,
+        denominator: 21,
+      },
+      response_time: {
+        average_ms: 860,
+        sample_count: 28,
+      },
+      department_leaderboard: {
+        items: departments.map((department, index) => ({
+          rank: index + 1,
+          department_id: department.id,
+          department_name: department.name,
+          points: 30,
+          contribution_count: 3,
+          contributor_count: 2,
+        })),
+        page: 1,
+        page_size: 10,
+        total: departments.length,
+      },
     }));
   }
   if (method === "get" && url === "/v1/audit-logs") return Promise.resolve(ok(config, page(auditLogs)));

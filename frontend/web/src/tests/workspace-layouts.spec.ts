@@ -49,7 +49,7 @@ describe("M01 V2 工作区布局", () => {
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
-  it("管理布局呈现七项导航、四条趋势与审计表", async () => {
+  it("管理布局呈现业务指标、质量口径与部门贡献榜", async () => {
     const { wrapper } = await renderAppAt("/admin");
     const navigationLabels = wrapper
       .findAll(".app-sidebar .sidebar-navigation-item")
@@ -61,13 +61,13 @@ describe("M01 V2 工作区布局", () => {
     );
     expect(wrapper.findAll("h1")).toHaveLength(1);
     expect(wrapper.findAll(".admin-stat-grid .stat-card")).toHaveLength(4);
-    expect(wrapper.findAll(".admin-stat-grid .sparkline")).toHaveLength(4);
-    expect(wrapper.findAll(".sparkline-point")).toHaveLength(24);
+    expect(wrapper.findAll(".admin-stat-grid .sparkline")).toHaveLength(0);
     expect(wrapper.findAll(".dashboard-facts div")).toHaveLength(3);
     expect(wrapper.find(".governance-list").exists()).toBe(false);
     expect(wrapper.text()).not.toContain("快捷入口");
-    expect(wrapper.findAll(".audit-table tbody tr")).toHaveLength(4);
-    expect(wrapper.text()).toContain("真实后端聚合指标");
+    expect(wrapper.findAll(".leaderboard-table tbody tr")).toHaveLength(1);
+    expect(wrapper.text()).toContain("业务运营看板");
+    expect(wrapper.text()).toContain("答案缓存命中率");
   });
 
   it("侧边栏可折叠并保留明确的 ARIA 状态", async () => {

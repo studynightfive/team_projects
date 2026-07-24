@@ -24,6 +24,7 @@ def test_model_registry_loads_all_business_tables() -> None:
         "notifications",
         "permissions",
         "refresh_tokens",
+        "retrieval_metrics",
         "retrieval_test_datasets",
         "retrieval_test_runs",
         "role_permissions",

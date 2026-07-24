@@ -54,7 +54,7 @@ describe("M01 V2 路由与通用状态", () => {
     userApp.wrapper.unmount();
 
     const adminApp = await renderAppAt("/admin");
-    expect(adminApp.wrapper.get("h1").text()).toBe("平台运行总览");
+    expect(adminApp.wrapper.get("h1").text()).toBe("业务运营看板");
   });
 
   it("403 不渲染管理指标或管理数据", async () => {
