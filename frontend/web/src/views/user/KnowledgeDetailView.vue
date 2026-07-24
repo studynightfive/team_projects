@@ -464,7 +464,7 @@ onBeforeUnmount(() => {
         tabindex="0"
         aria-label="文档目录表格，可横向滚动"
       >
-        <table class="data-table document-table">
+        <table class="data-table document-table mobile-sticky-actions">
           <thead>
             <tr>
               <th scope="col" class="selection-column">
@@ -632,8 +632,23 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 767px) {
+  .upload-drop-zone {
+    min-height: 120px;
+    padding: var(--space-4);
+  }
+
+  .upload-drop-zone strong,
+  .upload-drop-zone span {
+    overflow-wrap: anywhere;
+  }
+
   .chunk-options {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .document-table.mobile-sticky-actions th:last-child,
+  .document-table.mobile-sticky-actions td:last-child {
+    min-width: 96px;
   }
 }
 </style>

@@ -174,7 +174,7 @@ onMounted(loadData);
         description="上传文档后会在这里显示。"
       />
       <div v-else class="data-table-scroll" tabindex="0">
-        <table class="data-table">
+        <table class="data-table mobile-sticky-actions">
           <thead>
             <tr>
               <th scope="col">文档</th>

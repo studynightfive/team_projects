@@ -266,7 +266,7 @@ onMounted(loadData);
         description="请调整关键词或账号状态。"
       />
       <div v-else class="data-table-scroll" tabindex="0">
-        <table class="data-table">
+        <table class="data-table mobile-sticky-actions">
           <thead>
             <tr>
               <th scope="col">用户</th>

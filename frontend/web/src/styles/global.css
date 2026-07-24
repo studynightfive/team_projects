@@ -3139,7 +3139,10 @@ p {
   .workspace-shell,
   .workspace-shell.sidebar-collapsed {
     display: block;
-    padding-bottom: calc(var(--mobile-nav-height) + var(--space-4));
+    padding-bottom: calc(
+      var(--mobile-nav-height) + var(--space-4) +
+        env(safe-area-inset-bottom, 0px)
+    );
   }
 
   .app-sidebar {
@@ -3280,6 +3283,32 @@ p {
     font-size: var(--font-size-12);
   }
 
+  .data-table-scroll {
+    width: 100%;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table.mobile-sticky-actions th:last-child,
+  .data-table.mobile-sticky-actions td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    min-width: 112px;
+    background: var(--color-surface);
+    box-shadow: -8px 0 12px -12px rgb(15 23 42 / 45%);
+  }
+
+  .data-table.mobile-sticky-actions th:last-child {
+    z-index: 2;
+    background: var(--color-surface-subtle);
+  }
+
+  .data-table.mobile-sticky-actions tbody tr:hover td:last-child {
+    background: var(--color-surface-subtle);
+  }
+
   .filter-bar > label {
     width: 100%;
     min-width: 0;
@@ -3291,6 +3320,9 @@ p {
   .filter-bar > label select,
   .filter-input,
   .filter-select,
+  .drawer-form input,
+  .drawer-form select,
+  .drawer-form textarea,
   .segmented-control button {
     min-height: 44px;
   }
@@ -3447,7 +3479,7 @@ p {
   .mobile-bottom-nav {
     position: fixed;
     right: var(--space-3);
-    bottom: var(--space-3);
+    bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
     left: var(--space-3);
     z-index: 30;
     display: grid;
@@ -3535,6 +3567,100 @@ p {
 
   .standalone-state-card {
     padding: var(--space-6);
+  }
+
+  .mobile-drawer-panel {
+    height: 100dvh;
+    padding-top: calc(
+      var(--space-4) + env(safe-area-inset-top, 0px)
+    );
+    padding-bottom: calc(
+      var(--space-4) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  .ant-drawer-content-wrapper {
+    width: 100vw !important;
+    max-width: 100vw;
+  }
+
+  .ant-drawer-header {
+    min-height: 64px;
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .ant-drawer-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ant-drawer-close {
+    display: inline-grid;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    margin-inline-end: var(--space-2);
+    place-items: center;
+  }
+
+  .ant-drawer-body {
+    min-width: 0;
+    padding: var(--space-4);
+    padding-bottom: calc(
+      var(--space-4) + env(safe-area-inset-bottom, 0px)
+    );
+    overflow-x: hidden;
+  }
+
+  .ant-drawer-footer {
+    padding: var(--space-3) var(--space-4);
+    padding-bottom: calc(
+      var(--space-3) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  .ant-modal {
+    top: max(var(--space-3), env(safe-area-inset-top, 0px));
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px);
+    margin: 0 auto;
+    padding-bottom: calc(
+      var(--space-3) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  .ant-modal-content {
+    max-height: calc(
+      100dvh - 24px - env(safe-area-inset-top, 0px) -
+        env(safe-area-inset-bottom, 0px)
+    );
+    padding: var(--space-4);
+    overflow-y: auto;
+  }
+
+  .ant-modal-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .ant-modal-header {
+    padding-inline-end: 44px;
+  }
+
+  .ant-modal-footer,
+  .ant-modal-confirm-btns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  .ant-modal-footer .ant-btn,
+  .ant-modal-confirm-btns .ant-btn {
+    width: 100%;
+    min-height: 44px;
+    margin-inline-start: 0;
   }
 }
 

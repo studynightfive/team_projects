@@ -783,11 +783,14 @@ onBeforeUnmount(() => {
     left: 0;
     z-index: 90;
     display: none;
-    max-height: min(80vh, 640px);
+    max-height: min(80dvh, 640px);
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
     margin: 0;
     padding: var(--space-4);
+    padding-bottom: calc(
+      var(--space-4) + env(safe-area-inset-bottom, 0px)
+    );
     overflow-y: auto;
     border: 1px solid var(--color-border);
     border-bottom: 0;
@@ -868,7 +871,8 @@ onBeforeUnmount(() => {
     gap: var(--space-2);
     margin: var(--space-1) calc(-1 * var(--space-4))
       calc(-1 * var(--space-4));
-    padding: var(--space-3) var(--space-4) var(--space-4);
+    padding: var(--space-3) var(--space-4)
+      calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--color-border);
     background: var(--color-surface);
   }

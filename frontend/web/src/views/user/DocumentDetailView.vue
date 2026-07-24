@@ -1191,8 +1191,19 @@ record verification evidence</code></pre>
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .chunk-list article dd {
+    overflow-wrap: anywhere;
+  }
+
   .document-content section {
     padding: var(--space-4) 0;
+  }
+
+  .document-content table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
   }
 
   .document-content section.highlighted {
