@@ -11,8 +11,9 @@ import pytest
 from app.rag.answer_cache import (
     AnswerCacheScope,
     get_cached_answer,
+    intents_are_compatible,
     normalize_query,
-    question_similarity,
+    semantic_similarity,
 )
 from app.rag.search.schemas import RagAnswerResponse, SearchHit
 
@@ -27,7 +28,7 @@ def _scope(*, knowledge_version: str = "version-1") -> AnswerCacheScope:
     )
 
 
-def _payload(query: str) -> str:
+def _payload(query: str, embedding: list[float] | None = None) -> str:
     response = RagAnswerResponse(
         answer="依据知识库生成的回答。",
         hits=[
@@ -52,6 +53,7 @@ def _payload(query: str) -> str:
             "took_ms": response.took_ms,
             "model": response.model,
             "generated": True,
+            "query_embedding": embedding,
         },
         ensure_ascii=False,
     )
@@ -85,18 +87,28 @@ def test_normalize_query_removes_polite_prefix_and_punctuation() -> None:
     assert normalize_query("请问：医保结算流程是什么？") == "医保结算流程是什么"
 
 
-def test_question_similarity_accepts_near_duplicate() -> None:
-    similarity = question_similarity(
-        "医疗信息化平台建设包含哪些核心模块？",
-        "医疗信息化平台建设包含哪些核心模块",
+def test_semantic_similarity_uses_cosine_score() -> None:
+    assert semantic_similarity([1.0, 0.0], [0.99, 0.1]) > 0.99
+    assert semantic_similarity([1.0, 0.0], [0.0, 1.0]) == 0.0
+
+
+def test_intent_guard_rejects_negation_and_entity_changes() -> None:
+    assert intents_are_compatible(
+        "医疗信息化平台包含哪些模块",
+        "医院信息系统由哪些部分组成",
     )
-    assert similarity == 1.0
+    assert not intents_are_compatible(
+        "医保结算允许撤销吗",
+        "医保结算不允许撤销吗",
+    )
+    assert not intents_are_compatible(
+        "HIS 系统如何部署",
+        "EMR 系统如何部署",
+    )
 
 
 def test_scope_digest_changes_with_knowledge_version() -> None:
-    assert _scope(knowledge_version="v1").digest() != _scope(
-        knowledge_version="v2"
-    ).digest()
+    assert _scope(knowledge_version="v1").digest() != _scope(knowledge_version="v2").digest()
 
 
 @pytest.mark.asyncio
@@ -122,8 +134,11 @@ async def test_exact_cache_hit(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_similar_cache_hit(monkeypatch: pytest.MonkeyPatch) -> None:
     client = _FakeRedis(
         candidates=[
-            _payload("医疗信息化平台建设包括哪些核心模块"),
-            _payload("完全无关的教育系统问题"),
+            _payload(
+                "医院信息化平台由哪些核心部分组成",
+                [0.99, 0.1, 0.0],
+            ),
+            _payload("完全无关的教育系统问题", [0.0, 0.0, 1.0]),
         ]
     )
     monkeypatch.setattr(
@@ -138,12 +153,36 @@ async def test_similar_cache_hit(monkeypatch: pytest.MonkeyPatch) -> None:
     result = await get_cached_answer(
         scope=_scope(),
         query="医疗信息化平台建设包含哪些核心模块？",
+        query_embedding=[1.0, 0.0, 0.0],
     )
 
     assert result is not None
     assert result.cache_match == "similar"
     assert result.cache_similarity is not None
-    assert result.cache_similarity > 0.92
+    assert result.cache_similarity > 0.99
+
+
+@pytest.mark.asyncio
+async def test_semantic_cache_rejects_opposite_intent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _FakeRedis(
+        candidates=[
+            _payload("医保结算不允许撤销吗", [1.0, 0.0]),
+        ]
+    )
+    monkeypatch.setattr(
+        "app.rag.answer_cache._redis",
+        AsyncMock(return_value=client),
+    )
+
+    result = await get_cached_answer(
+        scope=_scope(),
+        query="医保结算允许撤销吗",
+        query_embedding=[1.0, 0.0],
+    )
+
+    assert result is None
 
 
 @pytest.mark.asyncio

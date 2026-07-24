@@ -3,6 +3,7 @@ import { nextTick } from "vue";
 import { describe, expect, it, vi } from "vitest";
 
 import SafeMarkdown from "../components/common/SafeMarkdown.vue";
+import AiSearchBox from "../components/search/AiSearchBox.vue";
 import SearchContextPanel from "../components/search/SearchContextPanel.vue";
 import { aiSearchMockData } from "../mocks/ai-search";
 import { runAiSearch } from "../services/ai-search";
@@ -10,6 +11,63 @@ import { classifyUnsafeQuery } from "../services/query-safety";
 import { renderAppAt } from "./renderApp";
 
 describe("AI 搜索工作台关键链路", () => {
+  it("可添加多个知识库并阻止同名知识库进入检索范围", async () => {
+    const wrapper = mount(AiSearchBox, {
+      props: {
+        query: "医疗信息化有哪些核心模块",
+        mode: "smart",
+        sources: ["knowledge"],
+        modelId: "chat-1",
+        workspaceIds: ["kb-1"],
+        modelOptions: [
+          { value: "chat-1", label: "问答模型", description: "测试模型" },
+        ],
+        knowledgeBaseOptions: [
+          {
+            id: "kb-1",
+            name: "医疗知识库",
+            documentCount: 3,
+            readyDocumentCount: 3,
+            status: "active",
+          },
+          {
+            id: "kb-2",
+            name: "医保规范",
+            documentCount: 2,
+            readyDocumentCount: 2,
+            status: "active",
+          },
+          {
+            id: "kb-3",
+            name: " 医疗知识库 ",
+            documentCount: 1,
+            readyDocumentCount: 1,
+            status: "active",
+          },
+        ],
+      },
+    });
+
+    await wrapper.get(".knowledge-add-button").trigger("click");
+    const firstMenu = wrapper.findAll(".knowledge-add-menu button");
+    await firstMenu[0]?.trigger("click");
+    expect(wrapper.emitted("update:workspace-ids")?.at(-1)?.[0]).toEqual([
+      "kb-1",
+      "kb-2",
+    ]);
+
+    await wrapper.setProps({ workspaceIds: ["kb-1", "kb-2"] });
+    await wrapper.get(".knowledge-add-button").trigger("click");
+    await wrapper.get(".knowledge-add-menu button").trigger("click");
+    expect(wrapper.emitted("notice")?.at(-1)?.[0]).toBe(
+      "不能同时选择同名知识库",
+    );
+
+    await wrapper.get("form").trigger("submit");
+    const request = wrapper.emitted("submit")?.at(-1)?.[0];
+    expect(request).toMatchObject({ workspaceIds: ["kb-1", "kb-2"] });
+  });
+
   it("安全渲染 Markdown 并把有效引用标记转换为可点击按钮", async () => {
     const wrapper = mount(SafeMarkdown, {
       props: {

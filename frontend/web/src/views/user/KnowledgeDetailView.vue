@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { App as AntApp } from "ant-design-vue";
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { isRealApiMode } from "../../config/runtime";
@@ -18,11 +25,15 @@ import { useSessionStore } from "../../stores/session";
 import { createExportTask } from "../../services/downloads";
 import {
   batchReprocessDocuments,
+  checkDocumentNameConflicts,
+  getUploadTaskItems,
   listDocuments,
   listKnowledgeBases,
   uploadDocuments,
   type ChunkStrategy,
   type DocumentBatchTaskItem,
+  type DocumentDuplicatePolicy,
+  type DocumentNameConflict,
   type DocumentRecord,
   type KnowledgeBaseRecord,
 } from "../../services/knowledge";
@@ -49,6 +60,9 @@ const chunkOverlap = ref(120);
 const isExporting = ref(false);
 const isReprocessing = ref(false);
 const batchTasks = ref<readonly DocumentBatchTaskItem[]>([]);
+const batchTaskTitle = ref("任务处理进度");
+const uploadConflicts = ref<readonly DocumentNameConflict[]>([]);
+const pendingUploadFiles = ref<readonly File[]>([]);
 
 let loadController: AbortController | undefined;
 
@@ -212,9 +226,8 @@ const reprocessSelected = async (): Promise<void> => {
   if (selectedDocumentIds.value.length === 0) return;
   isReprocessing.value = true;
   try {
-    batchTasks.value = await batchReprocessDocuments(
-      selectedDocumentIds.value,
-    );
+    batchTasks.value = await batchReprocessDocuments(selectedDocumentIds.value);
+    batchTaskTitle.value = "重新处理进度";
     message.success("文档已进入重新处理队列");
     await loadRealDetail();
   } catch (error: unknown) {
@@ -269,31 +282,77 @@ const consumeUploadActionQuery = async (): Promise<void> => {
   });
 };
 
-const uploadFiles = async (files: readonly File[]): Promise<void> => {
-  if (!isRealApiMode || files.length === 0) return;
-  if (chunkOverlap.value >= chunkSize.value) {
-    message.warning("重叠字符必须小于切分大小");
-    return;
-  }
-
+const performUpload = async (
+  files: readonly File[],
+  duplicatePolicy: DocumentDuplicatePolicy,
+): Promise<void> => {
   isUploading.value = true;
   try {
-    const results = await uploadDocuments(String(route.params.kb_id ?? ""), files, {
-      chunkStrategy: chunkStrategy.value,
-      chunkSize: chunkSize.value,
-      chunkOverlap: chunkOverlap.value,
-    });
+    const results = await uploadDocuments(
+      String(route.params.kb_id ?? ""),
+      files,
+      {
+        chunkStrategy: chunkStrategy.value,
+        chunkSize: chunkSize.value,
+        chunkOverlap: chunkOverlap.value,
+        duplicatePolicy,
+      },
+    );
+    batchTasks.value = await getUploadTaskItems(results);
+    batchTaskTitle.value = "文档上传处理进度";
     const readyCount = results.filter(
       (item) => item.document.status === "ready",
     ).length;
-    message.success(`已上传 ${results.length} 个文档，${readyCount} 个已完成索引`);
+    message.success(
+      `已上传 ${results.length} 个文档，${readyCount} 个已完成索引`,
+    );
     uploadResetToken.value += 1;
+    uploadConflicts.value = [];
+    pendingUploadFiles.value = [];
     await loadRealDetail();
   } catch (error: unknown) {
     message.error(toPublicApiError(error).message);
   } finally {
     isUploading.value = false;
   }
+};
+
+const uploadFiles = async (files: readonly File[]): Promise<void> => {
+  if (!isRealApiMode || files.length === 0) return;
+  if (chunkOverlap.value >= chunkSize.value) {
+    message.warning("重叠字符必须小于切分大小");
+    return;
+  }
+  isUploading.value = true;
+  try {
+    const conflicts = await checkDocumentNameConflicts(
+      String(route.params.kb_id ?? ""),
+      files,
+    );
+    if (conflicts.length > 0) {
+      pendingUploadFiles.value = files;
+      uploadConflicts.value = conflicts;
+      return;
+    }
+  } catch (error: unknown) {
+    message.error(toPublicApiError(error).message);
+    return;
+  } finally {
+    isUploading.value = false;
+  }
+  await performUpload(files, "rename");
+};
+
+const resolveUploadConflicts = (
+  duplicatePolicy: DocumentDuplicatePolicy,
+): void => {
+  if (pendingUploadFiles.value.length === 0) return;
+  void performUpload(pendingUploadFiles.value, duplicatePolicy);
+};
+
+const cancelUploadConflicts = (): void => {
+  uploadConflicts.value = [];
+  pendingUploadFiles.value = [];
 };
 
 watch(
@@ -354,7 +413,11 @@ onBeforeUnmount(() => {
           @click="exportSelected"
         >
           <Download :size="17" aria-hidden="true" />
-          {{ isExporting ? "正在创建任务" : `导出所选（${selectedDocumentIds.length}）` }}
+          {{
+            isExporting
+              ? "正在创建任务"
+              : `导出所选（${selectedDocumentIds.length}）`
+          }}
         </button>
       </template>
     </PageHeader>
@@ -408,7 +471,10 @@ onBeforeUnmount(() => {
         <DocumentUploadQueue
           :uploading="isUploading"
           :reset-token="uploadResetToken"
+          :conflicts="uploadConflicts"
           @submit="uploadFiles"
+          @resolve-conflicts="resolveUploadConflicts"
+          @cancel-conflicts="cancelUploadConflicts"
         />
       </div>
 
@@ -424,24 +490,36 @@ onBeforeUnmount(() => {
         </label>
         <label>
           <span>切分大小</span>
-          <input v-model.number="chunkSize" type="number" min="100" max="4000" />
+          <input
+            v-model.number="chunkSize"
+            type="number"
+            min="100"
+            max="4000"
+          />
         </label>
         <label>
           <span>重叠字符</span>
-          <input v-model.number="chunkOverlap" type="number" min="0" max="1000" />
+          <input
+            v-model.number="chunkOverlap"
+            type="number"
+            min="0"
+            max="1000"
+          />
         </label>
       </div>
 
       <div v-if="canReprocessKnowledge" class="reprocess-guide">
         <RotateCcw :size="18" aria-hidden="true" />
         <p>
-          更换 Embedding 模型或修改切分配置后，请勾选文档重新处理，完成前旧索引不会混入新模型向量。
+          更换 Embedding
+          模型或修改切分配置后，请勾选文档重新处理，完成前旧索引不会混入新模型向量。
         </p>
       </div>
 
       <DocumentTaskProgress
         v-if="batchTasks.length > 0"
         :items="batchTasks"
+        :title="batchTaskTitle"
         @finished="loadRealDetail"
       />
 
@@ -562,8 +640,9 @@ onBeforeUnmount(() => {
 
       <template #footer>
         <span>
-          当前展示 {{ filteredDocuments.length }}
-          条{{ isRealApiMode ? "真实文档" : "固定样例" }}
+          当前展示 {{ filteredDocuments.length }} 条{{
+            isRealApiMode ? "真实文档" : "固定样例"
+          }}
         </span>
         <span>选中 {{ selectedDocumentIds.length }} 条</span>
       </template>

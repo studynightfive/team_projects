@@ -9,7 +9,7 @@ import type {
   SearchRequest,
   SearchSourceType,
 } from "../../types/ai-search";
-import { Send, X } from "../icons";
+import { Plus, Send, X } from "../icons";
 
 const props = withDefaults(
   defineProps<{
@@ -17,7 +17,7 @@ const props = withDefaults(
     mode: SearchMode;
     sources: readonly SearchSourceType[];
     modelId: string;
-    workspaceId?: string;
+    workspaceIds?: readonly string[];
     modelOptions: readonly ModelOption[];
     knowledgeBaseOptions?: readonly KnowledgeBaseOption[];
     requiresWorkspace?: boolean;
@@ -30,7 +30,7 @@ const props = withDefaults(
     disabled: false,
     compact: false,
     requiresWorkspace: true,
-    workspaceId: undefined,
+    workspaceIds: () => [],
     knowledgeBaseOptions: () => [],
   },
 );
@@ -39,17 +39,21 @@ const emit = defineEmits<{
   "update:query": [value: string];
   "update:sources": [value: SearchSourceType[]];
   "update:model-id": [value: string];
-  "update:workspace-id": [value: string | undefined];
+  "update:workspace-ids": [value: string[]];
   submit: [request: SearchRequest];
   notice: [message: string];
 }>();
 
 const textareaRef = ref<HTMLTextAreaElement>();
-const selectedKnowledgeBaseLabel = computed(() => {
-  const selected = props.knowledgeBaseOptions.find(
-    (item) => item.id === props.workspaceId,
-  );
-  return selected?.name ?? props.knowledgeBaseOptions[0]?.name ?? "暂无可用知识库";
+const knowledgeMenuOpen = ref(false);
+const selectedKnowledgeBases = computed(() =>
+  props.workspaceIds
+    .map((id) => props.knowledgeBaseOptions.find((item) => item.id === id))
+    .filter((item): item is KnowledgeBaseOption => item !== undefined),
+);
+const availableKnowledgeBases = computed(() => {
+  const selectedIds = new Set(props.workspaceIds);
+  return props.knowledgeBaseOptions.filter((item) => !selectedIds.has(item.id));
 });
 const querySafetyMessage = computed(() => getQuerySafetyMessage(props.query));
 const canSubmit = computed(
@@ -57,8 +61,7 @@ const canSubmit = computed(
     props.query.trim().length > 0 &&
     querySafetyMessage.value === undefined &&
     props.sources.length > 0 &&
-    (!props.requiresWorkspace ||
-      (props.workspaceId !== undefined && props.workspaceId !== "")) &&
+    (!props.requiresWorkspace || props.workspaceIds.length > 0) &&
     !props.busy &&
     !props.disabled,
 );
@@ -77,9 +80,14 @@ watch(() => props.query, resizeTextarea, { immediate: true });
 watch(
   () => props.knowledgeBaseOptions,
   (options) => {
-    if (options.length === 0) return;
-    const exists = options.some((item) => item.id === props.workspaceId);
-    if (!exists) emit("update:workspace-id", options[0]?.id);
+    const validIds = props.workspaceIds.filter((id) =>
+      options.some((item) => item.id === id),
+    );
+    if (validIds.length === 0 && options[0] !== undefined) {
+      emit("update:workspace-ids", [options[0].id]);
+    } else if (validIds.length !== props.workspaceIds.length) {
+      emit("update:workspace-ids", validIds);
+    }
   },
   { immediate: true },
 );
@@ -93,6 +101,38 @@ const clearQuery = (): void => {
   textareaRef.value?.focus();
 };
 
+const normalizeKnowledgeBaseName = (name: string): string =>
+  name.trim().toLocaleLowerCase();
+
+const addKnowledgeBase = (knowledgeBase: KnowledgeBaseOption): void => {
+  if (props.workspaceIds.length >= 10) {
+    emit("notice", "一次最多选择 10 个知识库");
+    return;
+  }
+  const normalizedName = normalizeKnowledgeBaseName(knowledgeBase.name);
+  if (
+    selectedKnowledgeBases.value.some(
+      (item) => normalizeKnowledgeBaseName(item.name) === normalizedName,
+    )
+  ) {
+    emit("notice", "不能同时选择同名知识库");
+    return;
+  }
+  emit("update:workspace-ids", [...props.workspaceIds, knowledgeBase.id]);
+  knowledgeMenuOpen.value = false;
+};
+
+const removeKnowledgeBase = (knowledgeBaseId: string): void => {
+  if (props.workspaceIds.length <= 1) {
+    emit("notice", "至少保留一个知识库");
+    return;
+  }
+  emit(
+    "update:workspace-ids",
+    props.workspaceIds.filter((id) => id !== knowledgeBaseId),
+  );
+};
+
 const submit = (): void => {
   if (querySafetyMessage.value !== undefined) {
     textareaRef.value?.focus();
@@ -101,10 +141,7 @@ const submit = (): void => {
   if (!canSubmit.value) {
     if (props.query.trim().length === 0) {
       emit("notice", "请输入要查找的问题");
-    } else if (
-      props.requiresWorkspace &&
-      (props.workspaceId === undefined || props.workspaceId === "")
-    ) {
+    } else if (props.requiresWorkspace && props.workspaceIds.length === 0) {
       emit("notice", "请选择要检索的知识库");
     }
     return;
@@ -114,10 +151,8 @@ const submit = (): void => {
     query: props.query.trim(),
     mode: props.mode,
     sources: [...props.sources],
-    workspaceId:
-      props.workspaceId !== undefined && props.workspaceId !== ""
-        ? props.workspaceId
-        : undefined,
+    workspaceIds:
+      props.workspaceIds.length > 0 ? [...props.workspaceIds] : undefined,
     modelId: props.modelId,
   });
 };
@@ -184,33 +219,68 @@ defineExpose({
 
     <div class="search-toolbar">
       <div class="search-toolbar-options">
-        <label
+        <div
           v-if="knowledgeBaseOptions.length > 0"
-          class="search-select-label"
+          class="knowledge-base-selector"
         >
-          <span class="visually-hidden">选择知识库</span>
-          <select
-            :value="workspaceId ?? ''"
-            :disabled="disabled || busy"
-            :title="`选择知识库：${selectedKnowledgeBaseLabel}`"
-            @change="
-              emit(
-                'update:workspace-id',
-                ($event.target as HTMLSelectElement).value || undefined,
-              )
-            "
-          >
-            <option
-              v-for="knowledgeBase in knowledgeBaseOptions"
+          <div class="selected-knowledge-list" aria-label="已选知识库">
+            <span
+              v-for="knowledgeBase in selectedKnowledgeBases"
               :key="knowledgeBase.id"
-              :value="knowledgeBase.id"
+              class="selected-knowledge-chip"
             >
-              {{ knowledgeBase.name }}（{{
-                knowledgeBase.readyDocumentCount
-              }}/{{ knowledgeBase.documentCount }}）
-            </option>
-          </select>
-        </label>
+              <span>{{ knowledgeBase.name }}</span>
+              <button
+                type="button"
+                :title="`移除 ${knowledgeBase.name}`"
+                :aria-label="`移除 ${knowledgeBase.name}`"
+                :disabled="disabled || busy || workspaceIds.length <= 1"
+                @click="removeKnowledgeBase(knowledgeBase.id)"
+              >
+                <X :size="13" aria-hidden="true" />
+              </button>
+            </span>
+          </div>
+          <div class="knowledge-add-wrap">
+            <button
+              class="knowledge-add-button"
+              type="button"
+              title="添加知识库"
+              aria-label="添加知识库"
+              :aria-expanded="knowledgeMenuOpen"
+              :disabled="
+                disabled ||
+                  busy ||
+                  availableKnowledgeBases.length === 0 ||
+                  workspaceIds.length >= 10
+              "
+              @click="knowledgeMenuOpen = !knowledgeMenuOpen"
+            >
+              <Plus :size="16" aria-hidden="true" />
+            </button>
+            <div
+              v-if="knowledgeMenuOpen"
+              class="knowledge-add-menu"
+              role="menu"
+            >
+              <button
+                v-for="knowledgeBase in availableKnowledgeBases"
+                :key="knowledgeBase.id"
+                type="button"
+                role="menuitem"
+                @click="addKnowledgeBase(knowledgeBase)"
+              >
+                <span>{{ knowledgeBase.name }}</span>
+                <small>
+                  {{ knowledgeBase.readyDocumentCount }}/{{
+                    knowledgeBase.documentCount
+                  }}
+                  个文档
+                </small>
+              </button>
+            </div>
+          </div>
+        </div>
         <span v-else class="search-empty-knowledge" aria-live="polite">
           暂无可用知识库
         </span>
@@ -418,6 +488,105 @@ defineExpose({
   gap: var(--space-2);
 }
 
+.knowledge-base-selector,
+.selected-knowledge-list,
+.selected-knowledge-chip {
+  display: flex;
+  align-items: center;
+}
+
+.knowledge-base-selector {
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.selected-knowledge-list {
+  min-width: 0;
+  max-width: min(52vw, 520px);
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.selected-knowledge-chip {
+  max-width: 190px;
+  min-height: 36px;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  font-size: var(--font-size-13);
+}
+
+.selected-knowledge-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-knowledge-chip button,
+.knowledge-add-button {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  padding: 0;
+  place-items: center;
+  border-radius: var(--radius-4);
+  color: var(--color-text-muted);
+  background: transparent;
+}
+
+.knowledge-add-wrap {
+  position: relative;
+}
+
+.knowledge-add-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.knowledge-add-menu {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 0;
+  z-index: 12;
+  display: grid;
+  width: min(320px, calc(100vw - 32px));
+  max-height: 240px;
+  padding: var(--space-1);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.knowledge-add-menu button {
+  display: grid;
+  min-height: 44px;
+  gap: 2px;
+  padding: var(--space-2);
+  border-radius: var(--radius-4);
+  color: var(--color-text);
+  background: transparent;
+  text-align: left;
+}
+
+.knowledge-add-menu button:hover,
+.knowledge-add-menu button:focus-visible {
+  background: var(--color-surface-subtle);
+}
+
+.knowledge-add-menu small {
+  color: var(--color-text-muted);
+}
+
 .search-tool-button,
 .search-select-label select {
   display: inline-flex;
@@ -506,7 +675,21 @@ defineExpose({
 
   .search-toolbar-options {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .knowledge-base-selector,
+  .selected-knowledge-list {
+    width: 100%;
+  }
+
+  .selected-knowledge-list {
+    max-width: none;
+  }
+
+  .knowledge-add-menu {
+    right: 0;
+    left: auto;
   }
 
   .search-tool-button,

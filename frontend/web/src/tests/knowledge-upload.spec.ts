@@ -11,6 +11,8 @@ import KnowledgeDetailView from "../views/user/KnowledgeDetailView.vue";
 const serviceMocks = vi.hoisted(() => ({
   listKnowledgeBases: vi.fn(),
   listDocuments: vi.fn(),
+  checkDocumentNameConflicts: vi.fn(),
+  getUploadTaskItems: vi.fn(),
   uploadDocuments: vi.fn(),
 }));
 
@@ -65,6 +67,8 @@ const documentRecord = {
 const renderKnowledgeDetail = async () => {
   serviceMocks.listKnowledgeBases.mockResolvedValue([personalKnowledgeBase]);
   serviceMocks.listDocuments.mockResolvedValue([documentRecord]);
+  serviceMocks.checkDocumentNameConflicts.mockResolvedValue([]);
+  serviceMocks.getUploadTaskItems.mockResolvedValue([]);
   serviceMocks.uploadDocuments.mockResolvedValue([]);
 
   const pinia = createPinia();
@@ -167,6 +171,7 @@ describe("个人知识库移动上传流程", () => {
         chunkStrategy: "semantic",
         chunkSize: 600,
         chunkOverlap: 80,
+        duplicatePolicy: "rename",
       },
     );
   });

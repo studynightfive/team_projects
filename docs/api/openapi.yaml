@@ -2502,6 +2502,83 @@
         ]
       }
     },
+    "/knowledge-bases/{kb_id}/documents/name-conflicts": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Check Document Name Conflicts",
+        "operationId": "check_document_name_conflicts_api_v1_knowledge_bases__kb_id__documents_name_conflicts_post",
+        "parameters": [
+          {
+            "name": "kb_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Kb Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentNameConflictRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse_DocumentNameConflictResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录、Token 无效或已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "已登录但权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/documents/{document_id}": {
       "get": {
         "tags": [
@@ -6661,6 +6738,37 @@
         "type": "object",
         "title": "APIResponse[DocumentDetail]"
       },
+      "APIResponse_DocumentNameConflictResponse_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocumentNameConflictResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "APIResponse[DocumentNameConflictResponse]"
+      },
       "APIResponse_ExportTaskResponse_": {
         "properties": {
           "code": {
@@ -8795,6 +8903,89 @@
         ],
         "title": "DocumentIdBatchRequest"
       },
+      "DocumentNameConflictItem": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "document_name": {
+            "type": "string",
+            "title": "Document Name"
+          },
+          "conflict_type": {
+            "type": "string",
+            "enum": [
+              "existing",
+              "batch"
+            ],
+            "title": "Conflict Type"
+          },
+          "existing_document_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Existing Document Id"
+          },
+          "existing_document_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Existing Document Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "document_name",
+          "conflict_type"
+        ],
+        "title": "DocumentNameConflictItem"
+      },
+      "DocumentNameConflictRequest": {
+        "properties": {
+          "filenames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Filenames"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filenames"
+        ],
+        "title": "DocumentNameConflictRequest"
+      },
+      "DocumentNameConflictResponse": {
+        "properties": {
+          "conflicts": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentNameConflictItem"
+            },
+            "type": "array",
+            "title": "Conflicts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conflicts"
+        ],
+        "title": "DocumentNameConflictResponse"
+      },
       "DocumentSummary": {
         "properties": {
           "id": {
@@ -10274,6 +10465,22 @@
             ],
             "title": "Kb Id"
           },
+          "kb_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 10,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kb Ids"
+          },
           "top_k": {
             "type": "integer",
             "maximum": 50.0,
@@ -10967,6 +11174,22 @@
               }
             ],
             "title": "Kb Id"
+          },
+          "kb_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 10,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kb Ids"
           },
           "top_k": {
             "type": "integer",

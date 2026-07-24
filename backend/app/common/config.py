@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     rag_answer_max_tokens: int = 1200
     rag_answer_cache_enabled: bool = True
     rag_answer_cache_ttl_seconds: int = Field(default=604800, ge=60, le=2592000)
-    rag_answer_cache_similarity_threshold: float = Field(default=0.92, ge=0.8, le=1.0)
+    rag_answer_cache_similarity_threshold: float = Field(default=0.95, ge=0.85, le=1.0)
     rag_answer_cache_candidate_limit: int = Field(default=50, ge=1, le=200)
 
     # ============================================================

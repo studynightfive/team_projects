@@ -10,6 +10,7 @@ import { CheckCircle2, CircleAlert, LoaderCircle } from "../icons";
 
 const props = defineProps<{
   readonly items: readonly DocumentBatchTaskItem[];
+  readonly title?: string;
 }>();
 
 const emit = defineEmits<{
@@ -102,7 +103,7 @@ onBeforeUnmount(stopPolling);
   <section class="task-progress-panel" aria-live="polite">
     <header>
       <div>
-        <strong>重新处理进度</strong>
+        <strong>{{ title ?? "重新处理进度" }}</strong>
         <span>{{ completedCount }} / {{ rows.length }} 已完成</span>
       </div>
       <b>{{ overallProgress }}%</b>

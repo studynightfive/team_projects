@@ -8,19 +8,22 @@ import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
 import DocumentUploadQueue from "../../components/documents/DocumentUploadQueue.vue";
+import DocumentTaskProgress from "../../components/documents/DocumentTaskProgress.vue";
 import { useListPagination } from "../../composables/useListPagination";
 import {
   createKnowledgeBase,
+  checkDocumentNameConflicts,
+  getUploadTaskItems,
   listKnowledgeBases,
   uploadDocuments,
   updateKnowledgeBase,
   type ChunkStrategy,
+  type DocumentBatchTaskItem,
+  type DocumentDuplicatePolicy,
+  type DocumentNameConflict,
   type KnowledgeBaseRecord,
 } from "../../services/knowledge";
-import {
-  listDepartments,
-  type DepartmentRecord,
-} from "../../services/admin";
+import { listDepartments, type DepartmentRecord } from "../../services/admin";
 import { useSessionStore } from "../../stores/session";
 
 const { message, modal } = AntApp.useApp();
@@ -39,6 +42,9 @@ const uploadResetToken = ref(0);
 const uploadStrategy = ref<ChunkStrategy>("recursive");
 const uploadChunkSize = ref(800);
 const uploadChunkOverlap = ref(120);
+const uploadTasks = ref<readonly DocumentBatchTaskItem[]>([]);
+const uploadConflicts = ref<readonly DocumentNameConflict[]>([]);
+const pendingUploadFiles = ref<readonly File[]>([]);
 const editor = reactive({
   name: "",
   description: "",
@@ -109,7 +115,9 @@ const startCreate = (): void => {
     name: "",
     description: "",
     departmentId:
-      sessionStore.currentUser?.department?.id ?? departments.value[0]?.id ?? "",
+      sessionStore.currentUser?.department?.id ??
+      departments.value[0]?.id ??
+      "",
   });
 };
 
@@ -163,6 +171,35 @@ const startUpload = (item: KnowledgeBaseRecord): void => {
   uploadStrategy.value = "recursive";
   uploadChunkSize.value = 800;
   uploadChunkOverlap.value = 120;
+  uploadTasks.value = [];
+  uploadConflicts.value = [];
+  pendingUploadFiles.value = [];
+};
+
+const performUpload = async (
+  files: readonly File[],
+  duplicatePolicy: DocumentDuplicatePolicy,
+): Promise<void> => {
+  if (uploadKnowledgeBase.value === undefined || files.length === 0) return;
+  uploading.value = true;
+  try {
+    const results = await uploadDocuments(uploadKnowledgeBase.value.id, files, {
+      chunkStrategy: uploadStrategy.value,
+      chunkSize: uploadChunkSize.value,
+      chunkOverlap: uploadChunkOverlap.value,
+      duplicatePolicy,
+    });
+    uploadTasks.value = await getUploadTaskItems(results);
+    uploadConflicts.value = [];
+    pendingUploadFiles.value = [];
+    message.success(`已提交 ${files.length} 个文档处理任务`);
+    uploadResetToken.value += 1;
+    await loadData();
+  } catch (err) {
+    message.error(toPublicApiError(err).message);
+  } finally {
+    uploading.value = false;
+  }
 };
 
 const uploadFiles = async (files: readonly File[]): Promise<void> => {
@@ -173,19 +210,34 @@ const uploadFiles = async (files: readonly File[]): Promise<void> => {
   }
   uploading.value = true;
   try {
-    await uploadDocuments(uploadKnowledgeBase.value.id, files, {
-      chunkStrategy: uploadStrategy.value,
-      chunkSize: uploadChunkSize.value,
-      chunkOverlap: uploadChunkOverlap.value,
-    });
-    message.success(`已提交 ${files.length} 个文档处理任务`);
-    uploadResetToken.value += 1;
-    await loadData();
+    const conflicts = await checkDocumentNameConflicts(
+      uploadKnowledgeBase.value.id,
+      files,
+    );
+    if (conflicts.length > 0) {
+      uploadConflicts.value = conflicts;
+      pendingUploadFiles.value = files;
+      return;
+    }
   } catch (err) {
     message.error(toPublicApiError(err).message);
+    return;
   } finally {
     uploading.value = false;
   }
+  await performUpload(files, "rename");
+};
+
+const resolveUploadConflicts = (
+  duplicatePolicy: DocumentDuplicatePolicy,
+): void => {
+  if (pendingUploadFiles.value.length === 0) return;
+  void performUpload(pendingUploadFiles.value, duplicatePolicy);
+};
+
+const cancelUploadConflicts = (): void => {
+  uploadConflicts.value = [];
+  pendingUploadFiles.value = [];
 };
 
 const confirmArchive = (item: KnowledgeBaseRecord): void => {
@@ -389,17 +441,36 @@ onMounted(loadData);
         <div class="parameter-grid">
           <label>
             <span>切分大小</span>
-            <input v-model.number="uploadChunkSize" type="number" min="100" max="4000" />
+            <input
+              v-model.number="uploadChunkSize"
+              type="number"
+              min="100"
+              max="4000"
+            />
           </label>
           <label>
             <span>重叠字符</span>
-            <input v-model.number="uploadChunkOverlap" type="number" min="0" max="1000" />
+            <input
+              v-model.number="uploadChunkOverlap"
+              type="number"
+              min="0"
+              max="1000"
+            />
           </label>
         </div>
         <DocumentUploadQueue
           :uploading="uploading"
           :reset-token="uploadResetToken"
+          :conflicts="uploadConflicts"
           @submit="uploadFiles"
+          @resolve-conflicts="resolveUploadConflicts"
+          @cancel-conflicts="cancelUploadConflicts"
+        />
+        <DocumentTaskProgress
+          v-if="uploadTasks.length > 0"
+          :items="uploadTasks"
+          title="文档上传处理进度"
+          @finished="loadData"
         />
       </div>
     </Drawer>

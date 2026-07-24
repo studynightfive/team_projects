@@ -38,6 +38,8 @@ const loadError = ref("");
 const busyTaskId = ref<string>();
 
 let loadController: AbortController | undefined;
+let pollTimer: ReturnType<typeof setTimeout> | undefined;
+const activeExportStatuses = new Set<ExportStatus>(["pending", "running"]);
 
 interface DownloadRow {
   readonly id: string;
@@ -141,13 +143,26 @@ const statusTone = (itemStatus: string): string => {
   return "warning";
 };
 
-const loadRealDownloads = async (): Promise<void> => {
+const scheduleProgressPoll = (): void => {
+  if (pollTimer !== undefined) clearTimeout(pollTimer);
+  pollTimer = undefined;
+  if (
+    !isRealApiMode ||
+    !realDownloads.value.some((item) => activeExportStatuses.has(item.status))
+  )
+    return;
+  pollTimer = setTimeout(() => void loadRealDownloads(true), 1000);
+};
+
+const loadRealDownloads = async (silent = false): Promise<void> => {
   if (!isRealApiMode) return;
 
   loadController?.abort();
   loadController = new AbortController();
-  loadState.value = "loading";
-  loadError.value = "";
+  if (!silent) {
+    loadState.value = "loading";
+    loadError.value = "";
+  }
 
   try {
     const page = await listAllExportTasks(loadController.signal);
@@ -158,6 +173,8 @@ const loadRealDownloads = async (): Promise<void> => {
     if (error instanceof DOMException && error.name === "AbortError") return;
     loadError.value = toPublicApiError(error).message;
     loadState.value = "error";
+  } finally {
+    scheduleProgressPoll();
   }
 };
 
@@ -299,6 +316,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  if (pollTimer !== undefined) clearTimeout(pollTimer);
   loadController?.abort();
 });
 </script>
