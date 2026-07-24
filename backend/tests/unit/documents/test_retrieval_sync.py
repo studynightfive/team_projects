@@ -39,18 +39,24 @@ def _make_chunk(**overrides: object) -> DocumentChunk:
 
 
 def test_to_retrieval_chunk_maps_fields() -> None:
-    src = _make_chunk()
+    configured_embedding = deterministic_embedding("知识库段落", 1536)
+    src = _make_chunk(embedding_vector=configured_embedding)
     row = to_retrieval_chunk(src, doc_title="示例文档")
     assert row.chunk_id == src.id
     assert row.doc_id == src.document_id
     assert row.kb_id == src.knowledge_base_id
     assert row.content == src.content
     assert row.page == 2
-    assert row.embedding is not None
-    assert len(row.embedding) == 8
+    assert row.embedding == configured_embedding
     assert row.metadata_["doc_title"] == "示例文档"
     assert row.metadata_["chunk_no"] == 1
     assert row.metadata_["heading"] == "第一节"
+
+
+def test_to_retrieval_chunk_ignores_incompatible_legacy_embedding() -> None:
+    src = _make_chunk(embedding_vector=None)
+    row = to_retrieval_chunk(src, doc_title="示例文档")
+    assert row.embedding is None
 
 
 def test_build_retrieval_metadata() -> None:

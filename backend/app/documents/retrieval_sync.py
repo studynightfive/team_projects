@@ -53,13 +53,23 @@ def to_retrieval_chunk(
 ) -> Chunk:
     """把一条活跃 DocumentChunk 映射为检索 Chunk（纯函数，便于单测）。"""
     service = indexer or DocumentIndexingService()
+    embedding = (
+        list(chunk.embedding_vector)
+        if chunk.embedding_vector is not None
+        else service.deserialize_embedding(chunk.embedding_json)
+    )
+    if (
+        embedding is not None
+        and len(embedding) != service.settings.qwen_embedding_dimensions
+    ):
+        embedding = None
     return Chunk(
         chunk_id=chunk.id,
         doc_id=chunk.document_id,
         kb_id=chunk.knowledge_base_id,
         content=chunk.content,
         page=chunk.page_no,
-        embedding=service.deserialize_embedding(chunk.embedding_json),
+        embedding=embedding,
         metadata_=build_retrieval_metadata(chunk, doc_title=doc_title),
     )
 
