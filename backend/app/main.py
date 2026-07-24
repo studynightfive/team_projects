@@ -5,9 +5,9 @@ import time
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from importlib import resources
 from pathlib import Path
 
-import fastapi_swagger  # type: ignore[import-untyped]
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -57,7 +57,7 @@ from app.users.router import router as users_router
 # 在创建任何 logger 前启用统一 JSON 输出和敏感字段过滤。
 setup_logging(level="DEBUG" if settings.debug else "INFO")
 logger = structlog.get_logger()
-swagger_ui_path = Path(fastapi_swagger.__file__).parent / "resources"
+swagger_ui_path = Path(str(resources.files("fastapi_swagger"))) / "resources"
 
 
 # ============================================================
