@@ -17,6 +17,7 @@ from app.common.schemas import APIResponse
 from app.rag._shared.audit_helper import audit
 from app.rag._shared.permissions import new_request_id
 from app.rag._shared.sse import format_sse
+from app.rag.guard import ensure_safe_query
 from app.rag.search import service
 from app.rag.search.schemas import RagAnswerRequest, SearchRequest
 from app.rag.search.stream import stream_answer
@@ -90,7 +91,7 @@ async def answer_stream_endpoint(
     _perm: None = Depends(require_any_permission("retrieval.search", "chat.use", "chat:write")),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
-    await service.ensure_safe_query(payload.query)
+    await ensure_safe_query(payload.query)
 
     async def event_generator() -> AsyncIterator[str]:
         completed = False
