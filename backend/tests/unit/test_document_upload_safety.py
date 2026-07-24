@@ -169,6 +169,37 @@ async def test_replace_failure_restores_original_and_derived_files(
 
 
 @pytest.mark.asyncio
+async def test_reprocess_idempotency_key_fits_database_column(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _session()
+    service = _service(tmp_path, session, max_upload_bytes=4)
+    document = Document(
+        id=str(uuid.uuid4()),
+        knowledge_base_id=str(uuid.uuid4()),
+        title="待重处理文档",
+        original_filename="document.txt",
+        stored_filename="document.txt",
+        folder_path="",
+        extension=".txt",
+        mime_type="text/plain",
+        size_bytes=1,
+        content_hash="0" * 64,
+        version=1,
+        status=DocumentStatus.FAILED.value,
+        ocr_enabled=True,
+        language="chi_sim+eng",
+    )
+    monkeypatch.setattr(service, "_latest_task", AsyncMock(return_value=None))
+
+    task = await service._create_reprocess_task(document, None)
+
+    assert ":retry:1:" in task.idempotency_key
+    assert len(task.idempotency_key) <= 128
+
+
+@pytest.mark.asyncio
 async def test_upload_permission_can_query_own_kb_task(client) -> None:
     user = _user("document.upload")
     task = TaskResponse(

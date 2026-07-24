@@ -5,7 +5,11 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 import NotificationPreview from "../components/NotificationPreview.vue";
 import WorkspaceShell from "../components/WorkspaceShell.vue";
 import { CircleHelp, Search } from "../components/icons";
-import { userMobileNavigation, userNavigation } from "../data/foundation";
+import {
+  adminNavigation,
+  userMobileNavigation,
+  userNavigation,
+} from "../data/foundation";
 import { useSessionStore } from "../stores/session";
 
 const route = useRoute();
@@ -19,6 +23,12 @@ const currentTitle = computed(() =>
 );
 const currentParentTitle = computed(() =>
   typeof route.meta.parentTitle === "string" ? route.meta.parentTitle : "首页",
+);
+const adminEntryPath = computed(
+  () =>
+    adminNavigation.find((item) =>
+      sessionStore.hasAnyPermission(item.requiredPermissions),
+    )?.to,
 );
 const handleSearchShortcut = (event: KeyboardEvent): void => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -52,11 +62,11 @@ onBeforeUnmount(() =>
     :identity-role="sessionStore.roleLabel"
     :identity-initial="sessionStore.initial"
     :workspace-switch="
-      sessionStore.isAdmin
+      adminEntryPath !== undefined
         ? {
           label: '管理中心',
           mobileLabel: '进入管理中心',
-          to: '/admin',
+          to: adminEntryPath,
         }
         : undefined
     "
@@ -94,9 +104,9 @@ onBeforeUnmount(() =>
           </RouterLink>
           <span class="topbar-divider" aria-hidden="true" />
           <RouterLink
-            v-if="sessionStore.isAdmin"
+            v-if="adminEntryPath !== undefined"
             class="topbar-workspace-link"
-            to="/admin"
+            :to="adminEntryPath"
           >
             管理中心
           </RouterLink>
