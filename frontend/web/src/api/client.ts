@@ -17,6 +17,16 @@ export interface PublicApiError {
   readonly status?: number;
 }
 
+export class FetchApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "FetchApiError";
+    this.status = status;
+  }
+}
+
 interface ApiClientOptions {
   readonly useMock?: boolean;
   /** 仅供测试注入传输层，生产环境使用 Axios 默认适配器。 */
@@ -154,6 +164,12 @@ export const createApiClient = (
  * 只向界面暴露安全、稳定的信息，不透传服务端响应体、请求配置或内部堆栈。
  */
 export const toPublicApiError = (error: unknown): PublicApiError => {
+  if (error instanceof FetchApiError) {
+    return {
+      message: error.message || GENERIC_ERROR_MESSAGE,
+      status: error.status,
+    };
+  }
   if (error instanceof ApiResponseError) {
     return { message: error.message || GENERIC_ERROR_MESSAGE };
   }

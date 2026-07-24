@@ -55,6 +55,16 @@ async def test_answer_does_not_scan_twice_in_internal_search(
     )
     monkeypatch.setattr(search_service, "ensure_safe_query", guard)
     monkeypatch.setattr(search_service, "get_cached_answer", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        search_service,
+        "_build_answer_cache_scope",
+        AsyncMock(
+            return_value=(
+                SimpleNamespace(),
+                RagAnswerRequest(query="正常问题", mode="keyword", kb_id="kb-1"),
+            )
+        ),
+    )
     monkeypatch.setattr(search_service, "search", search)
 
     await search_service.answer(

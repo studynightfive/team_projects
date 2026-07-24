@@ -80,6 +80,7 @@ export {
   ShieldX,
   SlidersHorizontal,
   Sparkles,
+  Square,
   SquareLibrary,
   Star,
   Sun,
