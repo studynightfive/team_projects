@@ -132,6 +132,7 @@ def query_intent_features(query: str) -> dict[str, object]:
 
 
 def intents_are_compatible(left: str, right: str) -> bool:
+    """在向量相似之外校验会改变答案方向的确定性特征。"""
     left_features = query_intent_features(left)
     right_features = query_intent_features(right)
     left_type = left_features["question_type"]
@@ -203,6 +204,7 @@ async def get_cached_answer(
     client = await _redis()
     try:
         if check_exact:
+            # 精确键不需要调用 Embedding，是重复提问的最快路径。
             raw = await client.get(exact_key)
             if raw:
                 return _decode_response(raw, cache_match="exact", similarity=1.0)
@@ -237,6 +239,7 @@ async def get_cached_answer(
                 or not intents_are_compatible(query, candidate_query)
             ):
                 continue
+            # 只有同一缓存作用域内且意图特征兼容的候选才计算余弦相似度。
             similarity = semantic_similarity(
                 query_embedding,
                 [float(value) for value in candidate_embedding],

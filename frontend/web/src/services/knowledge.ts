@@ -13,7 +13,7 @@ export type KnowledgeBaseRecord = Readonly<
 
 export type DocumentRecord = Readonly<Required<ApiSchema<"DocumentSummary">>>;
 export type ChunkStrategy = "fixed" | "semantic" | "recursive" | "format";
-export type DocumentDuplicatePolicy = "replace" | "rename";
+export type DocumentDuplicatePolicy = "new_version" | "replace" | "rename";
 
 export type DocumentUploadOptions = Readonly<{
   chunkStrategy: ChunkStrategy;
@@ -206,7 +206,8 @@ export const uploadDocuments = async (
   for (const file of files) {
     form.append("files", file);
   }
-  form.append("duplicate_policy", options.duplicatePolicy ?? "rename");
+  // 未经用户确认时绝不静默覆盖或改名；并发同名由后端返回 409 后重新确认。
+  form.append("duplicate_policy", options.duplicatePolicy ?? "new_version");
   form.append("ocr_enabled", "true");
   form.append("language", "chi_sim+eng");
   form.append("chunk_strategy", options.chunkStrategy);
@@ -273,11 +274,34 @@ export const getUploadTaskItems = async (
   Promise.all(
     items
       .filter((item) => !item.skipped)
-      .map(async (item) => ({
-        document_id: item.document.id,
-        document_title: item.document.title,
-        task: await getDocumentTask(item.task_id),
-      })),
+      .map(async (item) => {
+        try {
+          return {
+            document_id: item.document.id,
+            document_title: item.document.title,
+            task: await getDocumentTask(item.task_id),
+          };
+        } catch {
+          // 上传已由后端确认成功，任务详情的瞬时失败不能把整批上传误报为失败。
+          return {
+            document_id: item.document.id,
+            document_title: item.document.title,
+            task: {
+              task_id: item.task_id,
+              task_type: "document_convert",
+              status: "queued",
+              stage: item.document.status,
+              progress: 5,
+              retry_count: 0,
+              error_code: null,
+              error_message: null,
+              request_id: "",
+              created_at: item.document.created_at,
+              finished_at: null,
+            },
+          };
+        }
+      }),
   );
 
 export const batchDeleteDocuments = async (

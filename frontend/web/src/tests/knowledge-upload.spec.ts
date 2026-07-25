@@ -5,6 +5,7 @@ import { createMemoryHistory, createRouter } from "vue-router";
 import { defineComponent, h } from "vue";
 import { describe, expect, it, vi } from "vitest";
 
+import DocumentUploadQueue from "../components/documents/DocumentUploadQueue.vue";
 import { useSessionStore } from "../stores/session";
 import KnowledgeDetailView from "../views/user/KnowledgeDetailView.vue";
 
@@ -171,8 +172,31 @@ describe("个人知识库移动上传流程", () => {
         chunkStrategy: "semantic",
         chunkSize: 600,
         chunkOverlap: 80,
-        duplicatePolicy: "rename",
+        duplicatePolicy: "new_version",
       },
     );
+  });
+
+  it("同一批文件重名时禁用替换，只允许添加标识或取消", () => {
+    const wrapper = mount(DocumentUploadQueue, {
+      props: {
+        conflicts: [
+          {
+            filename: "医疗接口规范.docx",
+            document_name: "医疗接口规范",
+            conflict_type: "batch",
+            existing_document_id: null,
+            existing_document_title: null,
+          },
+        ],
+      },
+    });
+
+    const replaceButton = wrapper
+      .findAll<HTMLButtonElement>(".conflict-panel button")
+      .find((button) => button.text().includes("替换已有文档"));
+    expect(replaceButton).toBeDefined();
+    expect(replaceButton?.attributes("disabled")).toBeDefined();
+    expect(wrapper.text()).toContain("无法判断哪一份用于替换");
   });
 });

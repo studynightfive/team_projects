@@ -10,6 +10,7 @@ import hashlib
 import json
 import re
 import time
+import unicodedata
 from typing import TypeAlias
 
 import structlog
@@ -420,6 +421,35 @@ async def _rerank(
 # ============================================================
 # 统一入口
 # ============================================================
+def _normalize_knowledge_base_name(name: str) -> str:
+    normalized = unicodedata.normalize("NFKC", name).strip().casefold()
+    return " ".join(normalized.split())
+
+
+async def _resolve_knowledge_base_scope(
+    db: AsyncSession,
+    *,
+    user: User,
+    req: SearchRequest,
+) -> set[str]:
+    """解析本次检索范围，并在任何缓存读取前完成权限与名称校验。"""
+    accessible = await get_user_accessible_kb_ids(db, user)
+    requested = req.selected_knowledge_base_ids()
+    if requested is not None and not requested.issubset(accessible):
+        # 不区分知识库不存在还是无权限，避免利用错误信息探测其他部门数据。
+        return set()
+
+    selected = requested if requested is not None else accessible
+    if requested is not None and len(selected) > 1:
+        names = (
+            await db.execute(select(KnowledgeBase.name).where(KnowledgeBase.id.in_(selected)))
+        ).scalars()
+        normalized_names = [_normalize_knowledge_base_name(name) for name in names]
+        if len(set(normalized_names)) != len(normalized_names):
+            raise ValidationException(message="不能同时选择同名知识库")
+    return selected
+
+
 async def search(
     db: AsyncSession,
     *,
@@ -433,19 +463,9 @@ async def search(
     start = time.time()
     if req.metadata_filter:
         raise ValidationException(message="metadata_filter 尚未接入，不能静默忽略筛选条件")
-    accessible = await get_user_accessible_kb_ids(db, user)
-    requested_kbs = req.selected_knowledge_base_ids()
-    if requested_kbs is not None and not requested_kbs.issubset(accessible):
-        # 用户显式指定了无权 kb：直接空响应，不暴露存在性
+    accessible_kbs = await _resolve_knowledge_base_scope(db, user=user, req=req)
+    if not accessible_kbs and req.selected_knowledge_base_ids() is not None:
         return SearchResponse(hits=[], mode=req.mode, reranked=False, took_ms=0, total_candidates=0)
-    accessible_kbs = requested_kbs if requested_kbs is not None else accessible
-    if requested_kbs is not None and len(requested_kbs) > 1:
-        names = (
-            await db.execute(select(KnowledgeBase.name).where(KnowledgeBase.id.in_(requested_kbs)))
-        ).scalars()
-        normalized_names = [name.strip().casefold() for name in names]
-        if len(set(normalized_names)) != len(normalized_names):
-            raise ValidationException(message="不能同时选择同名知识库")
 
     debug_kt, debug_vt, debug_rt = 0, 0, 0
     total = 0
@@ -720,13 +740,8 @@ async def _build_answer_cache_scope(
     user: User,
     req: RagAnswerRequest,
 ) -> tuple[AnswerCacheScope, RagAnswerRequest]:
-    accessible = await get_user_accessible_kb_ids(db, user)
-    requested_kbs = req.selected_knowledge_base_ids()
-    knowledge_base_ids = (
-        requested_kbs
-        if requested_kbs is not None and requested_kbs.issubset(accessible)
-        else (set() if requested_kbs is not None else accessible)
-    )
+    # 缓存作用域与真实检索复用同一个范围解析器，禁止缓存命中绕过权限或同名校验。
+    knowledge_base_ids = await _resolve_knowledge_base_scope(db, user=user, req=req)
     embedding_model_id = (
         await _resolve_embedding_model_id(db, req.embedding_model_id)
         if req.mode in {"vector", "hybrid"}

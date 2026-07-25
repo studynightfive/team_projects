@@ -56,12 +56,28 @@ const availableKnowledgeBases = computed(() => {
   return props.knowledgeBaseOptions.filter((item) => !selectedIds.has(item.id));
 });
 const querySafetyMessage = computed(() => getQuerySafetyMessage(props.query));
+const normalizeKnowledgeBaseName = (name: string): string =>
+  name.normalize("NFKC").trim().toLocaleLowerCase("zh-CN").replace(/\s+/gu, " ");
+const selectedScopeIsValid = computed(() => {
+  if (!props.requiresWorkspace) return true;
+  if (
+    props.workspaceIds.length < 1 ||
+    props.workspaceIds.length > 10 ||
+    selectedKnowledgeBases.value.length !== props.workspaceIds.length
+  ) {
+    return false;
+  }
+  const names = selectedKnowledgeBases.value.map((item) =>
+    normalizeKnowledgeBaseName(item.name),
+  );
+  return new Set(names).size === names.length;
+});
 const canSubmit = computed(
   () =>
     props.query.trim().length > 0 &&
     querySafetyMessage.value === undefined &&
     props.sources.length > 0 &&
-    (!props.requiresWorkspace || props.workspaceIds.length > 0) &&
+    selectedScopeIsValid.value &&
     !props.busy &&
     !props.disabled,
 );
@@ -78,15 +94,30 @@ const resizeTextarea = async (): Promise<void> => {
 watch(() => props.query, resizeTextarea, { immediate: true });
 
 watch(
-  () => props.knowledgeBaseOptions,
-  (options) => {
-    const validIds = props.workspaceIds.filter((id) =>
-      options.some((item) => item.id === id),
-    );
-    if (validIds.length === 0 && options[0] !== undefined) {
-      emit("update:workspace-ids", [options[0].id]);
-    } else if (validIds.length !== props.workspaceIds.length) {
-      emit("update:workspace-ids", validIds);
+  [() => props.knowledgeBaseOptions, () => props.workspaceIds],
+  ([options, workspaceIds]) => {
+    // 真实列表尚未返回时保留跨页传入的 ID，避免加载过程把用户选择清空。
+    if (options.length === 0) return;
+    const names = new Set<string>();
+    const validIds: string[] = [];
+    for (const id of workspaceIds) {
+      const option = options.find((item) => item.id === id);
+      if (option === undefined) continue;
+      const normalizedName = normalizeKnowledgeBaseName(option.name);
+      if (names.has(normalizedName)) continue;
+      names.add(normalizedName);
+      validIds.push(id);
+      if (validIds.length === 10) break;
+    }
+    const nextIds =
+      validIds.length === 0 && options[0] !== undefined
+        ? [options[0].id]
+        : validIds;
+    if (
+      nextIds.length !== workspaceIds.length ||
+      nextIds.some((id, index) => id !== workspaceIds[index])
+    ) {
+      emit("update:workspace-ids", nextIds);
     }
   },
   { immediate: true },
@@ -100,9 +131,6 @@ const clearQuery = (): void => {
   emit("update:query", "");
   textareaRef.value?.focus();
 };
-
-const normalizeKnowledgeBaseName = (name: string): string =>
-  name.trim().toLocaleLowerCase();
 
 const addKnowledgeBase = (knowledgeBase: KnowledgeBaseOption): void => {
   if (props.workspaceIds.length >= 10) {
@@ -143,6 +171,8 @@ const submit = (): void => {
       emit("notice", "请输入要查找的问题");
     } else if (props.requiresWorkspace && props.workspaceIds.length === 0) {
       emit("notice", "请选择要检索的知识库");
+    } else if (!selectedScopeIsValid.value) {
+      emit("notice", "知识库范围无效，请移除同名或失效的知识库");
     }
     return;
   }

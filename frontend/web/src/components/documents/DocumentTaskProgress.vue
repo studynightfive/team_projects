@@ -27,6 +27,8 @@ const tasks = ref<Readonly<Record<string, DocumentTaskRecord>>>({});
 const pollError = ref("");
 let timer: ReturnType<typeof setTimeout> | undefined;
 let controller: AbortController | undefined;
+let disposed = false;
+let pollGeneration = 0;
 
 const rows = computed(() =>
   props.items.map((item) => ({
@@ -47,41 +49,49 @@ const completedCount = computed(
 );
 
 const stopPolling = (): void => {
+  pollGeneration += 1;
   if (timer !== undefined) clearTimeout(timer);
   timer = undefined;
   controller?.abort();
   controller = undefined;
 };
 
-const poll = async (): Promise<void> => {
+const poll = async (generation: number): Promise<void> => {
+  if (disposed || generation !== pollGeneration) return;
   const pending = rows.value.filter(
     (item) => !terminalStatuses.has(item.task.status),
   );
   if (pending.length === 0) {
     stopPolling();
-    emit("finished");
+    if (!disposed) emit("finished");
     return;
   }
 
-  controller?.abort();
-  controller = new AbortController();
+  const currentController = new AbortController();
+  controller = currentController;
   try {
     const updates = await Promise.all(
       pending.map((item) =>
-        getDocumentTask(item.task.task_id, controller?.signal),
+        getDocumentTask(item.task.task_id, currentController.signal),
       ),
     );
+    // 任务集合变化或页面离开后，迟到响应不能覆盖新一轮状态。
+    if (disposed || generation !== pollGeneration) return;
     tasks.value = {
       ...tasks.value,
       ...Object.fromEntries(updates.map((task) => [task.task_id, task])),
     };
     pollError.value = "";
   } catch (error: unknown) {
+    if (disposed || generation !== pollGeneration) return;
     if (!(error instanceof DOMException && error.name === "AbortError")) {
       pollError.value = "进度刷新暂时失败，系统会自动重试。";
     }
+  } finally {
+    if (controller === currentController) controller = undefined;
   }
-  timer = setTimeout(() => void poll(), 1000);
+  if (disposed || generation !== pollGeneration) return;
+  timer = setTimeout(() => void poll(generation), 1000);
 };
 
 watch(
@@ -91,12 +101,15 @@ watch(
     tasks.value = Object.fromEntries(
       items.map((item) => [item.task.task_id, item.task]),
     );
-    if (items.length > 0) void poll();
+    if (items.length > 0) void poll(pollGeneration);
   },
   { immediate: true },
 );
 
-onBeforeUnmount(stopPolling);
+onBeforeUnmount(() => {
+  disposed = true;
+  stopPolling();
+});
 </script>
 
 <template>

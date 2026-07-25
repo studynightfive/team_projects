@@ -18,6 +18,7 @@ const selectedId = ref<string>();
 const loading = ref(false);
 let pollTimer: ReturnType<typeof setTimeout> | undefined;
 let disposed = false;
+let loadGeneration = 0;
 const activeTaskStatuses = new Set(["queued", "running"]);
 const selectedTask = computed(() =>
   tasks.value.find((item) => item.task_id === selectedId.value),
@@ -79,16 +80,18 @@ const scheduleProgressPoll = (): void => {
 };
 
 const loadData = async (silent = false): Promise<void> => {
+  const generation = ++loadGeneration;
   if (!silent) loading.value = true;
   try {
     const page = await listAdminTasks();
-    if (disposed) return;
+    // 较早的刷新请求不得覆盖较新的任务快照。
+    if (disposed || generation !== loadGeneration) return;
     tasks.value = page.items;
   } catch (err) {
-    if (disposed) return;
+    if (disposed || generation !== loadGeneration) return;
     message.error(toPublicApiError(err).message);
   } finally {
-    if (!disposed) {
+    if (!disposed && generation === loadGeneration) {
       loading.value = false;
       scheduleProgressPoll();
     }
@@ -98,6 +101,7 @@ const loadData = async (silent = false): Promise<void> => {
 onMounted(() => void loadData());
 onBeforeUnmount(() => {
   disposed = true;
+  loadGeneration += 1;
   if (pollTimer !== undefined) clearTimeout(pollTimer);
 });
 </script>

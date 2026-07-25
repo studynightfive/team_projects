@@ -340,7 +340,8 @@ const uploadFiles = async (files: readonly File[]): Promise<void> => {
   } finally {
     isUploading.value = false;
   }
-  await performUpload(files, "rename");
+  // 预检后的正常提交仍使用严格策略；若出现并发同名，后端返回 409 让用户重新确认。
+  await performUpload(files, "new_version");
 };
 
 const resolveUploadConflicts = (

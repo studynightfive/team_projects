@@ -171,6 +171,51 @@ async def test_replace_failure_restores_original_and_derived_files(
 
 
 @pytest.mark.asyncio
+async def test_replace_increments_document_version(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _session()
+    service = _service(tmp_path, session, max_upload_bytes=16)
+    existing = Document(
+        id="document-1",
+        knowledge_base_id="kb-1",
+        title="医疗接口规范",
+        original_filename="医疗接口规范.txt",
+        stored_filename="医疗接口规范.txt",
+        folder_path="",
+        extension=".txt",
+        mime_type="text/plain",
+        size_bytes=3,
+        content_hash=compute_sha256(b"old"),
+        version=3,
+        status=DocumentStatus.READY.value,
+        ocr_enabled=True,
+        language="chi_sim+eng",
+        is_active_index=True,
+        created_by="user-1",
+    )
+    service.storage.save_original(existing.id, existing.stored_filename, b"old")
+    monkeypatch.setattr(document_service, "user_can_access_kb", AsyncMock(return_value=True))
+    monkeypatch.setattr(service, "_get_kb", AsyncMock())
+    monkeypatch.setattr(service, "_find_by_hash", AsyncMock(return_value=None))
+    monkeypatch.setattr(service, "_find_by_name", AsyncMock(return_value=existing))
+    monkeypatch.setattr(service, "_deactivate_index", AsyncMock())
+    monkeypatch.setattr(service, "_enqueue_items", AsyncMock())
+
+    await service.upload(
+        _user("document.upload"),
+        "kb-1",
+        [("医疗接口规范.txt", b"new")],
+        UploadOptions(duplicate_policy=DuplicatePolicy.REPLACE),
+    )
+
+    assert existing.version == 4
+    assert existing.content_hash == compute_sha256(b"new")
+    session.commit.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
 async def test_reprocess_idempotency_key_fits_database_column(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

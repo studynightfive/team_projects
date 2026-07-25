@@ -1,4 +1,4 @@
-"""Enforce unique active document names within a knowledge base.
+"""约束同一知识库中的活动文档名称唯一。
 
 Revision ID: 0021_unique_document_names
 Revises: 0020_document_recycle_bin
@@ -15,6 +15,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    # 先为历史重复记录追加稳定 ID 标识，确保创建唯一索引时不丢弃任何文档。
     op.execute(
         """
         WITH ranked AS (
@@ -39,6 +40,7 @@ def upgrade() -> None:
           AND ranked.duplicate_number > 1
         """
     )
+    # 软删除文档不占用名称，恢复时由服务层重新检查并生成可读编号。
     op.execute(
         """
         CREATE UNIQUE INDEX uq_documents_active_kb_title

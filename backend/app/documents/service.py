@@ -10,6 +10,7 @@ from pathlib import Path
 import structlog
 from pydantic import JsonValue
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.config import Settings
@@ -57,7 +58,7 @@ from app.documents.schemas import (
     UploadResponse,
     UploadResultItem,
 )
-from app.documents.storage import DocumentStorage, compute_sha256
+from app.documents.storage import DocumentStorage, compute_sha256, sanitize_filename
 from app.knowledge.models import KnowledgeBase
 from app.models import service as model_service
 from app.models.providers.openai import build_provider
@@ -168,7 +169,8 @@ class DocumentService:
 
     @staticmethod
     def _document_name(filename: str) -> str:
-        return Path(filename).stem.strip() or "未命名文档"
+        # 预检与真实上传必须使用同一文件名清洗规则，否则路径字符可能让预检漏报同名。
+        return Path(sanitize_filename(filename)).stem.strip() or "未命名文档"
 
     @staticmethod
     def _normalize_document_name(name: str) -> str:
@@ -211,7 +213,18 @@ class DocumentService:
             name = self._document_name(filename)
             normalized = self._normalize_document_name(name)
             existing = existing_by_name.get(normalized)
-            if existing is not None:
+            if normalized in seen:
+                # 批内重名优先标记为 batch；“替换”无法明确哪一份应成为最终版本。
+                conflicts.append(
+                    DocumentNameConflictItem(
+                        filename=filename,
+                        document_name=name,
+                        conflict_type="batch",
+                        existing_document_id=existing.id if existing is not None else None,
+                        existing_document_title=existing.title if existing is not None else None,
+                    )
+                )
+            elif existing is not None:
                 conflicts.append(
                     DocumentNameConflictItem(
                         filename=filename,
@@ -219,14 +232,6 @@ class DocumentService:
                         conflict_type="existing",
                         existing_document_id=existing.id,
                         existing_document_title=existing.title,
-                    )
-                )
-            elif normalized in seen:
-                conflicts.append(
-                    DocumentNameConflictItem(
-                        filename=filename,
-                        document_name=name,
-                        conflict_type="batch",
                     )
                 )
             seen.add(normalized)
@@ -541,6 +546,30 @@ class DocumentService:
         items: list[UploadResultItem] = []
         created_document_ids: set[str] = set()
         replacement_backups: dict[str, Path] = {}
+
+        normalized_names = [
+            self._normalize_document_name(self._document_name(filename)) for filename, _ in files
+        ]
+        if (
+            options.duplicate_policy == DuplicatePolicy.REPLACE
+            and len(set(normalized_names)) != len(normalized_names)
+        ):
+            raise AppException(
+                code=ErrorCode.DUPLICATE_POLICY,
+                message="同一批文件包含同名文档，不能直接替换；请移除重复项或选择添加标识",
+                status_code=409,
+            )
+
+        async def rollback_upload_state() -> None:
+            # 数据库和文件系统不是同一事务，失败时必须同时撤销新目录并恢复被替换原件。
+            try:
+                await self.session.rollback()
+            finally:
+                for document_id in created_document_ids:
+                    self.storage.delete_document(document_id)
+                for document_id, backup in replacement_backups.items():
+                    self.storage.restore_document(document_id, backup)
+
         try:
             for filename, data in files:
                 items.append(
@@ -555,14 +584,18 @@ class DocumentService:
                     )
                 )
             await self.session.commit()
+        except IntegrityError as exc:
+            await rollback_upload_state()
+            diagnostic = getattr(getattr(exc, "orig", None), "diag", None)
+            if getattr(diagnostic, "constraint_name", None) == "uq_documents_active_kb_title":
+                raise AppException(
+                    code=ErrorCode.DUPLICATE_POLICY,
+                    message="文档名称刚刚被占用，请重新选择替换或添加标识",
+                    status_code=409,
+                ) from exc
+            raise
         except Exception:
-            try:
-                await self.session.rollback()
-            finally:
-                for document_id in created_document_ids:
-                    self.storage.delete_document(document_id)
-                for document_id, backup in replacement_backups.items():
-                    self.storage.restore_document(document_id, backup)
+            await rollback_upload_state()
             raise
 
         for document_id, backup in replacement_backups.items():
@@ -639,7 +672,8 @@ class DocumentService:
             if existing.id not in replacement_backups:
                 replacement_backups[existing.id] = self.storage.backup_document(existing.id)
             await self._deactivate_index(existing.id)
-            version = max(existing.version, version)
+            # 替换会改变文档内容和知识版本；版本递增也避免与同哈希文档撞唯一约束。
+            version = max(existing.version + 1, version)
 
         if existing and options.duplicate_policy == DuplicatePolicy.REPLACE:
             document = existing
@@ -650,6 +684,7 @@ class DocumentService:
             document.mime_type = detected.detected_mime
             document.size_bytes = len(data)
             document.content_hash = content_hash
+            document.version = version
             document.status = DocumentStatus.UPLOADED.value
             document.ocr_enabled = options.ocr_enabled
             document.language = options.language

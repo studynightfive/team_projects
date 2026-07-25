@@ -68,6 +68,40 @@ describe("AI 搜索工作台关键链路", () => {
     expect(request).toMatchObject({ workspaceIds: ["kb-1", "kb-2"] });
   });
 
+  it("清理跨页带入的失效、超量和同名知识库范围", async () => {
+    const options = Array.from({ length: 11 }, (_, index) => ({
+      id: `kb-${index + 1}`,
+      name:
+        index === 1
+          ? " 医疗知识库 "
+          : index === 0
+            ? "医疗知识库"
+            : `知识库 ${index + 1}`,
+      documentCount: 1,
+      readyDocumentCount: 1,
+      status: "active" as const,
+    }));
+    const wrapper = mount(AiSearchBox, {
+      props: {
+        query: "医疗信息化有哪些核心模块",
+        mode: "smart",
+        sources: ["knowledge"],
+        modelId: "chat-1",
+        workspaceIds: [...options.map((item) => item.id), "missing-kb"],
+        modelOptions: [
+          { value: "chat-1", label: "问答模型", description: "测试模型" },
+        ],
+        knowledgeBaseOptions: options,
+      },
+    });
+    await nextTick();
+
+    const sanitized = wrapper.emitted("update:workspace-ids")?.at(-1)?.[0];
+    expect(sanitized).toHaveLength(10);
+    expect(sanitized).not.toContain("kb-2");
+    expect(sanitized).not.toContain("missing-kb");
+  });
+
   it("安全渲染 Markdown 并把有效引用标记转换为可点击按钮", async () => {
     const wrapper = mount(SafeMarkdown, {
       props: {

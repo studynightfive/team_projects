@@ -35,6 +35,9 @@ const notice = ref("");
 const canSubmit = computed(
   () => queuedFiles.value.length > 0 && !props.uploading,
 );
+const hasBatchConflict = computed(() =>
+  props.conflicts.some((item) => item.conflict_type === "batch"),
+);
 
 const fileKey = (file: File): string =>
   `${file.name}:${file.size}:${file.lastModified}`;
@@ -163,6 +166,9 @@ watch(
             .join("、")
         }}{{ conflicts.length > 3 ? "等" : "" }}
       </p>
+      <p v-if="hasBatchConflict" class="conflict-guidance">
+        同一批文件存在重名，无法判断哪一份用于替换。请移除重复项，或选择添加标识后上传。
+      </p>
       <div>
         <button
           class="secondary-button"
@@ -183,7 +189,12 @@ watch(
         <button
           class="primary-button"
           type="button"
-          :disabled="uploading"
+          :disabled="uploading || hasBatchConflict"
+          :title="
+            hasBatchConflict
+              ? '同一批文件重名时不能使用替换'
+              : '使用上传文件替换知识库中的同名文档'
+          "
           @click="emit('resolve-conflicts', 'replace')"
         >
           替换已有文档
