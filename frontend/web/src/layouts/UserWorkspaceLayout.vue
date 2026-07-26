@@ -30,18 +30,33 @@ const adminEntryPath = computed(
       sessionStore.hasAnyPermission(item.requiredPermissions),
     )?.to,
 );
+const isSearchPage = computed(
+  () => route.name === "search" || route.name === "legacy-search",
+);
 const handleSearchShortcut = (event: KeyboardEvent): void => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
-    searchInputRef.value?.focus();
+    if (isSearchPage.value) {
+      document.querySelector<HTMLTextAreaElement>("#ai-search-query")?.focus();
+    } else {
+      searchInputRef.value?.focus();
+    }
   }
 };
 
 const openSearch = (): void => {
   const query = globalSearch.value.trim();
   void router.push({
-    path: "/search",
-    query: query.length > 0 ? { q: query } : undefined,
+    path: "/",
+    state:
+      query.length > 0
+        ? {
+            initialSearch: {
+              q: query,
+              sources: "knowledge",
+            },
+          }
+        : undefined,
   });
 };
 
@@ -79,7 +94,11 @@ onBeforeUnmount(() =>
           <strong>{{ currentTitle }}</strong>
         </nav>
 
-        <label class="global-search" for="global-search-input">
+        <label
+          v-if="!isSearchPage"
+          class="global-search"
+          for="global-search-input"
+        >
           <Search :size="18" aria-hidden="true" />
           <input
             id="global-search-input"

@@ -101,14 +101,11 @@ const {
 } = useListPagination(filteredSpaces);
 
 const askSpace = (space: DisplaySpace): void => {
-  const question = `请总结${space.name}的核心内容`;
   if (isRealApiMode) {
     void router.push({
-      path: "/search",
+      path: "/",
       state: {
-        initialSearch: {
-          q: question,
-          mode: "smart",
+        searchSetup: {
           sources: "knowledge",
           workspaceIds: [space.id],
         },
@@ -117,12 +114,11 @@ const askSpace = (space: DisplaySpace): void => {
     return;
   }
   void router.push({
-    path: "/search",
+    path: "/",
     query: {
-      q: question,
-      mode: "smart",
       sources: "knowledge",
       model: "enterprise-general",
+      workspace: space.id,
     },
   });
 };

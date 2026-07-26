@@ -88,9 +88,9 @@ const REAL_QUICK_ACTIONS = [
   },
   {
     id: "quick-favorite",
-    label: "查看收藏内容",
-    description: "集中查看答案、文档、问题和空间。",
-    to: "/favorites",
+    label: "查看对话历史",
+    description: "继续或回看已经保存的知识库问答。",
+    to: "/conversations",
     icon: "favorite",
   },
 ] as const satisfies readonly QuickAction[];
@@ -151,6 +151,13 @@ interface BackendStreamDone {
   readonly from_cache: boolean;
   readonly cache_match: "exact" | "similar" | null;
   readonly cache_similarity: number | null;
+  readonly conversation_id: string | null;
+  readonly message_id: string;
+}
+
+interface BackendStreamStart {
+  readonly conversation_id: string;
+  readonly message_id: string;
 }
 
 interface ParsedSseEvent {
@@ -409,6 +416,7 @@ const buildFrontendResponse = (
     isMock: false,
     notice: "",
     elapsedLabel: `${searchData.took_ms ?? 0}ms`,
+    conversationId: searchData.conversation_id ?? undefined,
   };
 };
 
@@ -440,12 +448,14 @@ export const runRealSearch = async (
       request.modelId !== undefined && request.modelId !== "env-deepseek"
         ? request.modelId
         : null,
+    conversation_id: request.conversationId ?? null,
   };
 
   const response = await streamRequest(backendReq, signal);
   const hits: BackendSearchHit[] = [];
   let answer = "";
   let done: BackendStreamDone | undefined;
+  let conversationId = request.conversationId;
   const publish = (): AiSearchResponse => {
     const next = buildFrontendResponse(request, query, {
       answer,
@@ -453,7 +463,7 @@ export const runRealSearch = async (
       mode: done?.mode ?? backendReq.mode,
       took_ms: done?.took_ms ?? 0,
       model: done?.model ?? null,
-      conversation_id: null,
+      conversation_id: conversationId ?? done?.conversation_id ?? null,
       generated: done?.generated ?? false,
       from_cache: done?.from_cache ?? false,
       cache_match: done?.cache_match ?? null,
@@ -465,7 +475,10 @@ export const runRealSearch = async (
 
   for await (const event of parseSseStream(response.body!)) {
     if (!isRecord(event.data)) continue;
-    if (event.event === "stage") {
+    if (event.event === "start") {
+      const start = event.data as unknown as BackendStreamStart;
+      conversationId = start.conversation_id;
+    } else if (event.event === "stage") {
       const stage = event.data as unknown as BackendStreamStage;
       const frontendStage: RagProcessingStage = {
         id: stage.stage,
@@ -486,6 +499,7 @@ export const runRealSearch = async (
       }
     } else if (event.event === "done") {
       done = event.data as unknown as BackendStreamDone;
+      conversationId = done.conversation_id ?? conversationId;
     } else if (event.event === "error") {
       const message =
         typeof event.data.message === "string"

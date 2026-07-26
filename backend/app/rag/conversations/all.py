@@ -52,6 +52,8 @@ class Conversation(Base):
         ForeignKey("knowledge_bases.id", ondelete="RESTRICT"),
         nullable=False,
     )
+    # 保留 kb_id 兼容旧接口；真实搜索会话用该字段固定保存完整知识库范围。
+    knowledge_base_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)
     title: Mapped[str] = mapped_column(String(200), nullable=False, default="")
     is_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -120,6 +122,7 @@ class ConversationResponse(BaseModel):
     id: str
     user_id: str
     kb_id: str
+    knowledge_base_ids: list[str] = Field(default_factory=list)
     title: str
     is_pinned: bool
     is_archived: bool
@@ -133,9 +136,14 @@ class ConversationResponse(BaseModel):
 class Citation(BaseModel):
     doc_id: str
     chunk_id: str
+    doc_title: str | None = None
     page: int | None = None
     score: float | None = None
+    vector_score: float | None = None
+    keyword_score: float | None = None
+    rerank_score: float | None = None
     text: str | None = None
+    kb_id: str | None = None
 
 
 class MessageResponse(BaseModel):
@@ -192,7 +200,12 @@ async def list_conversations(
 async def create_conversation(
     db: AsyncSession, *, user_id: str, payload: ConversationCreate
 ) -> tuple[Conversation, Message]:
-    conv = Conversation(user_id=user_id, kb_id=payload.kb_id, title=payload.title or "")
+    conv = Conversation(
+        user_id=user_id,
+        kb_id=payload.kb_id,
+        knowledge_base_ids=[payload.kb_id],
+        title=payload.title or "",
+    )
     db.add(conv)
     await db.flush()  # 取 id
     first_msg = Message(
@@ -356,6 +369,17 @@ async def create_conversation_endpoint(
         request=request,
     )
     await db.commit()
+    return APIResponse(data=ConversationResponse.model_validate(conv).model_dump()).model_dump()
+
+
+@router.get("/{conversation_id}")
+async def get_conversation_endpoint(
+    conversation_id: str,
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(require_any_permission("conversation:read", "conversation.view")),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, object]:
+    conv = await get_conversation(db, conv_id=conversation_id, user_id=user.id)
     return APIResponse(data=ConversationResponse.model_validate(conv).model_dump()).model_dump()
 
 

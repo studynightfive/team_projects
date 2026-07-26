@@ -105,12 +105,12 @@ describe("AI 搜索真实工作台", () => {
   it("流式接收处理阶段、引用与答案增量", async () => {
     setAccessToken("access-token");
     const eventStream = [
-      'event: start\ndata: {"event":"start","request_id":"request-1"}\n\n',
+      'event: start\ndata: {"event":"start","request_id":"request-1","conversation_id":"conversation-1","message_id":"user-message-1"}\n\n',
       'event: stage\ndata: {"event":"stage","stage":"retrieval","label":"检索知识库","status":"running","detail":"正在检索","elapsed_ms":3}\n\n',
       'event: citation\ndata: {"event":"citation","doc_id":"doc-1","chunk_id":"chunk-1","doc_title":"医疗信息化方案","page":1,"score":0.95,"vector_score":0.9,"keyword_score":0.8,"rerank_score":0.95,"text":"电子病历建设内容","highlights":null,"kb_id":"kb-1"}\n\n',
       'event: delta\ndata: {"event":"delta","text":"电子病历"}\n\n',
       'event: delta\ndata: {"event":"delta","text":"是核心模块。"}\n\n',
-      'event: done\ndata: {"event":"done","took_ms":88,"mode":"hybrid","model":"deepseek-chat","generated":true,"from_cache":false,"cache_match":null,"cache_similarity":null}\n\n',
+      'event: done\ndata: {"event":"done","took_ms":88,"mode":"hybrid","model":"deepseek-chat","generated":true,"from_cache":false,"cache_match":null,"cache_similarity":null,"conversation_id":"conversation-1","message_id":"assistant-message-1"}\n\n',
     ].join("");
     vi.stubGlobal(
       "fetch",
@@ -153,5 +153,6 @@ describe("AI 搜索真实工作台", () => {
     expect(result.answer.markdown).toBe("电子病历是核心模块。");
     expect(result.answer.citations).toHaveLength(1);
     expect(result.elapsedLabel).toBe("88ms");
+    expect(result.conversationId).toBe("conversation-1");
   });
 });

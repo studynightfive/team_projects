@@ -106,6 +106,20 @@ async def test_stream_answer_emits_stages_citations_and_filtered_deltas(
         "app.rag.search.stream.build_provider",
         lambda *_args, **_kwargs: provider,
     )
+    monkeypatch.setattr(
+        "app.rag.search.stream._prepare_conversation",
+        AsyncMock(
+            return_value=(
+                SimpleNamespace(id="conversation-1"),
+                SimpleNamespace(id="user-message-1"),
+                [],
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream._save_assistant_message",
+        AsyncMock(return_value=SimpleNamespace(id="assistant-message-1")),
+    )
     cache_write = AsyncMock()
     monkeypatch.setattr("app.rag.search.stream.set_cached_answer", cache_write)
 
@@ -120,6 +134,7 @@ async def test_stream_answer_emits_stages_citations_and_filtered_deltas(
 
     names = [event.event for event in events]
     assert names[0] == "start"
+    assert events[0].data["conversation_id"] == "conversation-1"
     assert "stage" in names
     assert "citation" in names
     assert names[-1] == "done"
@@ -129,3 +144,116 @@ async def test_stream_answer_emits_stages_citations_and_filtered_deltas(
     assert visible_answer == "平台包含电子病历。"
     assert "不应显示" not in visible_answer
     cache_write.assert_awaited_once()
+    assert events[-1].data["message_id"] == "assistant-message-1"
+
+
+@pytest.mark.asyncio
+async def test_followup_uses_history_and_skips_answer_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = RagAnswerRequest(
+        query="那数据中心呢",
+        mode="hybrid",
+        kb_id="kb-1",
+        conversation_id="conversation-1",
+        chat_model_id="chat-1",
+        embedding_model_id="embedding-1",
+    )
+    effective_request = request.model_copy(update={"kb_id": None, "kb_ids": ["kb-1"]})
+    hit = SearchHit(
+        doc_id="doc-1",
+        chunk_id="chunk-1",
+        doc_title="医疗信息化方案",
+        score=0.93,
+        text="数据中心负责汇聚临床与运营数据。",
+        kb_id="kb-1",
+    )
+
+    async def provider_deltas():
+        yield "数据中心负责统一汇聚数据。"
+
+    provider = SimpleNamespace(chat=AsyncMock(return_value=provider_deltas()))
+    existing = SimpleNamespace(
+        id="conversation-1",
+        kb_id="kb-1",
+        knowledge_base_ids=["kb-1"],
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream.get_conversation",
+        AsyncMock(return_value=existing),
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream._build_answer_cache_scope",
+        AsyncMock(return_value=(_scope(), effective_request)),
+    )
+    cache_read = AsyncMock()
+    monkeypatch.setattr("app.rag.search.stream.get_cached_answer", cache_read)
+    monkeypatch.setattr(
+        "app.rag.search.stream._prepare_conversation",
+        AsyncMock(
+            return_value=(
+                existing,
+                SimpleNamespace(id="user-message-2"),
+                [
+                    ("user", "医疗信息化平台有哪些模块"),
+                    ("assistant", "平台包含电子病历和数据中心。"),
+                ],
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream.search",
+        AsyncMock(
+            return_value=SearchResponse(
+                hits=[hit],
+                mode="hybrid",
+                reranked=True,
+                took_ms=20,
+                total_candidates=1,
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream._resolve_chat_model",
+        AsyncMock(
+            return_value=(
+                "deepseek",
+                "https://api.deepseek.com",
+                "deepseek-chat",
+                "secret",
+                0.2,
+                1200,
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream.build_provider",
+        lambda *_args, **_kwargs: provider,
+    )
+    cache_write = AsyncMock()
+    monkeypatch.setattr("app.rag.search.stream.set_cached_answer", cache_write)
+    monkeypatch.setattr(
+        "app.rag.search.stream._save_assistant_message",
+        AsyncMock(return_value=SimpleNamespace(id="assistant-message-2")),
+    )
+
+    events = [
+        event
+        async for event in stream_answer(
+            SimpleNamespace(),
+            user=SimpleNamespace(id="user-1"),
+            req=request,
+        )
+    ]
+
+    cache_read.assert_not_awaited()
+    cache_write.assert_not_awaited()
+    messages = provider.chat.await_args.kwargs["messages"]
+    assert [message["role"] for message in messages] == [
+        "system",
+        "user",
+        "assistant",
+        "user",
+    ]
+    assert messages[-1]["content"] == "那数据中心呢"
+    assert events[-1].data["conversation_id"] == "conversation-1"

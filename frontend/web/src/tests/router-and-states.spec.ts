@@ -49,8 +49,11 @@ describe("M01 V2 路由与通用状态", () => {
   it("进入普通用户工作台与管理中心 V2 页面", async () => {
     const userApp = await renderAppAt("/");
     await vi.waitFor(() => {
-      expect(userApp.wrapper.get("h1").text()).toBe("今天想查找什么？");
+      expect(userApp.wrapper.get("h1").text()).toBe("AI 搜索");
     });
+    expect(userApp.wrapper.find("form.ai-search-box").exists()).toBe(true);
+    expect(userApp.wrapper.text()).not.toContain("高频任务");
+    expect(userApp.wrapper.text()).not.toContain("知识共建");
     userApp.wrapper.unmount();
 
     const adminApp = await renderAppAt("/admin");

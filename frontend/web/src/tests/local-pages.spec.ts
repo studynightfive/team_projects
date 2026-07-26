@@ -46,7 +46,7 @@ const businessRoutes: readonly BusinessRouteCase[] = [
   {
     name: "search",
     path: "/search",
-    title: "搜索结果",
+    title: "AI 搜索",
     shell: "user",
     activeNavigation: "AI 搜索",
   },
@@ -58,11 +58,11 @@ const businessRoutes: readonly BusinessRouteCase[] = [
     activeNavigation: "我的空间",
   },
   {
-    name: "search-favorites",
-    path: "/favorites",
-    title: "收藏内容",
+    name: "conversation-history",
+    path: "/conversations",
+    title: "对话历史",
     shell: "user",
-    activeNavigation: "收藏内容",
+    activeNavigation: "对话历史",
   },
   {
     name: "search-settings",
@@ -208,7 +208,7 @@ describe("M02-M14 本地业务路由", () => {
     },
   );
 
-  it.each(["/history", "/conversations"])(
+  it.each(["/history"])(
     "%s 已删除并返回统一 404 页面",
     async (path) => {
       const { wrapper, router } = await renderAppAt(path);
@@ -216,6 +216,13 @@ describe("M02-M14 本地业务路由", () => {
       expect(wrapper.text()).toContain("页面不存在");
     },
   );
+
+  it("旧收藏地址重定向到对话历史", async () => {
+    const { wrapper, router } = await renderAppAt("/favorites");
+    expect(router.currentRoute.value.name).toBe("conversation-history");
+    expect(router.currentRoute.value.path).toBe("/conversations");
+    expect(wrapper.get("h1").text()).toBe("对话历史");
+  });
 
   it("用户直达模块的侧栏、顶部标题和页面主标题保持一致", async () => {
     const { wrapper, router } = await renderAppAt("/");
@@ -232,7 +239,6 @@ describe("M02-M14 本地业务路由", () => {
   });
 
   it.each([
-    { path: "/search", moduleName: "AI 搜索" },
     {
       path: "/knowledge/product-handbook",
       moduleName: "企业知识库",
@@ -406,20 +412,18 @@ describe("M03-M07 用户页面本地交互", () => {
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
-  it("AI 搜索保留查询参数、切换结果视图且空问题不会访问业务 API", async () => {
+  it("AI 搜索同页提交、兼容旧查询参数且空问题不会访问业务 API", async () => {
     const requestSpy = vi.spyOn(apiClient, "request");
     const home = await renderAppAt("/");
-    await home.wrapper.get("#global-search-input").setValue("回滚");
-    await home.wrapper
-      .get("#global-search-input")
-      .trigger("keydown", { key: "Enter" });
+    await home.wrapper.get("#ai-search-query").setValue("回滚");
+    await home.wrapper.get("form.ai-search-box").trigger("submit");
     await flushPromises();
-    expect(home.router.currentRoute.value.path).toBe("/search");
-    expect(home.router.currentRoute.value.query.q).toBe("回滚");
+    expect(home.router.currentRoute.value.path).toBe("/");
+    expect(home.router.currentRoute.value.query.q).toBeUndefined();
     expect(
       (home.wrapper.get("#ai-search-query").element as HTMLTextAreaElement)
         .value,
-    ).toBe("回滚");
+    ).toBe("");
     home.wrapper.unmount();
 
     const { wrapper } = await renderAppAt("/search?q=发布");
@@ -434,7 +438,6 @@ describe("M03-M07 用户页面本地交互", () => {
     await flushPromises();
     await vi.waitFor(() => {
       expect(wrapper.find(".result-tabs").exists()).toBe(true);
-      expect(wrapper.text()).toContain("本地模拟，无真实耗时");
     });
 
     await getButton(wrapper, "原始结果").trigger("click");
@@ -450,28 +453,30 @@ describe("M03-M07 用户页面本地交互", () => {
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
-  it("收藏单条删除使用模态弹窗，取消不会误删", async () => {
-    const favorites = await renderAppAt("/favorites");
-    const favoriteTitle = favorites.wrapper.get(".favorite-copy h2").text();
+  it("对话历史删除使用模态弹窗，取消不会误删", async () => {
+    const history = await renderAppAt("/conversations");
+    const conversationTitle = history.wrapper
+      .get(".conversation-select strong")
+      .text();
 
-    await favorites.wrapper
-      .get('button[aria-label^="删除收藏"]')
+    await history.wrapper
+      .get('button[aria-label^="删除对话"]')
       .trigger("click");
     await flushPromises();
     expect(document.querySelector(".ant-modal-confirm")).not.toBeNull();
-    expect(favorites.wrapper.find(".delete-confirmation").exists()).toBe(false);
-    expect(document.body.textContent).toContain("确认删除这条收藏？");
+    expect(history.wrapper.find(".delete-confirmation").exists()).toBe(false);
+    expect(document.body.textContent).toContain("删除这段对话？");
     getDocumentButton("取消").click();
     await flushPromises();
-    expect(favorites.wrapper.text()).toContain(favoriteTitle);
+    expect(history.wrapper.text()).toContain(conversationTitle);
 
-    await favorites.wrapper
-      .get('button[aria-label^="删除收藏"]')
+    await history.wrapper
+      .get('button[aria-label^="删除对话"]')
       .trigger("click");
     await flushPromises();
-    getDocumentButton("确认删除").click();
+    getDocumentButton("删除").click();
     await flushPromises();
-    expect(favorites.wrapper.text()).not.toContain(favoriteTitle);
+    expect(history.wrapper.text()).not.toContain(conversationTitle);
   });
 
   it("下载筛选和删除确认只影响当前页面", async () => {

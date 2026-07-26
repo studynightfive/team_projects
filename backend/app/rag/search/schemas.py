@@ -75,6 +75,7 @@ class SearchResponse(BaseModel):
 
 class RagAnswerRequest(SearchRequest):
     chat_model_id: str | None = None
+    conversation_id: str | None = None
 
 
 class RagAnswerResponse(BaseModel):

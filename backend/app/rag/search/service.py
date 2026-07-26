@@ -11,6 +11,7 @@ import json
 import re
 import time
 import unicodedata
+from collections.abc import Sequence
 from typing import TypeAlias
 
 import structlog
@@ -576,7 +577,11 @@ async def search(
     )
 
 
-def _build_answer_messages(query: str, hits: list[SearchHit]) -> list[dict[str, str]]:
+def _build_answer_messages(
+    query: str,
+    hits: list[SearchHit],
+    history: Sequence[tuple[str, str]] = (),
+) -> list[dict[str, str]]:
     context_chunks: list[str] = []
     used_chars = 0
     for index, hit in enumerate(hits, start=1):
@@ -601,12 +606,17 @@ def _build_answer_messages(query: str, hits: list[SearchHit]) -> list[dict[str, 
         "引用依据时使用 [1]、[2] 这样的编号。"
         "如果资料不足以回答，明确说明“未在文档中找到相关引用”，并指出还需要什么信息。"
         "不要逐字复述全部原文。"
+        "\n\n当前轮检索资料：\n"
+        f"{context}"
     )
-    user_content = f"用户问题：{query}\n\n检索资料：\n{context}"
-    return [
-        {"role": "system", "content": system},
-        {"role": "user", "content": user_content},
-    ]
+    messages = [{"role": "system", "content": system}]
+    messages.extend(
+        {"role": role, "content": content}
+        for role, content in history
+        if role in {"user", "assistant"} and content.strip()
+    )
+    messages.append({"role": "user", "content": query})
+    return messages
 
 
 async def _resolve_chat_model(

@@ -102,6 +102,39 @@ describe("AI 搜索工作台关键链路", () => {
     expect(sanitized).not.toContain("missing-kb");
   });
 
+  it("所选知识库没有已处理文档时禁用检索并给出明确说明", () => {
+    const wrapper = mount(AiSearchBox, {
+      props: {
+        query: "医疗信息化有哪些核心模块",
+        mode: "smart",
+        sources: ["knowledge"],
+        modelId: "chat-1",
+        workspaceIds: ["kb-empty"],
+        modelOptions: [
+          { value: "chat-1", label: "问答模型", description: "测试模型" },
+        ],
+        knowledgeBaseOptions: [
+          {
+            id: "kb-empty",
+            name: "空知识库",
+            documentCount: 0,
+            readyDocumentCount: 0,
+            status: "active",
+          },
+        ],
+      },
+    });
+
+    expect(wrapper.get(".search-scope-warning").text()).toContain(
+      "暂无已处理文档",
+    );
+    expect(
+      wrapper.get<HTMLButtonElement>(".search-submit-button").attributes(
+        "disabled",
+      ),
+    ).toBeDefined();
+  });
+
   it("安全渲染 Markdown 并把有效引用标记转换为可点击按钮", async () => {
     const wrapper = mount(SafeMarkdown, {
       props: {
@@ -163,7 +196,7 @@ describe("AI 搜索工作台关键链路", () => {
   });
 
   it("答案正文引用可打开文档预览，并通过 Escape 关闭后返回焦点", async () => {
-    const { wrapper } = await renderAppAt("/search");
+    const { wrapper } = await renderAppAt("/search?q=差旅报销");
     await vi.waitFor(() => {
       expect(wrapper.find(".markdown-citation").exists()).toBe(true);
     });
@@ -202,7 +235,7 @@ describe("AI 搜索工作台关键链路", () => {
 
     await wrapper.get("form.ai-search-box").trigger("submit");
     await flushPromises();
-    expect(router.currentRoute.value.path).toBe("/search");
+    expect(router.currentRoute.value.path).toBe("/");
     expect(router.currentRoute.value.query).not.toHaveProperty("mode");
   });
 
@@ -234,13 +267,13 @@ describe("AI 搜索工作台关键链路", () => {
   });
 
   it("问答导出提供 PDF、Word 与 Markdown 格式", async () => {
-    const { wrapper } = await renderAppAt("/search");
+    const { wrapper } = await renderAppAt("/search?q=差旅报销");
     await vi.waitFor(() => {
       expect(wrapper.find(".result-tabs").exists()).toBe(true);
     });
     const exportButton = wrapper
       .findAll("button")
-      .find((button) => button.text().includes("下载答案"));
+      .find((button) => button.attributes("aria-label") === "下载当前答案");
     if (exportButton === undefined) throw new Error("缺少下载答案按钮");
 
     await exportButton.trigger("click");

@@ -14,7 +14,7 @@ describe("M01 V2 工作区布局", () => {
     const requestSpy = vi.spyOn(apiClient, "request");
     const { wrapper } = await renderAppAt("/");
     await vi.waitFor(() => {
-      expect(wrapper.get("h1").text()).toBe("今天想查找什么？");
+      expect(wrapper.get("h1").text()).toBe("AI 搜索");
     });
     const navigationLabels = wrapper
       .findAll(".app-sidebar .sidebar-navigation-item")
@@ -26,7 +26,7 @@ describe("M01 V2 工作区布局", () => {
       "搜索",
       "知识库",
       "空间",
-      "收藏",
+      "历史",
     ]);
     expect(navigationLabels).not.toContain("搜索设置");
     await wrapper.get(".sidebar-profile-trigger").trigger("click");
@@ -41,11 +41,15 @@ describe("M01 V2 工作区布局", () => {
     expect(wrapper.find("main.workspace-content").exists()).toBe(true);
     expect(wrapper.find(".search-suggestion-list").exists()).toBe(false);
     expect(wrapper.text()).not.toContain("常用问题");
-    expect(wrapper.findAll(".quick-action-list button")).toHaveLength(2);
+    expect(wrapper.find(".quick-action-list").exists()).toBe(false);
     expect(wrapper.find(".recent-search-list").exists()).toBe(false);
-    expect(wrapper.findAll(".knowledge-space-list a")).toHaveLength(3);
+    expect(wrapper.find(".knowledge-space-list").exists()).toBe(false);
+    expect(wrapper.find("form.ai-search-box").exists()).toBe(true);
+    expect(wrapper.find("#global-search-input").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("辅助信息");
+    expect(wrapper.text()).not.toContain("知识共建");
+    expect(wrapper.text()).not.toContain("高频任务");
     expect(wrapper.text()).toContain("企业知识中心");
-    expect(wrapper.text()).toContain("模拟数据");
     expect(requestSpy).not.toHaveBeenCalled();
   });
 

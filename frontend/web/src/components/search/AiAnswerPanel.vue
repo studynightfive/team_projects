@@ -17,6 +17,8 @@ const props = defineProps<{
   answer: AiAnswer;
   favorite?: boolean;
   busy?: boolean;
+  idPrefix?: string;
+  readonlyView?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -27,6 +29,17 @@ const emit = defineEmits<{
 }>();
 
 const selectedFeedback = ref("");
+const normalizedIdPrefix = computed(() =>
+  (props.idPrefix ?? props.answer.id).replace(/[^a-zA-Z0-9_-]/gu, "-"),
+);
+const titleId = computed(() => `${normalizedIdPrefix.value}-answer-title`);
+const citationTitleId = computed(
+  () => `${normalizedIdPrefix.value}-citation-title`,
+);
+const feedbackTitleId = computed(
+  () => `${normalizedIdPrefix.value}-feedback-title`,
+);
+const relatedTitleId = computed(() => `${normalizedIdPrefix.value}-related-title`);
 
 const citationNumberById = computed(
   () =>
@@ -60,16 +73,17 @@ watch(
   <article
     class="ai-answer-panel"
     :aria-busy="busy"
-    aria-labelledby="ai-answer-title"
+    :aria-labelledby="titleId"
   >
     <header class="ai-answer-heading">
       <div>
         <span class="answer-kicker">企业知识智能摘要</span>
-        <h2 id="ai-answer-title">{{ answer.title }}</h2>
+        <h2 :id="titleId">{{ answer.title }}</h2>
       </div>
       <div class="answer-heading-actions">
         <SearchStatusBadge :status="busy ? 'searching' : answer.status" />
         <button
+          v-if="!readonlyView"
           class="answer-favorite-button"
           type="button"
           :aria-pressed="favorite"
@@ -92,9 +106,9 @@ watch(
 
     <section
       class="answer-citation-index"
-      aria-labelledby="answer-citation-title"
+      :aria-labelledby="citationTitleId"
     >
-      <h3 id="answer-citation-title">结论依据</h3>
+      <h3 :id="citationTitleId">结论依据</h3>
       <div class="answer-citation-links">
         <button
           v-for="citation in answer.citations"
@@ -116,9 +130,13 @@ watch(
       <p>{{ answer.disclaimer }}</p>
     </aside>
 
-    <section class="answer-feedback" aria-labelledby="answer-feedback-title">
+    <section
+      v-if="!readonlyView"
+      class="answer-feedback"
+      :aria-labelledby="feedbackTitleId"
+    >
       <div>
-        <h3 id="answer-feedback-title">这个答案对你有帮助吗？</h3>
+        <h3 :id="feedbackTitleId">这个答案对你有帮助吗？</h3>
         <p aria-live="polite">
           {{
             selectedFeedback
@@ -159,12 +177,13 @@ watch(
     </section>
 
     <section
+      v-if="!readonlyView && answer.relatedQuestions.length > 0"
       class="related-question-list"
-      aria-labelledby="related-question-title"
+      :aria-labelledby="relatedTitleId"
     >
       <header>
         <MessageSquareText :size="18" aria-hidden="true" />
-        <h3 id="related-question-title">继续了解</h3>
+        <h3 :id="relatedTitleId">继续了解</h3>
       </header>
       <button
         v-for="question in answer.relatedQuestions"
