@@ -12,10 +12,13 @@ type ExportCreateRequest =
   paths["/exports"]["post"]["requestBody"]["content"]["application/json"];
 type AnswerExportRequest =
   paths["/exports/answer"]["post"]["requestBody"]["content"]["application/json"];
+type ConvertAnswerExportRequest =
+  paths["/exports/{export_id}/convert"]["post"]["requestBody"]["content"]["application/json"];
 
 export type ExportFormat = ExportCreateRequest["format"];
 export type ExportStatus = ApiSchema<"ExportTaskResponse">["status"];
 export type AnswerExportFormat = AnswerExportRequest["format"];
+export type DownloadableAnswerFormat = ConvertAnswerExportRequest["format"];
 
 export type ExportTaskRecord = Readonly<
   Omit<
@@ -138,6 +141,26 @@ export const downloadAnswerExport = async (payload: {
       answer: payload.answer,
       citations: payload.citations ?? [],
     },
+    { responseType: "blob" },
+  );
+  return {
+    blob: response.data,
+    filename: getFilenameFromHeader(response.headers["content-disposition"]),
+    exportId: response.headers["x-export-id"],
+  };
+};
+
+export const convertAnswerExport = async (
+  exportId: string,
+  format: DownloadableAnswerFormat,
+): Promise<{
+  readonly blob: Blob;
+  readonly filename?: string;
+  readonly exportId?: string;
+}> => {
+  const response = await apiClient.post<Blob>(
+    `/v1/exports/${exportId}/convert`,
+    { format },
     { responseType: "blob" },
   );
   return {

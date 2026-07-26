@@ -12,6 +12,7 @@ import { toPublicApiError } from "../../api/client";
 import { isRealApiMode } from "../../config/runtime";
 import { localPageData } from "../../data/local-pages";
 import {
+  convertAnswerExport,
   createExportTask,
   deleteExportTask,
   downloadExportBlob,
@@ -19,6 +20,7 @@ import {
   type ExportFormat,
   type ExportStatus,
   type ExportTaskRecord,
+  type DownloadableAnswerFormat,
 } from "../../services/downloads";
 import {
   prepareFileSave,
@@ -36,11 +38,20 @@ const realTotal = ref(0);
 const loadState = ref<"idle" | "loading" | "error">("idle");
 const loadError = ref("");
 const busyTaskId = ref<string>();
+const answerDownloadFormats = ref<Record<string, DownloadableAnswerFormat>>({});
 
 let loadController: AbortController | undefined;
 let pollTimer: ReturnType<typeof setTimeout> | undefined;
 let disposed = false;
 const activeExportStatuses = new Set<ExportStatus>(["pending", "running"]);
+const answerFormatChoices: readonly {
+  readonly value: DownloadableAnswerFormat;
+  readonly label: string;
+}[] = [
+  { value: "markdown", label: "Markdown" },
+  { value: "docx", label: "Word" },
+  { value: "pdf", label: "PDF" },
+];
 
 interface DownloadRow {
   readonly id: string;
@@ -173,6 +184,18 @@ const loadRealDownloads = async (silent = false): Promise<void> => {
     if (disposed || loadController !== currentController) return;
     realDownloads.value = page.items;
     realTotal.value = page.total;
+    for (const item of page.items) {
+      if (
+        item.source_type === "answer" &&
+        answerDownloadFormats.value[item.id] === undefined
+      ) {
+        answerDownloadFormats.value[item.id] = ["markdown", "docx", "pdf"].includes(
+          item.format,
+        )
+          ? (item.format as DownloadableAnswerFormat)
+          : "markdown";
+      }
+    }
     loadState.value = "idle";
   } catch (error: unknown) {
     if (disposed || loadController !== currentController) return;
@@ -221,15 +244,27 @@ const requestDownload = async (item: DownloadRow): Promise<void> => {
     return;
   }
 
+  const answerTargetFormat =
+    item.sourceType === "answer"
+      ? (answerDownloadFormats.value[item.id] ?? "markdown")
+      : undefined;
+  const targetFormat = answerTargetFormat ?? item.rawFormat;
+  const shouldConvert =
+    item.sourceType === "answer" &&
+    answerTargetFormat !== undefined &&
+    answerTargetFormat !== item.rawFormat;
   const isZip = item.name.toLocaleLowerCase("zh-CN").endsWith(".zip");
   const format =
-    item.rawFormat === undefined
+    targetFormat === undefined
       ? downloadFormatOptions.pdf
-      : downloadFormatOptions[item.rawFormat];
+      : downloadFormatOptions[targetFormat];
+  const suggestedName = shouldConvert
+    ? `${item.name.replace(/\.[^.]+$/u, "")}${format.extension}`
+    : item.name;
   let destination: PreparedFileSave | undefined;
   try {
     destination = await prepareFileSave({
-      suggestedName: item.name,
+      suggestedName,
       description: isZip ? "ZIP 压缩包" : format.label,
       mediaType: isZip ? "application/zip" : format.mediaType,
       extensions: [isZip ? ".zip" : format.extension],
@@ -242,9 +277,13 @@ const requestDownload = async (item: DownloadRow): Promise<void> => {
 
   busyTaskId.value = item.id;
   try {
-    const result = await downloadExportBlob(item.downloadUrl);
+    const result =
+      shouldConvert && answerTargetFormat !== undefined
+        ? await convertAnswerExport(item.id, answerTargetFormat)
+        : await downloadExportBlob(item.downloadUrl);
     await destination.save(result.blob, result.filename);
     void message.success("文件已通过鉴权接口保存。");
+    if (shouldConvert) await loadRealDownloads(true);
   } catch (error: unknown) {
     void message.error(toPublicApiError(error).message);
   } finally {
@@ -409,7 +448,27 @@ onBeforeUnmount(() => {
           <tbody>
             <tr v-for="item in pagedDownloads" :key="item.id">
               <td class="download-name">{{ item.name }}</td>
-              <td>{{ item.format }}</td>
+              <td>
+                <label
+                  v-if="item.sourceType === 'answer' && item.status === '已完成'"
+                  class="answer-format-select"
+                >
+                  <span class="visually-hidden">下载 {{ item.name }} 的格式</span>
+                  <select
+                    v-model="answerDownloadFormats[item.id]"
+                    :aria-label="`下载 ${item.name} 的格式`"
+                  >
+                    <option
+                      v-for="format in answerFormatChoices"
+                      :key="format.value"
+                      :value="format.value"
+                    >
+                      {{ format.label }}
+                    </option>
+                  </select>
+                </label>
+                <span v-else>{{ item.format }}</span>
+              </td>
               <td>
                 <span class="status-chip" :class="statusTone(item.status)">
                   {{ item.status }}
@@ -522,6 +581,11 @@ onBeforeUnmount(() => {
   font-weight: var(--font-weight-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.answer-format-select select {
+  min-width: 112px;
+  min-height: 36px;
 }
 
 .progress-cell {

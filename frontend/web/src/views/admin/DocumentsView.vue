@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { App as AntApp, Drawer } from "ant-design-vue";
 import { computed, onMounted, ref, watch } from "vue";
-import { RouterLink } from "vue-router";
 
 import { toPublicApiError } from "../../api/client";
+import AdminDocumentPreviewDrawer from "../../components/documents/AdminDocumentPreviewDrawer.vue";
 import InlineState from "../../components/InlineState.vue";
 import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
@@ -37,6 +37,7 @@ const query = ref("");
 const statusFilter = ref("全部状态");
 const selectedDocumentIds = ref<string[]>([]);
 const detailDocument = ref<DisplayDocument>();
+const previewDocument = ref<AdminDocument>();
 const loading = ref(false);
 const submitting = ref(false);
 const batchTasks = ref<readonly DocumentBatchTaskItem[]>([]);
@@ -113,6 +114,11 @@ const formatBytes = (bytes: number): string => {
 
 const formatDate = (value: string | null): string =>
   value === null ? "-" : new Date(value).toLocaleString("zh-CN");
+
+const openDocumentPreview = (item: DisplayDocument): void => {
+  if (viewMode.value !== "active") return;
+  previewDocument.value = item as AdminDocument;
+};
 
 const loadData = async (): Promise<void> => {
   loading.value = true;
@@ -411,14 +417,15 @@ onMounted(loadData);
               </td>
               <td>
                 <div class="table-actions">
-                  <RouterLink
+                  <button
                     v-if="viewMode === 'active'"
                     class="text-button"
-                    :to="`/knowledge/${item.knowledge_base_id}/documents/${item.id}`"
+                    type="button"
+                    @click="openDocumentPreview(item)"
                   >
                     <Eye :size="15" aria-hidden="true" />
                     查看
-                  </RouterLink>
+                  </button>
                   <button
                     class="text-button"
                     type="button"
@@ -467,6 +474,16 @@ onMounted(loadData);
         @change="setDocumentsPage"
       />
     </ResourcePanel>
+
+    <AdminDocumentPreviewDrawer
+      :open="previewDocument !== undefined"
+      :document="previewDocument"
+      @update:open="
+        (open) => {
+          if (!open) previewDocument = undefined;
+        }
+      "
+    />
 
     <Drawer
       :open="detailDocument !== undefined"

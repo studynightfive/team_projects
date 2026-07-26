@@ -111,6 +111,10 @@ class AnswerExportRequest(BaseModel):
     citations: list[dict[str, JsonValue]] = Field(default_factory=list, max_length=50)
 
 
+class ConvertAnswerExportRequest(BaseModel):
+    format: Literal["pdf", "docx", "markdown"]
+
+
 class ExportTaskResponse(BaseModel):
     id: str
     user_id: str
@@ -309,6 +313,88 @@ EXPORTERS: dict[str, Exporter] = {
     "docx": DocxExporter(),
     "pdf": PdfExporter(),
 }
+
+_ANSWER_SOURCE_FILENAME = "answer-source.md"
+
+
+def _answer_media_type(export_format: str) -> str:
+    return {
+        "pdf": "application/pdf",
+        "markdown": "text/markdown; charset=utf-8",
+        "txt": "text/plain; charset=utf-8",
+        "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }[export_format]
+
+
+def _read_answer_source(task: ExportTask) -> str:
+    """读取服务端保留的问答 Markdown，绝不让客户端回传历史答案正文。"""
+    task_root = (root() / task.id).resolve()
+    source_path = (task_root / _ANSWER_SOURCE_FILENAME).resolve()
+    if source_path.parent == task_root and source_path.is_file():
+        return source_path.read_text(encoding="utf-8")
+
+    # 兼容升级前的 Markdown 问答记录；PDF/DOCX 不做不可靠的逆向解析。
+    if task.format == "markdown":
+        markdown = _resolve_download_path(task).read_text(encoding="utf-8")
+        return markdown.removeprefix("# RAG 问答结果\n\n")
+    raise AppException(
+        code=ErrorCode.EXPORT_FAILED,
+        message="该历史任务未保留可转换源内容，请从问答页面重新导出",
+        status_code=409,
+    )
+
+
+async def _render_answer_task(
+    db: AsyncSession,
+    task: ExportTask,
+    *,
+    markdown: str,
+    citations: list[dict[str, JsonValue]] | None = None,
+) -> tuple[Path, str]:
+    """生成问答文件并同步任务终态，供首次导出和历史格式转换复用。"""
+    extension = "md" if task.format == "markdown" else task.format
+    filename = f"RAG-answer-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.{extension}"
+    output_path = Path(task_file_path(task.id, filename))
+    source_path = Path(task_file_path(task.id, _ANSWER_SOURCE_FILENAME))
+    content = ExportContent(
+        document_id="rag-answer",
+        title="RAG 问答结果",
+        markdown=markdown,
+        citations=citations,
+    )
+    try:
+        # 源文件不作为下载地址暴露，只用于同一用户后续选择其他格式。
+        source_path.write_text(markdown, encoding="utf-8")
+        await EXPORTERS[task.format].export(
+            content,
+            str(output_path),
+            ExportOptions.model_validate(task.options or {}),
+        )
+        task.file_path = str(output_path)
+        task.file_size = output_path.stat().st_size
+        task.status = "done"
+        task.progress = 100
+        task.finished_at = datetime.now(timezone.utc)
+        await db.commit()
+        return output_path, filename
+    except Exception as exc:
+        delete_task_dir(task.id)
+        task.status = "failed"
+        task.error_code = "export_failed"
+        task.error_message = "问答结果导出失败"
+        task.finished_at = datetime.now(timezone.utc)
+        await db.commit()
+        logger.warning(
+            "answer_export_failed",
+            task_id=task.id,
+            format=task.format,
+            error_type=type(exc).__name__,
+        )
+        raise AppException(
+            code=ErrorCode.EXPORT_FAILED,
+            message="问答结果导出失败，请稍后重试",
+            status_code=500,
+        ) from exc
 
 
 # ============================================================
@@ -517,48 +603,15 @@ async def export_answer_endpoint(
     db.add(task)
     await db.commit()
 
-    extension = "md" if payload.format == "markdown" else payload.format
-    filename = f"RAG-answer-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.{extension}"
-    output_path = task_file_path(task.id, filename)
-    content = ExportContent(
-        document_id="rag-answer",
-        title="RAG 问答结果",
+    output_path, filename = await _render_answer_task(
+        db,
+        task,
         markdown=(
             f"## 问题\n\n{payload.question.strip()}\n\n"
             f"## 答案\n\n{payload.answer.strip()}"
         ),
         citations=payload.citations,
     )
-    try:
-        await EXPORTERS[payload.format].export(
-            content,
-            str(output_path),
-            options,
-        )
-        task.file_path = str(output_path)
-        task.file_size = os.path.getsize(output_path)
-        task.status = "done"
-        task.progress = 100
-        task.finished_at = datetime.now(timezone.utc)
-        await db.commit()
-    except Exception as exc:
-        delete_task_dir(task.id)
-        task.status = "failed"
-        task.error_code = "export_failed"
-        task.error_message = "问答结果导出失败"
-        task.finished_at = datetime.now(timezone.utc)
-        await db.commit()
-        logger.warning(
-            "answer_export_failed",
-            task_id=task.id,
-            format=payload.format,
-            error_type=type(exc).__name__,
-        )
-        raise AppException(
-            code=ErrorCode.EXPORT_FAILED,
-            message="问答结果导出失败，请稍后重试",
-            status_code=500,
-        ) from exc
     await audit(
         db,
         action="answer_export",
@@ -571,12 +624,71 @@ async def export_answer_endpoint(
     return FileResponse(
         path=output_path,
         filename=filename,
-        media_type={
-            "pdf": "application/pdf",
-            "markdown": "text/markdown; charset=utf-8",
-            "txt": "text/plain; charset=utf-8",
-            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        }[payload.format],
+        media_type=_answer_media_type(payload.format),
+        headers={"X-Export-Id": task.id},
+    )
+
+
+@router.post("/{export_id}/convert")
+async def convert_answer_export_endpoint(
+    export_id: str,
+    request: Request,
+    payload: ConvertAnswerExportRequest,
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(require_any_permission("export:write", "export.create")),
+    db: AsyncSession = Depends(get_db),
+) -> FileResponse:
+    """把本人已完成的问答记录转换为另一种格式，并新增可下载记录。"""
+    source_task = await db.get(ExportTask, export_id)
+    if source_task is None or source_task.user_id != user.id:
+        raise NotFoundException(message="导出任务不存在")
+    if source_task.document_ids:
+        raise AppException(
+            code=ErrorCode.EXPORT_FAILED,
+            message="只有问答结果支持在下载页切换格式",
+            status_code=409,
+        )
+    if source_task.status != "done" or is_expired(
+        int(source_task.expires_at.timestamp())
+    ):
+        raise AppException(
+            code=ErrorCode.DOWNLOAD_EXPIRED,
+            message="导出任务尚未完成或已过期，请重新导出",
+            status_code=409,
+        )
+
+    markdown = _read_answer_source(source_task)
+    task = ExportTask(
+        user_id=user.id,
+        format=payload.format,
+        document_ids=[],
+        options=ExportOptions(
+            include_citations=False,
+            include_assets=False,
+            include_toc=False,
+        ).model_dump(),
+        status="running",
+        progress=0,
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(hours=settings.export_default_ttl_hours),
+    )
+    db.add(task)
+    await db.commit()
+    output_path, filename = await _render_answer_task(db, task, markdown=markdown)
+    await audit(
+        db,
+        action="answer_export_convert",
+        user_id=user.id,
+        resource_type="rag_answer",
+        resource_id=task.id,
+        detail=f"source_export_id={source_task.id};format={payload.format}",
+        request=request,
+    )
+    await db.commit()
+    return FileResponse(
+        path=output_path,
+        filename=filename,
+        media_type=_answer_media_type(payload.format),
         headers={"X-Export-Id": task.id},
     )
 

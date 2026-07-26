@@ -1005,6 +1005,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/exports/{export_id}/convert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Convert Answer Export Endpoint
+         * @description 把本人已完成的问答记录转换为另一种格式，并新增可下载记录。
+         */
+        post: operations["convert_answer_export_endpoint_api_v1_exports__export_id__convert_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/exports": {
         parameters: {
             query?: never;
@@ -2042,6 +2062,14 @@ export interface components {
             is_pinned?: boolean | null;
             /** Is Archived */
             is_archived?: boolean | null;
+        };
+        /** ConvertAnswerExportRequest */
+        ConvertAnswerExportRequest: {
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "pdf" | "docx" | "markdown";
         };
         /** CreateExportRequest */
         CreateExportRequest: {
@@ -6517,6 +6545,59 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AnswerExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    convert_answer_export_endpoint_api_v1_exports__export_id__convert_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                export_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConvertAnswerExportRequest"];
             };
         };
         responses: {
