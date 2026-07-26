@@ -1,7 +1,7 @@
 """Postgres 端到端集成测试的会话 fixture。
 
-未设置可用库或连不上时自动 skip，不阻断默认 CI 单元门禁。
-环境变量：TEST_DATABASE_URL（优先）或沿用 DATABASE_URL。
+未设置专用测试库或连不上时自动 skip，不阻断默认单元门禁。
+环境变量：TEST_DATABASE_URL。禁止回退到 DATABASE_URL，避免污染演示或生产数据。
 """
 
 from __future__ import annotations
@@ -17,22 +17,24 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 # 触发全部 ORM 表注册
 import app.common.models  # noqa: F401
+import app.departments.models  # noqa: F401
 import app.documents.models  # noqa: F401
+import app.favorites.models  # noqa: F401
 import app.knowledge.models  # noqa: F401
 import app.models.repository  # noqa: F401
+import app.notifications.models  # noqa: F401
+import app.rag.conversations.all  # noqa: F401
 import app.rag.metrics  # noqa: F401
 import app.rag.search.repository  # noqa: F401
+import app.rag.tests.all  # noqa: F401
 from app.common.database import Base
 
 
 def _test_database_url() -> str:
-    return os.getenv(
-        "TEST_DATABASE_URL",
-        os.getenv(
-            "DATABASE_URL",
-            "postgresql+asyncpg://postgres:postgres@localhost:5432/knowledge_base",
-        ),
-    )
+    url = os.getenv("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("未配置 TEST_DATABASE_URL，跳过 PostgreSQL 集成测试")
+    return url
 
 
 @pytest_asyncio.fixture

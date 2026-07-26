@@ -45,6 +45,7 @@ from app.exports.all import router as exports_router
 from app.favorites.router import router as favorites_router
 from app.knowledge.router import router as knowledge_router
 from app.models.api import router as models_router
+from app.native.runtime import enforce_native_core
 from app.notifications.router import router as notifications_router
 from app.rag.chat.all import router as chat_router
 from app.rag.conversations.all import router as conversations_router
@@ -71,6 +72,11 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     关闭时：释放数据库连接池、Redis 连接
     """
     # 启动阶段
+    enforce_native_core(
+        required=settings.native_core_required,
+        license_required=settings.native_core_license_required,
+        license_file=settings.knowledge_core_license_file,
+    )
     logger.info(
         "application_starting",
         app_name=settings.app_name,

@@ -229,11 +229,60 @@ onMounted(() => {
             </small>
           </div>
           <div>
+            <dt>评测命中率</dt>
+            <dd>{{ metrics.retrieval_evaluation.rate }}%</dd>
+            <small>
+              命中 {{ metrics.retrieval_evaluation.numerator }} /
+              {{ metrics.retrieval_evaluation.denominator }} ·
+              {{ metrics.evaluation_run_count }} 次测试
+            </small>
+          </div>
+          <div>
             <dt>平均响应时间</dt>
             <dd>{{ metrics.response_time.average_ms }} ms</dd>
             <small>{{ metrics.response_time.sample_count }} 次完成请求</small>
           </div>
         </dl>
+      </section>
+
+      <section class="content-card popular-card" aria-labelledby="popular-title">
+        <header class="card-heading">
+          <div>
+            <h2 id="popular-title">高频问题</h2>
+            <p>根据当前统计范围内的真实用户提问聚合，不展示系统生成的样例。</p>
+          </div>
+        </header>
+        <div
+          v-if="metrics.popular_questions.length > 0"
+          class="leaderboard-table-scroll"
+          tabindex="0"
+        >
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th scope="col">问题</th>
+                <th scope="col">提问次数</th>
+                <th scope="col">最近提问</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in metrics.popular_questions"
+                :key="`${item.question}-${item.last_asked_at}`"
+              >
+                <td class="question-cell">{{ item.question }}</td>
+                <td><strong>{{ item.ask_count }}</strong></td>
+                <td>{{ new Date(item.last_asked_at).toLocaleString("zh-CN") }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <InlineState
+          v-else
+          kind="empty"
+          title="暂无高频问题"
+          description="用户完成真实问答后，这里会按问题统计热度。"
+        />
       </section>
 
       <section class="content-card leaderboard-card" aria-labelledby="leaderboard-title">
@@ -320,7 +369,7 @@ onMounted(() => {
 
 .dashboard-facts {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3);
   margin: 0;
   padding: 0 var(--space-6) var(--space-6);
@@ -364,6 +413,11 @@ onMounted(() => {
   text-align: left;
 }
 
+.leaderboard-table .question-cell {
+  min-width: 320px;
+  white-space: normal;
+}
+
 .leaderboard-table th {
   color: var(--color-text-muted);
   font-size: var(--font-size-12);
@@ -393,6 +447,10 @@ onMounted(() => {
   .dashboard-controls {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .dashboard-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

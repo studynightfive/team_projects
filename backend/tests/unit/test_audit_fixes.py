@@ -60,6 +60,32 @@ def test_production_requires_secure_cookie() -> None:
         )
 
 
+def test_production_requires_native_core_and_license() -> None:
+    with pytest.raises(ValidationError, match="NATIVE_CORE_REQUIRED=true"):
+        Settings(
+            app_environment="production",
+            cookie_secure=True,
+            model_key_fernet_key="configured-model-key",
+            export_download_signing_key="configured-export-key",
+            native_core_required=False,
+            native_core_license_required=False,
+            **SAFE_SETTINGS,
+        )
+
+    with pytest.raises(
+        ValidationError,
+        match="NATIVE_CORE_LICENSE_REQUIRED=true",
+    ):
+        Settings(
+            app_environment="production",
+            cookie_secure=True,
+            model_key_fernet_key="configured-model-key",
+            export_download_signing_key="configured-export-key",
+            native_core_required=True,
+            **SAFE_SETTINGS,
+        )
+
+
 def test_demo_seed_requires_explicit_password() -> None:
     with pytest.raises(ValidationError, match="DEMO_SEED_PASSWORD"):
         Settings(auto_seed_demo_data=True, **SAFE_SETTINGS)

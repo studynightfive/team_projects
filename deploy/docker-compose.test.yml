@@ -134,6 +134,7 @@ services:
     container_name: kb-test-runner
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:${TEST_POSTGRES_PASSWORD:-test-postgres-password}@postgres:5432/knowledge_base_test
+      - TEST_DATABASE_URL=postgresql+asyncpg://postgres:${TEST_POSTGRES_PASSWORD:-test-postgres-password}@postgres:5432/knowledge_base_test
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=test-secret-key-not-for-production
       - TESTING=true

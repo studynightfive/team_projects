@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { App as AntApp, Drawer } from "ant-design-vue";
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
@@ -55,16 +55,21 @@ const runs = ref<readonly RetrievalRun[]>([]);
 const knowledgeBases = ref<readonly KnowledgeBaseRecord[]>([]);
 const selectedDatasetId = ref("");
 const selectedKbId = ref("");
-const topK = ref(8);
-const threshold = ref(0);
-const mode = ref<RetrievalTestMode>("hybrid");
-const rerank = ref(false);
+const datasetTopK = ref(8);
+const datasetThreshold = ref(0);
+const datasetMode = ref<RetrievalTestMode>("hybrid");
+const datasetRerank = ref(false);
 const loading = ref(false);
 const running = ref(false);
 const saving = ref(false);
 const loadingResultId = ref("");
 const selectedResult = ref<RetrievalTestResult | null>(null);
+const singleKbId = ref("");
 const singleQuestion = ref("");
+const singleTopK = ref(8);
+const singleThreshold = ref(0);
+const singleMode = ref<RetrievalTestMode>("hybrid");
+const singleRerank = ref(false);
 const singleRunning = ref(false);
 const singleResult = ref<SingleRetrievalTestResult | null>(null);
 const editorOpen = ref(false);
@@ -142,6 +147,9 @@ const formatScore = (value: number): string =>
 const getKnowledgeBaseName = (id: string): string =>
   knowledgeBases.value.find((item) => item.id === id)?.name ?? "未知知识库";
 
+const getDatasetName = (id: string): string =>
+  datasets.value.find((item) => item.id === id)?.name ?? shortId(id);
+
 const shortId = (id: string): string => id.slice(0, 8);
 
 const makeDraft = (
@@ -187,6 +195,12 @@ const loadData = async (): Promise<void> => {
       selectedKbId.value =
         datasetPage.items[0]?.kb_id ?? kbItems[0]?.id ?? "";
     }
+    if (
+      singleKbId.value === "" ||
+      !kbItems.some((item) => item.id === singleKbId.value)
+    ) {
+      singleKbId.value = selectedKbId.value || kbItems[0]?.id || "";
+    }
   } catch (err) {
     message.error(toPublicApiError(err).message);
   } finally {
@@ -195,7 +209,13 @@ const loadData = async (): Promise<void> => {
 };
 
 watch(selectedKbId, () => {
-  selectedDatasetId.value = filteredDatasets.value[0]?.id ?? "";
+  if (
+    !filteredDatasets.value.some(
+      (dataset) => dataset.id === selectedDatasetId.value,
+    )
+  ) {
+    selectedDatasetId.value = filteredDatasets.value[0]?.id ?? "";
+  }
 });
 
 const startCreate = (): void => {
@@ -216,8 +236,15 @@ const closeEditor = (): void => {
   editorOpen.value = false;
 };
 
-const addQuestion = (): void => {
-  editor.queries.push(makeDraft());
+const addQuestion = async (): Promise<void> => {
+  const draft = makeDraft();
+  editor.queries.unshift(draft);
+  await nextTick();
+  document
+    .querySelector<HTMLInputElement>(
+      `[data-question-id="${draft.id}"] input[name="dataset-question"]`,
+    )
+    ?.focus();
 };
 
 const removeQuestion = (id: string): void => {
@@ -246,7 +273,7 @@ const loadCandidates = async (draft: QueryDraft): Promise<void> => {
   try {
     draft.candidates = await searchRetrievalCandidates({
       query: draft.query.trim(),
-      mode: mode.value,
+      mode: datasetMode.value,
       kb_id: editor.kbId,
       top_k: 8,
       threshold: 0,
@@ -322,10 +349,10 @@ const runTest = async (): Promise<void> => {
   try {
     selectedResult.value = await runRetrievalTest({
       dataset_id: selectedDataset.value.id,
-      mode: mode.value,
-      top_k: topK.value,
-      threshold: threshold.value,
-      rerank: rerank.value,
+      mode: datasetMode.value,
+      top_k: datasetTopK.value,
+      threshold: datasetThreshold.value,
+      rerank: datasetRerank.value,
     });
     message.success("命中率测试已完成");
     const runPage = await listRetrievalRuns();
@@ -338,7 +365,7 @@ const runTest = async (): Promise<void> => {
 };
 
 const runSingleTest = async (): Promise<void> => {
-  if (selectedKbId.value === "") {
+  if (singleKbId.value === "") {
     message.warning("请先选择知识库");
     return;
   }
@@ -349,12 +376,12 @@ const runSingleTest = async (): Promise<void> => {
   singleRunning.value = true;
   try {
     singleResult.value = await runSingleRetrievalTest({
-      kb_id: selectedKbId.value,
+      kb_id: singleKbId.value,
       question: singleQuestion.value.trim(),
-      mode: mode.value,
-      top_k: topK.value,
-      threshold: threshold.value,
-      rerank: rerank.value,
+      mode: singleMode.value,
+      top_k: singleTopK.value,
+      threshold: singleThreshold.value,
+      rerank: singleRerank.value,
     });
     message.success("单问题测试已完成");
   } catch (err) {
@@ -362,6 +389,11 @@ const runSingleTest = async (): Promise<void> => {
   } finally {
     singleRunning.value = false;
   }
+};
+
+const selectDataset = (dataset: RetrievalDataset): void => {
+  selectedKbId.value = dataset.kb_id;
+  selectedDatasetId.value = dataset.id;
 };
 
 const viewRun = async (run: RetrievalRun): Promise<void> => {
@@ -445,10 +477,60 @@ onMounted(loadData);
             placeholder="例如：医疗信息化项目的主要实施阶段有哪些？"
           />
         </label>
+        <div class="single-parameter-grid">
+          <label>
+            <span>知识库</span>
+            <select v-model="singleKbId">
+              <option
+                v-for="item in knowledgeBases"
+                :key="item.id"
+                :value="item.id"
+              >
+                {{ item.name }}
+              </option>
+            </select>
+          </label>
+          <label>
+            <span>检索模式</span>
+            <select v-model="singleMode">
+              <option
+                v-for="item in modeOptions"
+                :key="item.value"
+                :value="item.value"
+              >
+                {{ item.label }}
+              </option>
+            </select>
+          </label>
+          <label>
+            <span>检索候选数（TopK）</span>
+            <input
+              v-model.number="singleTopK"
+              type="number"
+              min="1"
+              max="50"
+              step="1"
+            />
+          </label>
+          <label>
+            <span>命中阈值 {{ singleThreshold.toFixed(2) }}</span>
+            <input
+              v-model.number="singleThreshold"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+            />
+          </label>
+          <label class="checkbox-line single-rerank">
+            <input v-model="singleRerank" type="checkbox" />
+            <span>启用重排</span>
+          </label>
+        </div>
         <button
           class="admin-primary-button"
           type="submit"
-          :disabled="singleRunning || selectedKbId === ''"
+          :disabled="singleRunning || singleKbId === ''"
         >
           {{ singleRunning ? "测试中" : "立即测试" }}
         </button>
@@ -541,9 +623,9 @@ onMounted(loadData);
               v-for="item in modeOptions"
               :key="item.value"
               class="mode-option"
-              :class="{ active: mode === item.value }"
+              :class="{ active: datasetMode === item.value }"
             >
-              <input v-model="mode" type="radio" :value="item.value" />
+              <input v-model="datasetMode" type="radio" :value="item.value" />
               <strong>{{ item.label }}</strong>
               <span>{{ item.description }}</span>
             </label>
@@ -552,7 +634,7 @@ onMounted(loadData);
             <label>
               <span>TopK</span>
               <input
-                v-model.number="topK"
+                v-model.number="datasetTopK"
                 type="number"
                 min="1"
                 max="50"
@@ -560,9 +642,9 @@ onMounted(loadData);
               />
             </label>
             <label>
-              <span>阈值 {{ threshold.toFixed(2) }}</span>
+              <span>阈值 {{ datasetThreshold.toFixed(2) }}</span>
               <input
-                v-model.number="threshold"
+                v-model.number="datasetThreshold"
                 type="range"
                 min="0"
                 max="1"
@@ -571,7 +653,7 @@ onMounted(loadData);
             </label>
           </div>
           <label class="checkbox-line">
-            <input v-model="rerank" type="checkbox" />
+            <input v-model="datasetRerank" type="checkbox" />
             <span>启用重排</span>
           </label>
           <div class="form-actions">
@@ -607,12 +689,12 @@ onMounted(loadData);
           />
           <div v-else class="dataset-list">
             <article
-              v-for="dataset in filteredDatasets"
+              v-for="dataset in datasets"
               :key="dataset.id"
               class="dataset-card"
               :class="{ active: dataset.id === selectedDatasetId }"
             >
-              <button type="button" @click="selectedDatasetId = dataset.id">
+              <button type="button" @click="selectDataset(dataset)">
                 <strong>{{ dataset.name }}</strong>
                 <span>{{ dataset.description || "暂无说明" }}</span>
               </button>
@@ -745,7 +827,7 @@ onMounted(loadData);
               <tbody>
                 <tr v-for="run in pagedRuns" :key="run.id">
                   <td class="numeric">{{ shortId(run.id) }}</td>
-                  <td>{{ shortId(run.dataset_id) }}</td>
+                  <td>{{ getDatasetName(run.dataset_id) }}</td>
                   <td>
                     <span class="status-chip" :class="statusTone(run.status)">
                       {{ statusLabel(run.status) }}
@@ -836,6 +918,7 @@ onMounted(loadData);
         <section
           v-for="(draft, index) in editor.queries"
           :key="draft.id"
+          :data-question-id="draft.id"
           class="question-card"
         >
           <div class="question-card-header">
@@ -853,6 +936,7 @@ onMounted(loadData);
             <span>问题文本</span>
             <input
               v-model="draft.query"
+              name="dataset-question"
               type="text"
               autocomplete="off"
               placeholder="例如：HIS 医院信息系统需要支持哪些关键能力？"
@@ -942,8 +1026,42 @@ onMounted(loadData);
 }
 
 .single-test-form {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: end;
+}
+
+.single-parameter-grid {
+  display: grid;
+  align-items: end;
+  gap: var(--space-3);
+  grid-template-columns:
+    minmax(180px, 1.3fr)
+    minmax(130px, 0.8fr)
+    minmax(120px, 0.6fr)
+    minmax(200px, 1.2fr)
+    auto;
+}
+
+.single-parameter-grid > label:not(.checkbox-line) {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.single-parameter-grid input,
+.single-parameter-grid select {
+  width: 100%;
+}
+
+.single-rerank {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.single-test-form > .admin-primary-button {
+  justify-self: end;
 }
 
 .single-test-form textarea {
@@ -1173,12 +1291,25 @@ onMounted(loadData);
   .retrieval-test-layout {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .single-parameter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 767px) {
   .single-test-form {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .single-parameter-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .single-test-form > .admin-primary-button {
+    width: 100%;
+  }
+
   .parameter-grid,
   .editor-grid,
   .metric-grid {

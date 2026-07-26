@@ -28,9 +28,11 @@ from app.common.exceptions import NotFoundException, ValidationException
 from app.common.models import User
 from app.common.schemas import APIResponse, PaginatedData
 from app.documents.models import DocumentChunk
+from app.documents.permissions import user_can_access_kb
 from app.rag._shared.audit_helper import audit
+from app.rag._shared.permissions import get_user_accessible_kb_ids
 from app.rag.search import service as search_service
-from app.rag.search.schemas import SearchRequest
+from app.rag.search.schemas import SearchHit, SearchRequest
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/api/v1/retrieval-tests", tags=["retrieval-tests"])
@@ -178,6 +180,12 @@ class RetrievalTestMetrics(BaseModel):
     recall_at_k: float
     precision_at_k: float
     map_at_k: float
+
+
+def _is_single_question_hit(hits: list[SearchHit], threshold: float) -> bool:
+    """单题命中必须存在达到页面所示阈值的候选，不能只判断列表非空。"""
+
+    return any(hit.score >= threshold for hit in hits)
 
 
 class PerQueryResult(BaseModel):
@@ -328,9 +336,14 @@ async def _resolve_relevant_chunk_ids(
 # 数据集 CRUD
 # ============================================================
 async def list_datasets(
-    db: AsyncSession, *, user_id: str, page: int, page_size: int
+    db: AsyncSession, *, user: User, page: int, page_size: int
 ) -> tuple[list[RetrievalTestDataset], int]:
-    q = select(RetrievalTestDataset)
+    accessible_kb_ids = await get_user_accessible_kb_ids(db, user)
+    if not accessible_kb_ids:
+        return [], 0
+    q = select(RetrievalTestDataset).where(
+        RetrievalTestDataset.kb_id.in_(accessible_kb_ids)
+    )
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar() or 0
     offset = (page - 1) * page_size
     res = await db.execute(
@@ -357,6 +370,20 @@ async def create_dataset(
 
 async def get_dataset(db: AsyncSession, dataset_id: str) -> RetrievalTestDataset | None:
     return await db.get(RetrievalTestDataset, dataset_id)
+
+
+async def get_accessible_dataset(
+    db: AsyncSession,
+    *,
+    user: User,
+    dataset_id: str,
+) -> RetrievalTestDataset:
+    """读取测试集并隐藏越权资源，避免泄露其他部门的评测问题。"""
+
+    dataset = await get_dataset(db, dataset_id)
+    if dataset is None or not await user_can_access_kb(db, user, dataset.kb_id):
+        raise NotFoundException()
+    return dataset
 
 
 async def update_dataset(
@@ -481,7 +508,12 @@ async def list_datasets_endpoint(
     _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
-    items, total = await list_datasets(db, user_id=user.id, page=page, page_size=page_size)
+    items, total = await list_datasets(
+        db,
+        user=user,
+        page=page,
+        page_size=page_size,
+    )
     return APIResponse(
         data=PaginatedData(
             items=[RetrievalTestDatasetResponse.model_validate(d).model_dump() for d in items],
@@ -500,6 +532,8 @@ async def create_dataset_endpoint(
     _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
+    if not await user_can_access_kb(db, user, payload.kb_id):
+        raise NotFoundException()
     ds = await create_dataset(db, user_id=user.id, payload=payload)
     await db.commit()
     await db.refresh(ds)
@@ -525,9 +559,7 @@ async def get_dataset_endpoint(
     _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
-    ds = await get_dataset(db, dataset_id)
-    if ds is None:
-        raise NotFoundException()
+    ds = await get_accessible_dataset(db, user=user, dataset_id=dataset_id)
     return APIResponse(
         data=RetrievalTestDatasetResponse.model_validate(ds).model_dump()
     ).model_dump()
@@ -542,9 +574,7 @@ async def patch_dataset_endpoint(
     _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
-    ds = await get_dataset(db, dataset_id)
-    if ds is None:
-        raise NotFoundException()
+    ds = await get_accessible_dataset(db, user=user, dataset_id=dataset_id)
     ds = await update_dataset(db, ds, payload)
     await db.commit()
     await db.refresh(ds)
@@ -561,9 +591,7 @@ async def delete_dataset_endpoint(
     _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
-    ds = await get_dataset(db, dataset_id)
-    if ds is None:
-        raise NotFoundException()
+    ds = await get_accessible_dataset(db, user=user, dataset_id=dataset_id)
     await delete_dataset(db, ds)
     await db.commit()
     await audit(
@@ -585,9 +613,11 @@ async def run_test_endpoint(
     _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
-    dataset = await get_dataset(db, payload.dataset_id)
-    if dataset is None:
-        raise NotFoundException()
+    dataset = await get_accessible_dataset(
+        db,
+        user=user,
+        dataset_id=payload.dataset_id,
+    )
 
     if payload.async_run:
         raise ValidationException(message="异步评测尚未接入 Worker，请使用 async_run=false")
@@ -631,7 +661,7 @@ async def run_single_test_endpoint(
             embedding_model_id=payload.config.embedding_model_id,
         ),
     )
-    hit = len(response.hits) > 0
+    hit = _is_single_question_hit(response.hits, payload.config.threshold)
     await audit(
         db,
         action="retrieval_test_single",
@@ -666,7 +696,24 @@ async def list_runs_endpoint(
     _perm: None = Depends(require_permission("admin.retrieval_test.run")),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
-    q = select(RetrievalTestRun)
+    accessible_kb_ids = await get_user_accessible_kb_ids(db, user)
+    if not accessible_kb_ids:
+        return APIResponse(
+            data=PaginatedData(
+                items=[],
+                page=page,
+                page_size=page_size,
+                total=0,
+            ).model_dump()
+        ).model_dump()
+    q = (
+        select(RetrievalTestRun)
+        .join(
+            RetrievalTestDataset,
+            RetrievalTestDataset.id == RetrievalTestRun.dataset_id,
+        )
+        .where(RetrievalTestDataset.kb_id.in_(accessible_kb_ids))
+    )
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar() or 0
     offset = (page - 1) * page_size
     res = await db.execute(
@@ -702,6 +749,7 @@ async def get_run_endpoint(
     run = await db.get(RetrievalTestRun, run_id)
     if run is None:
         raise NotFoundException()
+    await get_accessible_dataset(db, user=user, dataset_id=run.dataset_id)
     if not run.metrics or not run.per_query:
         return APIResponse(
             data=RetrievalTestRunSummary(

@@ -8538,8 +8538,23 @@
           "answer_cache": {
             "$ref": "#/components/schemas/RateMetric"
           },
+          "retrieval_evaluation": {
+            "$ref": "#/components/schemas/RateMetric"
+          },
+          "evaluation_run_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Evaluation Run Count"
+          },
           "response_time": {
             "$ref": "#/components/schemas/ResponseTimeMetric"
+          },
+          "popular_questions": {
+            "items": {
+              "$ref": "#/components/schemas/PopularQuestionItem"
+            },
+            "type": "array",
+            "title": "Popular Questions"
           },
           "department_leaderboard": {
             "$ref": "#/components/schemas/PaginatedData_DepartmentLeaderboardItem_"
@@ -8555,7 +8570,10 @@
           "unanswered_queries",
           "document_processing",
           "answer_cache",
+          "retrieval_evaluation",
+          "evaluation_run_count",
           "response_time",
+          "popular_questions",
           "department_leaderboard"
         ],
         "title": "DashboardMetrics",
@@ -10597,6 +10615,31 @@
           "total"
         ],
         "title": "PaginatedData[RecycleBinItem]"
+      },
+      "PopularQuestionItem": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "ask_count": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Ask Count"
+          },
+          "last_asked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Asked At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "ask_count",
+          "last_asked_at"
+        ],
+        "title": "PopularQuestionItem"
       },
       "RagAnswerRequest": {
         "properties": {

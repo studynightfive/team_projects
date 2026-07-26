@@ -11,6 +11,8 @@
 # ----------------------------------------------------------
 FROM python:3.10.20-slim-bookworm AS builder
 
+ARG NATIVE_LICENSE_PUBLIC_KEY_HEX=""
+
 # 设置工作目录
 WORKDIR /app
 
@@ -19,8 +21,8 @@ WORKDIR /app
 RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
     && apt-get -o Acquire::Retries=5 update \
     && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
-    # 编译工具：gcc 用于编译 Python C 扩展
-    gcc \
+    # Cython 扩展需要编译器、标准 C 头文件和链接工具。
+    build-essential \
     # libpq-dev：PostgreSQL 客户端库，asyncpg 编译需要
     libpq-dev \
     # 清理 apt 缓存，减小镜像体积
@@ -35,10 +37,16 @@ RUN pip install --no-cache-dir uv==0.11.26
 # 先复制依赖文件，利用 Docker 构建缓存：只有依赖变化时才重新安装
 COPY backend/pyproject.toml backend/uv.lock* /app/backend/
 
-# 安装 Python 依赖
-# --frozen：严格使用 uv.lock 中的版本，不更新依赖
-# --project backend：指定项目目录
+# 先安装运行依赖以复用依赖缓存，再复制源码安装构建工具并编译原生核心。
 RUN cd /app && uv sync --project backend --frozen --no-dev
+
+COPY backend/ /app/backend/
+
+RUN cd /app \
+    && uv sync --project backend --frozen \
+    && NATIVE_LICENSE_PUBLIC_KEY_HEX="${NATIVE_LICENSE_PUBLIC_KEY_HEX}" \
+       /app/backend/.venv/bin/python /app/backend/scripts/build_native.py \
+    && uv sync --project backend --frozen --no-dev
 
 # ----------------------------------------------------------
 # 阶段 2：运行阶段 - 最终镜像
@@ -75,6 +83,18 @@ COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
 # 复制后端应用代码
 # 注意：.env 文件不复制到镜像中（通过 .dockerignore 排除）
 COPY backend/ /app/backend/
+COPY --from=builder /app/backend/app/knowledge/service*.so /app/backend/app/knowledge/
+COPY --from=builder /app/backend/app/rag/_shared/permissions*.so /app/backend/app/rag/_shared/
+COPY --from=builder /app/backend/app/rag/search/service*.so /app/backend/app/rag/search/
+COPY --from=builder /app/backend/app/native/license_core*.so /app/backend/app/native/
+
+# 运行镜像不保留受保护模块源码；构建在此处失败可阻止不完整镜像发布。
+RUN rm -f \
+      /app/backend/app/knowledge/service.py \
+      /app/backend/app/rag/_shared/permissions.py \
+      /app/backend/app/rag/search/service.py \
+      /app/backend/app/native/license_core.pyx \
+    && /app/backend/.venv/bin/python /app/backend/scripts/verify_native_build.py
 
 # 创建非 root 用户运行应用（安全最佳实践）
 # 方案第15.3节：上传目录禁止执行

@@ -8,17 +8,45 @@
 
 from __future__ import annotations
 
+from app.rag.search.schemas import SearchHit
 from app.rag.tests.all import (
     RetrievalTestConfig,
     _aggregate_metrics,
     _average_precision_at_k,
     _hash_config,
     _hit,
+    _is_single_question_hit,
     _ndg_at_k,
     _precision_at_k,
     _recall_at_k,
     _reciprocal_rank,
 )
+
+
+class TestSingleQuestionThreshold:
+    def test_rejects_candidates_below_threshold(self):
+        hits = [
+            SearchHit(
+                doc_id="document-1",
+                chunk_id="chunk-1",
+                score=0.29,
+                text="测试片段",
+            )
+        ]
+
+        assert _is_single_question_hit(hits, 0.3) is False
+
+    def test_zero_threshold_accepts_any_candidate(self):
+        hits = [
+            SearchHit(
+                doc_id="document-1",
+                chunk_id="chunk-1",
+                score=0.01,
+                text="测试片段",
+            )
+        ]
+
+        assert _is_single_question_hit(hits, 0.0) is True
 
 
 class TestHitIndicator:

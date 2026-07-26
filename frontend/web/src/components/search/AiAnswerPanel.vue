@@ -47,6 +47,18 @@ const citationNumberById = computed(
       props.answer.citations.map((citation, index) => [citation.id, index + 1]),
     ),
 );
+const uniqueDocumentCitations = computed(() => {
+  const seen = new Set<string>();
+  return props.answer.citations.filter((citation) => {
+    // 正文引用按分块保留，概览按文档去重，避免同一文档占据多个来源位置。
+    const key =
+      citation.documentId ??
+      `${citation.knowledgeBaseId ?? ""}:${citation.title.trim().toLocaleLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+});
 
 const submitFeedback = (value: string): void => {
   selectedFeedback.value = value;
@@ -111,7 +123,7 @@ watch(
       <h3 :id="citationTitleId">结论依据</h3>
       <div class="answer-citation-links">
         <button
-          v-for="citation in answer.citations"
+          v-for="citation in uniqueDocumentCitations"
           :key="citation.id"
           type="button"
           :title="`查看来源：${citation.title}`"

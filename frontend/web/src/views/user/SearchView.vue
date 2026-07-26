@@ -937,7 +937,9 @@ onBeforeUnmount(() => {
     <header class="conversation-header">
       <div class="search-result-title">
         <h1>AI 搜索</h1>
-        <p>{{ selectedKnowledgeBaseLabel }}</p>
+        <p :title="selectedKnowledgeBaseLabel">
+          {{ selectedKnowledgeBaseLabel }}
+        </p>
       </div>
       <div class="search-result-actions">
         <button
@@ -1242,34 +1244,52 @@ onBeforeUnmount(() => {
 }
 
 .conversation-header {
+  min-height: 48px;
   width: min(100%, 960px);
   margin: 0 auto;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
   justify-content: space-between;
   gap: var(--space-5);
 }
 
 .search-result-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.search-result-title h1,
+.search-result-title p {
   min-width: 0;
 }
 
 .search-result-title h1 {
-  margin: 0 0 var(--space-1);
+  margin: 0;
   color: var(--color-text);
   font-size: var(--font-size-20);
   font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
 }
 
 .search-result-title p {
-  max-width: 720px;
+  max-width: min(520px, 55vw);
   margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-4);
   overflow: hidden;
   color: var(--color-text-secondary);
+  background: var(--color-surface-subtle);
   font-size: var(--font-size-15, 15px);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .search-result-actions {
+  flex: none;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-2);
@@ -1459,7 +1479,7 @@ onBeforeUnmount(() => {
   color: var(--color-text-muted);
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 900px) {
   .conversation-header {
     align-items: flex-start;
     flex-direction: column;
@@ -1480,10 +1500,11 @@ onBeforeUnmount(() => {
   }
 
   .search-result-title h1 {
-    font-size: var(--font-size-24);
+    font-size: var(--font-size-20);
   }
 
   .search-result-title p {
+    max-width: 100%;
     overflow: visible;
     text-overflow: clip;
     white-space: normal;

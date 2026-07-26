@@ -45,6 +45,8 @@ services:
       context: ..
       dockerfile: deploy/docker/api-server.Dockerfile
       target: runtime
+      args:
+        NATIVE_LICENSE_PUBLIC_KEY_HEX: ${NATIVE_LICENSE_PUBLIC_KEY_HEX:-}
     container_name: kb-api-server
     # 仅暴露端口给内部网络，不映射到宿主机
     # Nginx 通过 Docker 内部网络访问 api-server:8000
@@ -88,6 +90,9 @@ services:
       - RAG_ANSWER_CACHE_TTL_SECONDS=${RAG_ANSWER_CACHE_TTL_SECONDS:-604800}
       - RAG_ANSWER_CACHE_SIMILARITY_THRESHOLD=${RAG_ANSWER_CACHE_SIMILARITY_THRESHOLD:-0.92}
       - RAG_ANSWER_CACHE_CANDIDATE_LIMIT=${RAG_ANSWER_CACHE_CANDIDATE_LIMIT:-50}
+      - NATIVE_CORE_REQUIRED=${NATIVE_CORE_REQUIRED:-true}
+      - NATIVE_CORE_LICENSE_REQUIRED=${NATIVE_CORE_LICENSE_REQUIRED:-false}
+      - KNOWLEDGE_CORE_LICENSE_FILE=${KNOWLEDGE_CORE_LICENSE_FILE:-/run/secrets/knowledge_core_license.json}
       - PDF_PARSE_TIMEOUT_SECONDS=${PDF_PARSE_TIMEOUT_SECONDS:-120}
       - PDF_MAX_PAGES=${PDF_MAX_PAGES:-500}
       - PDF_PARSE_MEMORY_LIMIT_MB=${PDF_PARSE_MEMORY_LIMIT_MB:-512}
@@ -120,6 +125,8 @@ services:
     build:
       context: ..
       dockerfile: deploy/docker/worker.Dockerfile
+      args:
+        NATIVE_LICENSE_PUBLIC_KEY_HEX: ${NATIVE_LICENSE_PUBLIC_KEY_HEX:-}
     container_name: kb-worker
     # Worker 不暴露端口
     # 通过 Redis 队列接收任务，不处理 HTTP 请求
@@ -144,6 +151,9 @@ services:
       - RAG_ANSWER_CACHE_TTL_SECONDS=${RAG_ANSWER_CACHE_TTL_SECONDS:-604800}
       - RAG_ANSWER_CACHE_SIMILARITY_THRESHOLD=${RAG_ANSWER_CACHE_SIMILARITY_THRESHOLD:-0.92}
       - RAG_ANSWER_CACHE_CANDIDATE_LIMIT=${RAG_ANSWER_CACHE_CANDIDATE_LIMIT:-50}
+      - NATIVE_CORE_REQUIRED=${NATIVE_CORE_REQUIRED:-true}
+      - NATIVE_CORE_LICENSE_REQUIRED=${NATIVE_CORE_LICENSE_REQUIRED:-false}
+      - KNOWLEDGE_CORE_LICENSE_FILE=${KNOWLEDGE_CORE_LICENSE_FILE:-/run/secrets/knowledge_core_license.json}
       - PDF_PARSE_TIMEOUT_SECONDS=${PDF_PARSE_TIMEOUT_SECONDS:-120}
       - PDF_MAX_PAGES=${PDF_MAX_PAGES:-500}
       - PDF_PARSE_MEMORY_LIMIT_MB=${PDF_PARSE_MEMORY_LIMIT_MB:-512}
@@ -188,6 +198,9 @@ services:
       - MODEL_KEY_FERNET_KEY=${MODEL_KEY_FERNET_KEY:-}
       - EXPORT_DOWNLOAD_SIGNING_KEY=${EXPORT_DOWNLOAD_SIGNING_KEY:-}
       - APP_ENVIRONMENT=${APP_ENVIRONMENT:-development}
+      - NATIVE_CORE_REQUIRED=${NATIVE_CORE_REQUIRED:-true}
+      - NATIVE_CORE_LICENSE_REQUIRED=${NATIVE_CORE_LICENSE_REQUIRED:-false}
+      - KNOWLEDGE_CORE_LICENSE_FILE=${KNOWLEDGE_CORE_LICENSE_FILE:-/run/secrets/knowledge_core_license.json}
     depends_on:
       postgres:
         condition: service_healthy

@@ -41,6 +41,12 @@ class DepartmentLeaderboardItem(BaseModel):
     contributor_count: int = Field(ge=0)
 
 
+class PopularQuestionItem(BaseModel):
+    question: str
+    ask_count: int = Field(ge=1)
+    last_asked_at: datetime
+
+
 class DashboardMetrics(BaseModel):
     """管理首页真实业务指标，保留旧总量字段以兼容已有客户端。"""
 
@@ -63,7 +69,10 @@ class DashboardMetrics(BaseModel):
     unanswered_queries: int = Field(ge=0)
     document_processing: RateMetric
     answer_cache: RateMetric
+    retrieval_evaluation: RateMetric
+    evaluation_run_count: int = Field(ge=0)
     response_time: ResponseTimeMetric
+    popular_questions: list[PopularQuestionItem]
     department_leaderboard: PaginatedData[DepartmentLeaderboardItem]
 
 

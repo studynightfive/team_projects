@@ -12,8 +12,19 @@ from app.common.database import async_session_factory
 from app.documents.models import DocumentTask, TaskStatus
 from app.documents.service import DocumentService
 from app.exports.all import ExportTask, _run_export, cleanup_expired
+from app.native.runtime import enforce_native_core
 
 _WORKER_HEALTH_KEY = "arq:queue:health-check"
+
+
+async def startup(_ctx: dict[str, object]) -> None:
+    """Worker 与 API 使用相同的原生核心启动校验。"""
+
+    enforce_native_core(
+        required=settings.native_core_required,
+        license_required=settings.native_core_license_required,
+        license_file=settings.knowledge_core_license_file,
+    )
 
 
 async def process_document_task(
@@ -104,6 +115,7 @@ class WorkerSettings:
     """arq Worker 配置"""
 
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
+    on_startup = startup
     functions = [process_document_task, process_export_task]
     cron_jobs = [
         cron(reconcile_document_tasks, second={15, 45}),

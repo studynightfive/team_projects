@@ -11,6 +11,8 @@
 # ----------------------------------------------------------
 FROM python:3.10.20-slim-bookworm AS builder
 
+ARG NATIVE_LICENSE_PUBLIC_KEY_HEX=""
+
 # 设置工作目录
 WORKDIR /app
 
@@ -18,7 +20,7 @@ WORKDIR /app
 RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
     && apt-get -o Acquire::Retries=5 update \
     && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
-    gcc \
+    build-essential \
     libpq-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -31,6 +33,14 @@ COPY backend/pyproject.toml backend/uv.lock* /app/backend/
 
 # 安装 Python 依赖
 RUN cd /app && uv sync --project backend --frozen --no-dev
+
+COPY backend/ /app/backend/
+
+RUN cd /app \
+    && uv sync --project backend --frozen \
+    && NATIVE_LICENSE_PUBLIC_KEY_HEX="${NATIVE_LICENSE_PUBLIC_KEY_HEX}" \
+       /app/backend/.venv/bin/python /app/backend/scripts/build_native.py \
+    && uv sync --project backend --frozen --no-dev
 
 # ----------------------------------------------------------
 # 阶段 2：运行阶段 - Worker 最终镜像
@@ -72,6 +82,17 @@ COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
 
 # 复制后端应用代码
 COPY backend/ /app/backend/
+COPY --from=builder /app/backend/app/knowledge/service*.so /app/backend/app/knowledge/
+COPY --from=builder /app/backend/app/rag/_shared/permissions*.so /app/backend/app/rag/_shared/
+COPY --from=builder /app/backend/app/rag/search/service*.so /app/backend/app/rag/search/
+COPY --from=builder /app/backend/app/native/license_core*.so /app/backend/app/native/
+
+RUN rm -f \
+      /app/backend/app/knowledge/service.py \
+      /app/backend/app/rag/_shared/permissions.py \
+      /app/backend/app/rag/search/service.py \
+      /app/backend/app/native/license_core.pyx \
+    && /app/backend/.venv/bin/python /app/backend/scripts/verify_native_build.py
 
 # 创建非 root 用户
 RUN groupadd -r appuser && \

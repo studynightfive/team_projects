@@ -186,6 +186,33 @@ async def test_semantic_cache_rejects_opposite_intent(
 
 
 @pytest.mark.asyncio
+async def test_semantic_cache_rejects_below_threshold_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _FakeRedis(
+        candidates=[
+            _payload("区域卫生平台如何共享数据？", [0.92, 0.392]),
+        ]
+    )
+    monkeypatch.setattr(
+        "app.rag.answer_cache._redis",
+        AsyncMock(return_value=client),
+    )
+    monkeypatch.setattr(
+        "app.rag.answer_cache.settings.rag_answer_cache_similarity_threshold",
+        0.95,
+    )
+
+    result = await get_cached_answer(
+        scope=_scope(),
+        query="区域卫生平台怎样共享数据？",
+        query_embedding=[1.0, 0.0],
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
 async def test_cache_failure_degrades_to_miss(monkeypatch: pytest.MonkeyPatch) -> None:
     client = SimpleNamespace(
         get=AsyncMock(side_effect=ConnectionError("redis unavailable")),
