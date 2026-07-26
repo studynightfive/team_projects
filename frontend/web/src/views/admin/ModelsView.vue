@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { App as AntApp, Drawer } from "ant-design-vue";
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
@@ -66,6 +73,49 @@ const providerPresets = [
   { code: "volcengine", display_name: "火山引擎豆包", base_url: "https://ark.cn-beijing.volces.com/api/v3" },
   { code: "qianfan", display_name: "百度千帆", base_url: "https://qianfan.baidubce.com/v2" },
 ] as const;
+
+type ModelKind = "chat" | "embedding" | "rerank";
+
+// 建议项只帮助管理员填写供应商常用标识，不限制企业专属或后续新增模型。
+const modelNamePresets: Readonly<
+  Record<string, Partial<Record<ModelKind, readonly string[]>>>
+> = {
+  deepseek: {
+    chat: ["deepseek-v4-pro", "deepseek-v4-flash"],
+  },
+  dashscope: {
+    chat: ["qwen3.7-plus", "qwen-plus", "qwen-max"],
+    embedding: ["text-embedding-v4", "text-embedding-v3"],
+    rerank: ["qwen3-rerank", "gte-rerank-v2"],
+  },
+  moonshot: {
+    chat: ["kimi-k2.5", "kimi-k2-thinking", "moonshot-v1-128k"],
+  },
+  zhipu: {
+    chat: ["glm-4-plus", "glm-4-air-250414", "glm-4-flash-250414"],
+    embedding: ["embedding-3", "embedding-2"],
+    rerank: ["rerank"],
+  },
+  minimax: {
+    chat: ["MiniMax-M2.7", "MiniMax-M2.7-highspeed", "MiniMax-M2.5"],
+  },
+  volcengine: {
+    chat: ["doubao-seed-2-0-pro-260215", "doubao-seed-2-0-lite-260215"],
+    rerank: ["m3-v2-rerank"],
+  },
+  qianfan: {
+    chat: ["ERNIE-5.0", "ERNIE-X1.1", "ERNIE-4.5-21B-A3B"],
+    embedding: ["embedding-v1", "qwen3-embedding-0.6b"],
+    rerank: ["bce-reranker-base", "qwen3-reranker-0.6b"],
+  },
+};
+
+const modelNameSuggestions = computed<readonly string[]>(
+  () =>
+    modelNamePresets[editor.providerCode]?.[
+      editor.kind as ModelKind
+    ] ?? [],
+);
 
 const selectedModel = computed(() =>
   models.value.find((model) => model.id === selectedModelId.value),
@@ -171,9 +221,11 @@ const ensureCommonProviders = async (): Promise<void> => {
 
 const startChatCreate = (): void => {
   if (!startCreate()) return;
+  const providerCode =
+    providers.value.find((item) => item.enabled)?.code ?? "";
   Object.assign(editor, {
-    providerCode: providers.value.find((item) => item.enabled)?.code ?? "",
-    modelName: "",
+    providerCode,
+    modelName: modelNamePresets[providerCode]?.chat?.[0] ?? "",
     kind: "chat",
     temperature: 0.2,
     maxTokens: 1200,
@@ -183,13 +235,14 @@ const startChatCreate = (): void => {
 
 const startEmbeddingCreate = (): void => {
   if (!startCreate()) return;
+  const providerCode = providers.value.some(
+    (item) => item.code === "dashscope" && item.enabled,
+  )
+    ? "dashscope"
+    : providers.value.find((provider) => provider.enabled)?.code ?? "";
   Object.assign(editor, {
-    providerCode: providers.value.some(
-      (item) => item.code === "dashscope" && item.enabled,
-    )
-      ? "dashscope"
-      : providers.value.find((provider) => provider.enabled)?.code ?? "",
-    modelName: "text-embedding-v2",
+    providerCode,
+    modelName: modelNamePresets[providerCode]?.embedding?.[0] ?? "",
     kind: "embedding",
     dimensions: 1536,
     distance: "cosine",
@@ -246,6 +299,23 @@ const startEdit = (id: string): void => {
     topN: model.top_n ?? 10,
   });
 };
+
+watch(
+  [() => editor.providerCode, () => editor.kind],
+  ([providerCode, kind], [previousProviderCode, previousKind]) => {
+    if (!isCreating.value) return;
+    const previousSuggestions =
+      modelNamePresets[previousProviderCode]?.[previousKind as ModelKind] ?? [];
+    const nextSuggestions =
+      modelNamePresets[providerCode]?.[kind as ModelKind] ?? [];
+    if (
+      editor.modelName.trim() === "" ||
+      previousSuggestions.includes(editor.modelName)
+    ) {
+      editor.modelName = nextSuggestions[0] ?? "";
+    }
+  },
+);
 
 const closeEditor = (): void => {
   selectedModelId.value = undefined;
@@ -589,10 +659,26 @@ onBeforeUnmount(clearSensitiveState);
           <input
             id="model-name-input"
             v-model="editor.modelName"
+            list="model-name-suggestions"
             type="text"
             autocomplete="off"
+            placeholder="选择建议项或输入供应商实际模型标识"
             required
           />
+          <datalist id="model-name-suggestions">
+            <option
+              v-for="modelName in modelNameSuggestions"
+              :key="modelName"
+              :value="modelName"
+            />
+          </datalist>
+          <small>
+            {{
+              modelNameSuggestions.length > 0
+                ? "可从常用标识中选择，也可以直接输入其他模型标识。"
+                : "当前供应商暂无内置建议，请输入控制台实际开通的模型标识。"
+            }}
+          </small>
         </label>
         <label>
           <span>用途</span>

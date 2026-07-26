@@ -426,6 +426,7 @@ class TestAnswerExportTask:
         assert exported.suffix == extension
         assert exported.exists()
         assert exported.stat().st_size > 0
+        assert (exported.parent / "answer-source.md").exists()
         assert response.headers["x-export-id"] == task.id
         assert db.commit.await_count >= 3
 
@@ -490,3 +491,150 @@ class TestAnswerExportTask:
         assert task.status == "failed"
         assert task.error_code == "export_failed"
         assert not (tmp_path / "exports" / task.id).exists()
+
+    @pytest.mark.asyncio
+    async def test_convert_existing_answer_markdown_to_docx(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        from datetime import datetime, timedelta, timezone
+
+        from starlette.requests import Request
+
+        from app.common.config import settings
+        from app.exports import all as exports
+
+        monkeypatch.setattr(settings, "export_storage_root", str(tmp_path / "exports"))
+        source_path = Path(
+            exports.task_file_path("source-task", "RAG-answer-existing.md")
+        )
+        source_path.write_text(
+            "# RAG 问答结果\n\n## 问题\n\n什么是 HIS？\n\n## 答案\n\n医院信息系统。",
+            encoding="utf-8",
+        )
+        source_task = exports.ExportTask(
+            id="source-task",
+            user_id="user-1",
+            format="markdown",
+            document_ids=[],
+            options=exports.ExportOptions().model_dump(),
+            status="done",
+            progress=100,
+            file_path=str(source_path),
+            file_size=source_path.stat().st_size,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        )
+        added_tasks = []
+
+        def add_task(task):
+            task.id = "converted-task"
+            task.created_at = datetime.now(timezone.utc)
+            added_tasks.append(task)
+
+        db = SimpleNamespace(
+            get=AsyncMock(return_value=source_task),
+            add=add_task,
+            commit=AsyncMock(),
+        )
+        monkeypatch.setattr(exports, "audit", AsyncMock())
+
+        response = await exports.convert_answer_export_endpoint(
+            export_id=source_task.id,
+            request=Request(
+                {
+                    "type": "http",
+                    "method": "POST",
+                    "path": f"/api/v1/exports/{source_task.id}/convert",
+                    "headers": [],
+                }
+            ),
+            payload=exports.ConvertAnswerExportRequest(format="docx"),
+            user=SimpleNamespace(id="user-1"),
+            _perm=None,
+            db=db,
+        )
+
+        converted = added_tasks[0]
+        assert converted.format == "docx"
+        assert converted.status == "done"
+        assert Path(response.path).suffix == ".docx"
+        assert Path(response.path).exists()
+        assert (Path(response.path).parent / "answer-source.md").exists()
+        assert response.headers["x-export-id"] == converted.id
+
+    @pytest.mark.asyncio
+    async def test_convert_answer_hides_other_users_task(self):
+        from datetime import datetime, timedelta, timezone
+
+        from starlette.requests import Request
+
+        from app.common.exceptions import NotFoundException
+        from app.exports import all as exports
+
+        source_task = exports.ExportTask(
+            id="foreign-task",
+            user_id="another-user",
+            format="markdown",
+            document_ids=[],
+            status="done",
+            progress=100,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        )
+        db = SimpleNamespace(get=AsyncMock(return_value=source_task))
+
+        with pytest.raises(NotFoundException):
+            await exports.convert_answer_export_endpoint(
+                export_id=source_task.id,
+                request=Request(
+                    {
+                        "type": "http",
+                        "method": "POST",
+                        "path": f"/api/v1/exports/{source_task.id}/convert",
+                        "headers": [],
+                    }
+                ),
+                payload=exports.ConvertAnswerExportRequest(format="pdf"),
+                user=SimpleNamespace(id="user-1"),
+                _perm=None,
+                db=db,
+            )
+
+    @pytest.mark.asyncio
+    async def test_convert_answer_rejects_document_export(self):
+        from datetime import datetime, timedelta, timezone
+
+        from starlette.requests import Request
+
+        from app.common.exceptions import AppException
+        from app.exports import all as exports
+
+        source_task = exports.ExportTask(
+            id="document-task",
+            user_id="user-1",
+            format="markdown",
+            document_ids=["document-1"],
+            status="done",
+            progress=100,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        )
+        db = SimpleNamespace(get=AsyncMock(return_value=source_task))
+
+        with pytest.raises(AppException) as exc_info:
+            await exports.convert_answer_export_endpoint(
+                export_id=source_task.id,
+                request=Request(
+                    {
+                        "type": "http",
+                        "method": "POST",
+                        "path": f"/api/v1/exports/{source_task.id}/convert",
+                        "headers": [],
+                    }
+                ),
+                payload=exports.ConvertAnswerExportRequest(format="pdf"),
+                user=SimpleNamespace(id="user-1"),
+                _perm=None,
+                db=db,
+            )
+
+        assert exc_info.value.status_code == 409

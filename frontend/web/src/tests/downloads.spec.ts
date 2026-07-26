@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "../api/client";
 import {
+  convertAnswerExport,
   downloadAnswerExport,
   type AnswerExportFormat,
 } from "../services/downloads";
@@ -47,5 +48,29 @@ describe("答案格式导出", () => {
     );
     expect(result.blob).toBe(blob);
     expect(result.exportId).toBe(`export-${format}`);
+  });
+
+  it("从我的下载按任务 ID 转换问答格式", async () => {
+    const blob = new Blob(["docx"]);
+    const post = vi.spyOn(apiClient, "post").mockResolvedValue({
+      data: blob,
+      status: 200,
+      statusText: "OK",
+      headers: {
+        "content-disposition": 'attachment; filename="answer.docx"',
+        "x-export-id": "export-converted",
+      },
+      config: { headers: new AxiosHeaders() },
+    });
+
+    const result = await convertAnswerExport("export-source", "docx");
+
+    expect(post).toHaveBeenCalledWith(
+      "/v1/exports/export-source/convert",
+      { format: "docx" },
+      { responseType: "blob" },
+    );
+    expect(result.blob).toBe(blob);
+    expect(result.exportId).toBe("export-converted");
   });
 });

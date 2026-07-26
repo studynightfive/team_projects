@@ -549,14 +549,21 @@ describe("M09-M14 管理页面真实 API 渲染", () => {
     expect(credential).not.toBeNull();
     if (modelName === null || credential === null) return;
 
-    modelName.value = "deepseek-reasoner";
+    const modelSuggestions = Array.from(
+      document.querySelectorAll<HTMLOptionElement>(
+        "#model-name-suggestions option",
+      ),
+    ).map((option) => option.value);
+    expect(modelSuggestions).toContain("deepseek-v4-pro");
+
+    modelName.value = "enterprise-custom-chat";
     modelName.dispatchEvent(new Event("input", { bubbles: true }));
     credential.value = "local-secret-placeholder";
     credential.dispatchEvent(new Event("input", { bubbles: true }));
     getDocumentButton("保存配置").click();
     await flushPromises();
 
-    expect(wrapper.text()).toContain("deepseek-reasoner");
+    expect(wrapper.text()).toContain("enterprise-custom-chat");
     expect(document.body.textContent).not.toContain("local-secret-placeholder");
     expect(localStorage).toHaveLength(0);
     expect(sessionStorage).toHaveLength(0);

@@ -4942,6 +4942,82 @@
         ]
       }
     },
+    "/exports/{export_id}/convert": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Convert Answer Export Endpoint",
+        "description": "把本人已完成的问答记录转换为另一种格式，并新增可下载记录。",
+        "operationId": "convert_answer_export_endpoint_api_v1_exports__export_id__convert_post",
+        "parameters": [
+          {
+            "name": "export_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Export Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertAnswerExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录、Token 无效或已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "已登录但权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/exports": {
       "post": {
         "tags": [
@@ -8161,6 +8237,24 @@
         },
         "type": "object",
         "title": "ConversationUpdate"
+      },
+      "ConvertAnswerExportRequest": {
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "docx",
+              "markdown"
+            ],
+            "title": "Format"
+          }
+        },
+        "type": "object",
+        "required": [
+          "format"
+        ],
+        "title": "ConvertAnswerExportRequest"
       },
       "CreateExportRequest": {
         "properties": {

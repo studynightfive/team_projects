@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { App as AntApp, Modal as AntModal, Segmented } from "ant-design-vue";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { toPublicApiError } from "../../api/client";
@@ -83,6 +90,10 @@ const answerTabRef = ref<HTMLButtonElement>();
 const resultsTabRef = ref<HTMLButtonElement>();
 const isExportDialogOpen = ref(false);
 const isExporting = ref(false);
+const searchOptionsReady = ref(!isRealApiMode);
+const pendingAutomaticSearch = ref(false);
+const conversationEndRef = ref<HTMLElement>();
+const shouldFollowAnswer = ref(true);
 
 type VisibleAnswerExportFormat = Exclude<AnswerExportFormat, "txt">;
 
@@ -170,7 +181,8 @@ const readInitialSearch = ():
       readonly modelId?: string;
     }
   | undefined => {
-  const state: unknown = router.options.history.state;
+  const historyState = router.options.history.state;
+  const state: unknown = historyState;
   if (typeof state !== "object" || state === null) return undefined;
   const initialSearch = (state as Record<string, unknown>).initialSearch;
   if (typeof initialSearch !== "object" || initialSearch === null) {
@@ -180,7 +192,7 @@ const readInitialSearch = ():
   if (typeof value.q !== "string" || value.q.trim().length === 0) {
     return undefined;
   }
-  return {
+  const result = {
     q: value.q.trim(),
     sources: typeof value.sources === "string" ? value.sources : undefined,
     workspaceIds: Array.isArray(value.workspaceIds)
@@ -193,6 +205,11 @@ const readInitialSearch = ():
         ? value.modelId
         : undefined,
   };
+  // 导航状态只负责发起一次搜索，消费后清除，刷新页面不会重复提交旧问题。
+  const remainingState = { ...historyState };
+  delete remainingState.initialSearch;
+  router.options.history.replace(route.fullPath, remainingState);
+  return result;
 };
 
 const syncFromRoute = (): void => {
@@ -211,12 +228,47 @@ const syncFromRoute = (): void => {
   mode.value = "smart";
   sources.value = parseSources(initialSearch?.sources ?? route.query.sources);
   workspaceIds.value = [...(initialSearch?.workspaceIds ?? [])];
-  modelId.value =
-    initialSearch?.modelId ??
-    (typeof route.query.model === "string"
-      ? route.query.model
-      : modelOptions.value[0]?.value) ??
-    "enterprise-general";
+  modelId.value = isRealApiMode
+    ? (initialSearch?.modelId ?? "")
+    : (initialSearch?.modelId ??
+      (typeof route.query.model === "string"
+        ? route.query.model
+        : modelOptions.value[0]?.value) ??
+      "enterprise-general");
+};
+
+const isNearPageBottom = (): boolean =>
+  typeof window === "undefined" ||
+  window.scrollY + window.innerHeight >=
+    document.documentElement.scrollHeight - 180;
+
+const syncAnswerFollowFromWheel = (event: WheelEvent): void => {
+  if (status.value !== "searching") return;
+  if (event.deltaY < 0) {
+    shouldFollowAnswer.value = false;
+    return;
+  }
+  if (isNearPageBottom()) {
+    shouldFollowAnswer.value = true;
+  }
+};
+
+const syncAnswerFollowFromKeyboard = (event: KeyboardEvent): void => {
+  if (status.value !== "searching") return;
+  if (["ArrowUp", "PageUp", "Home"].includes(event.key)) {
+    shouldFollowAnswer.value = false;
+  } else if (event.key === "End") {
+    shouldFollowAnswer.value = true;
+  }
+};
+
+const scrollToConversationEnd = async (force = false): Promise<void> => {
+  if (!force && !shouldFollowAnswer.value) return;
+  await nextTick();
+  conversationEndRef.value?.scrollIntoView?.({
+    block: "end",
+    behavior: status.value === "searching" ? "auto" : "smooth",
+  });
 };
 
 const executeSearch = async (): Promise<void> => {
@@ -238,6 +290,8 @@ const executeSearch = async (): Promise<void> => {
   activeTab.value = "answer";
   answerFavorite.value = false;
   answerFavoriteId.value = undefined;
+  shouldFollowAnswer.value = true;
+  void scrollToConversationEnd(true);
 
   try {
     const nextResponse = await runAiSearch(
@@ -263,6 +317,7 @@ const executeSearch = async (): Promise<void> => {
         },
         onResponse: (streamedResponse) => {
           response.value = streamedResponse;
+          void scrollToConversationEnd();
         },
       },
     );
@@ -295,6 +350,10 @@ const cancelSearch = (): void => {
 
 const submitSearch = (request: SearchRequest): void => {
   if (isRealApiMode) {
+    if (!searchOptionsReady.value) {
+      void message.info("知识库和模型仍在加载，请稍候再试");
+      return;
+    }
     query.value = request.query;
     mode.value = "smart";
     sources.value = [...request.sources];
@@ -536,6 +595,11 @@ const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
     workspaceIds.value = [];
     void message.warning(toPublicApiError(knowledgeBaseResult.reason).message);
   }
+  searchOptionsReady.value = true;
+  if (pendingAutomaticSearch.value && query.value.trim().length > 0) {
+    pendingAutomaticSearch.value = false;
+    void executeSearch();
+  }
 };
 
 const showFeedback = (value: string): void => {
@@ -638,13 +702,33 @@ watch(
       errorMessage.value = "";
       return;
     }
+    if (isRealApiMode && !searchOptionsReady.value) {
+      // 空间卡片会携带知识库 ID；必须等真实选项完成校验后再发起一次搜索。
+      pendingAutomaticSearch.value = true;
+      return;
+    }
+    pendingAutomaticSearch.value = false;
     void executeSearch();
   },
   { immediate: true },
 );
 
+watch(
+  () => [
+    response.value?.answer?.markdown.length ?? 0,
+    processingStages.value.length,
+  ],
+  () => void scrollToConversationEnd(),
+  { flush: "post" },
+);
+
 onMounted(() => {
   void loadRealKnowledgeBaseOptions();
+  // 仅把用户明确的上翻动作视为“暂停跟随”，避免程序滚动误关自动跟随。
+  window.addEventListener("wheel", syncAnswerFollowFromWheel, {
+    passive: true,
+  });
+  window.addEventListener("keydown", syncAnswerFollowFromKeyboard);
   if (typeof window.matchMedia !== "function") return;
   desktopContextQuery = window.matchMedia("(min-width: 1440px)");
   syncDesktopContext(desktopContextQuery);
@@ -653,6 +737,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   searchController?.abort();
+  window.removeEventListener("wheel", syncAnswerFollowFromWheel);
+  window.removeEventListener("keydown", syncAnswerFollowFromKeyboard);
   desktopContextQuery?.removeEventListener("change", syncDesktopContext);
 });
 </script>
@@ -733,26 +819,16 @@ onBeforeUnmount(() => {
       </button>
     </div>
 
-    <AiSearchBox
-      v-model:query="query"
-      v-model:sources="sources"
-      v-model:workspace-ids="workspaceIds"
-      v-model:model-id="modelId"
-      :mode="mode"
-      compact
-      :busy="status === 'searching'"
-      :model-options="modelOptions"
-      :knowledge-base-options="knowledgeBaseOptions"
-      :requires-workspace="isRealApiMode"
-      @submit="submitSearch"
-      @notice="showLocalNotice"
-    />
-
     <div
       class="search-result-layout"
       :class="{ 'context-open': isContextOpen }"
     >
       <main class="search-result-main" aria-live="polite">
+        <article v-if="query.trim().length > 0" class="conversation-user-turn">
+          <span>你的问题</span>
+          <p>{{ query }}</p>
+        </article>
+
         <div
           v-if="status === 'searching' && response === undefined"
           class="search-progress-state"
@@ -879,6 +955,25 @@ onBeforeUnmount(() => {
         :return-focus-to="contextTrigger"
         @close="isContextOpen = false"
         @preview="openPreview"
+      />
+    </div>
+
+    <div ref="conversationEndRef" class="conversation-end-anchor" />
+    <div class="conversation-composer">
+      <AiSearchBox
+        v-model:query="query"
+        v-model:sources="sources"
+        v-model:workspace-ids="workspaceIds"
+        v-model:model-id="modelId"
+        :mode="mode"
+        compact
+        :busy="status === 'searching'"
+        :disabled="!searchOptionsReady"
+        :model-options="modelOptions"
+        :knowledge-base-options="knowledgeBaseOptions"
+        :requires-workspace="isRealApiMode"
+        @submit="submitSearch"
+        @notice="showLocalNotice"
       />
     </div>
 
@@ -1030,6 +1125,40 @@ onBeforeUnmount(() => {
   gap: var(--space-4);
 }
 
+.conversation-user-turn {
+  width: min(760px, 92%);
+  margin-left: auto;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--blue-100);
+  border-radius: var(--radius-8);
+  background: var(--blue-50);
+}
+
+.conversation-user-turn span {
+  color: var(--color-primary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+
+.conversation-user-turn p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.conversation-end-anchor {
+  height: 1px;
+}
+
+.conversation-composer {
+  position: sticky;
+  bottom: var(--space-3);
+  z-index: 8;
+  padding: var(--space-2) 0;
+  background: var(--color-background);
+}
+
 .search-progress-state,
 .search-error-state,
 .search-empty-state {
@@ -1164,6 +1293,14 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 767px) {
+  .conversation-user-turn {
+    width: 100%;
+  }
+
+  .conversation-composer {
+    bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
   .search-result-title h1 {
     font-size: var(--font-size-24);
   }
