@@ -151,18 +151,6 @@ const answerExportOptions: Array<{
 let searchController: AbortController | undefined;
 let skipNextRouteSync = false;
 
-const selectedKnowledgeBaseLabel = computed(() => {
-  const names = workspaceIds.value
-    .map(
-      (id) => knowledgeBaseOptions.value.find((item) => item.id === id)?.name,
-    )
-    .filter((name): name is string => name !== undefined);
-  if (names.length === 0) {
-    return knowledgeBaseOptions.value[0]?.name ?? "暂无可用知识库";
-  }
-  if (names.length <= 2) return names.join("、");
-  return `${names.slice(0, 2).join("、")}等 ${names.length} 个知识库`;
-});
 const apiModeLabel = computed(() =>
   isRealApiMode || response.value?.isMock === false ? "真实接口" : "模拟数据",
 );
@@ -934,13 +922,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="business-page ai-search-results-page">
-    <header class="conversation-header">
-      <div class="search-result-title">
-        <h1>AI 搜索</h1>
-        <p :title="selectedKnowledgeBaseLabel">
-          {{ selectedKnowledgeBaseLabel }}
-        </p>
-      </div>
+    <h1 class="visually-hidden">AI 搜索</h1>
+    <header
+      v-if="status === 'searching' || hasConversationContent"
+      class="conversation-header"
+      aria-label="当前对话操作"
+    >
       <div class="search-result-actions">
         <button
           v-if="status === 'searching'"
@@ -1153,10 +1140,10 @@ onBeforeUnmount(() => {
             />
           </div>
         </template>
+        <div ref="conversationEndRef" class="conversation-end-anchor" />
       </main>
     </div>
 
-    <div ref="conversationEndRef" class="conversation-end-anchor" />
     <div class="conversation-composer">
       <AiSearchBox
         v-model:query="query"
@@ -1228,10 +1215,12 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .ai-search-results-page {
+  --conversation-composer-clearance: 184px;
+
   display: grid;
   width: 100%;
   min-height: calc(100vh - 176px);
-  grid-template-rows: auto minmax(320px, 1fr) auto auto;
+  grid-template-rows: auto minmax(320px, 1fr) auto;
   gap: var(--space-5);
 }
 
@@ -1244,48 +1233,10 @@ onBeforeUnmount(() => {
 }
 
 .conversation-header {
-  min-height: 48px;
   width: min(100%, 960px);
   margin: 0 auto;
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-  justify-content: space-between;
-  gap: var(--space-5);
-}
-
-.search-result-title {
-  display: flex;
-  min-width: 0;
   align-items: center;
-  gap: var(--space-3);
-  flex: 1;
-}
-
-.search-result-title h1,
-.search-result-title p {
-  min-width: 0;
-}
-
-.search-result-title h1 {
-  margin: 0;
-  color: var(--color-text);
-  font-size: var(--font-size-20);
-  font-weight: var(--font-weight-semibold);
-  white-space: nowrap;
-}
-
-.search-result-title p {
-  max-width: min(520px, 55vw);
-  margin: 0;
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-4);
-  overflow: hidden;
-  color: var(--color-text-secondary);
-  background: var(--color-surface-subtle);
-  font-size: var(--font-size-15, 15px);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  justify-content: flex-end;
 }
 
 .search-result-actions {
@@ -1306,12 +1257,14 @@ onBeforeUnmount(() => {
 }
 
 .search-result-layout {
+  grid-row: 2;
   width: min(100%, 960px);
   margin: 0 auto;
 }
 
 .search-result-main {
   display: grid;
+  padding-bottom: var(--conversation-composer-clearance);
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--space-6);
@@ -1355,6 +1308,7 @@ onBeforeUnmount(() => {
   position: sticky;
   bottom: var(--space-3);
   z-index: 8;
+  grid-row: 3;
   width: min(100%, 960px);
   margin: 0 auto;
   padding: var(--space-2) 0;
@@ -1375,6 +1329,17 @@ onBeforeUnmount(() => {
   gap: var(--space-4);
   padding: var(--space-10) 0;
   justify-items: start;
+}
+
+.search-empty-state {
+  padding-top: var(--space-8);
+}
+
+.search-empty-state :deep(.inline-state) {
+  min-height: 0;
+  padding: var(--space-3) 0;
+  border: 0;
+  background: transparent;
 }
 
 .search-skeleton {
@@ -1479,35 +1444,17 @@ onBeforeUnmount(() => {
   color: var(--color-text-muted);
 }
 
-@media (max-width: 900px) {
-  .conversation-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .search-result-actions {
-    justify-content: flex-start;
-  }
-}
-
 @media (max-width: 767px) {
+  .ai-search-results-page {
+    --conversation-composer-clearance: 248px;
+  }
+
   .conversation-user-turn {
     width: 100%;
   }
 
   .conversation-composer {
     bottom: calc(72px + env(safe-area-inset-bottom));
-  }
-
-  .search-result-title h1 {
-    font-size: var(--font-size-20);
-  }
-
-  .search-result-title p {
-    max-width: 100%;
-    overflow: visible;
-    text-overflow: clip;
-    white-space: normal;
   }
 
   .search-result-actions {

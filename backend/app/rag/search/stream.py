@@ -17,7 +17,11 @@ from app.common.models import User
 from app.models.providers.openai import OpenAICompatibleProvider, build_provider
 from app.rag._shared.permissions import new_request_id
 from app.rag._shared.text import fit_messages_to_budget
-from app.rag.answer_cache import get_cached_answer, set_cached_answer
+from app.rag.answer_cache import (
+    get_cached_answer,
+    query_depends_on_conversation,
+    set_cached_answer,
+)
 from app.rag.conversations.all import (
     Conversation,
     Message,
@@ -315,14 +319,16 @@ async def stream_answer(
         detail="正在核对权限、文档版本与检索配置。",
     )
 
-    # 追问的语义依赖历史上下文，不能复用仅按当前问题建立的答案缓存。
+    # 完整独立的问题即使位于同一对话，也可以复用高置信度语义缓存；
+    # 只有“那它呢”等省略式追问必须保留历史上下文并跳过缓存。
+    cache_read_allowed = not history or not query_depends_on_conversation(req.query)
     cached = (
         await get_cached_answer(scope=cache_scope, query=req.query)
-        if not history
+        if cache_read_allowed
         else None
     )
     query_embedding: list[float] | None = None
-    if cached is None and not history:
+    if cached is None and cache_read_allowed:
         query_embedding = await _build_cache_query_embedding(
             db,
             req=effective_request,
@@ -373,7 +379,11 @@ async def stream_answer(
         label="检查可复用答案",
         status="completed",
         started_at=started_at,
-        detail="未命中可安全复用的答案。",
+        detail=(
+            "当前问题依赖会话上下文，已跳过答案缓存。"
+            if not cache_read_allowed
+            else "未命中可安全复用的答案。"
+        ),
     )
     yield _stage(
         stage="retrieval",

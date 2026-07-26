@@ -13,6 +13,7 @@ from app.rag.answer_cache import (
     get_cached_answer,
     intents_are_compatible,
     normalize_query,
+    query_depends_on_conversation,
     semantic_similarity,
 )
 from app.rag.search.schemas import RagAnswerResponse, SearchHit
@@ -105,6 +106,15 @@ def test_intent_guard_rejects_negation_and_entity_changes() -> None:
         "HIS 系统如何部署",
         "EMR 系统如何部署",
     )
+
+
+def test_conversation_dependency_only_marks_ellipsis_followups() -> None:
+    assert query_depends_on_conversation("那数据中心呢")
+    assert query_depends_on_conversation("继续详细说明")
+    assert query_depends_on_conversation("为什么")
+    assert not query_depends_on_conversation("医疗信息化有企业在做")
+    assert not query_depends_on_conversation("医疗信息化有哪些企业在做")
+    assert not query_depends_on_conversation("医疗信息化有那些企业")
 
 
 def test_scope_digest_changes_with_knowledge_version() -> None:
