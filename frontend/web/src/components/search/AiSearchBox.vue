@@ -24,11 +24,13 @@ const props = withDefaults(
     busy?: boolean;
     disabled?: boolean;
     compact?: boolean;
+    scopeLocked?: boolean;
   }>(),
   {
     busy: false,
     disabled: false,
     compact: false,
+    scopeLocked: false,
     requiresWorkspace: true,
     workspaceIds: () => [],
     knowledgeBaseOptions: () => [],
@@ -265,6 +267,7 @@ defineExpose({
                 :title="`移除 ${knowledgeBase.name}`"
                 :aria-label="`移除 ${knowledgeBase.name}`"
                 :disabled="disabled || busy || workspaceIds.length <= 1"
+                :hidden="scopeLocked"
                 @click="removeKnowledgeBase(knowledgeBase.id)"
               >
                 <X :size="13" aria-hidden="true" />
@@ -281,6 +284,7 @@ defineExpose({
               :disabled="
                 disabled ||
                   busy ||
+                  scopeLocked ||
                   availableKnowledgeBases.length === 0 ||
                   workspaceIds.length >= 10
               "

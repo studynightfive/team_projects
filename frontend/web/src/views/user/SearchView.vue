@@ -23,8 +23,8 @@ import {
   Bookmark,
   Copy,
   Download,
+  MessageSquarePlus,
   PanelRightOpen,
-  RefreshCw,
   SlidersHorizontal,
   Square,
 } from "../../components/icons";
@@ -46,6 +46,11 @@ import {
 } from "../../services/file-save";
 import { createFavorite, deleteFavorite } from "../../services/favorites";
 import { listKnowledgeBases } from "../../services/knowledge";
+import {
+  getConversation,
+  listConversationMessages,
+  type MessageRecord,
+} from "../../services/conversations";
 import type {
   AiSearchResponse,
   CitationSource,
@@ -68,6 +73,8 @@ const defaultSources: readonly SearchSourceType[] = ["knowledge"];
 const defaultQuery = isRealApiMode ? "" : aiSearchMockData.answer.query;
 
 const query = ref<string>(defaultQuery);
+const currentQuestion = ref("");
+const activeConversationId = ref<string>();
 const mode = ref<SearchMode>("smart");
 const sources = ref<SearchSourceType[]>([...defaultSources]);
 const workspaceIds = ref<string[]>([]);
@@ -92,8 +99,18 @@ const isExportDialogOpen = ref(false);
 const isExporting = ref(false);
 const searchOptionsReady = ref(!isRealApiMode);
 const pendingAutomaticSearch = ref(false);
+const pendingConversationId = ref<string>();
 const conversationEndRef = ref<HTMLElement>();
 const shouldFollowAnswer = ref(true);
+const previousTurns = ref<readonly ConversationTurn[]>([]);
+const conversationLoadState = ref<"idle" | "loading" | "error">("idle");
+let conversationController: AbortController | undefined;
+
+interface ConversationTurn {
+  readonly id: string;
+  readonly question: string;
+  readonly response: AiSearchResponse;
+}
 
 type VisibleAnswerExportFormat = Exclude<AnswerExportFormat, "txt">;
 
@@ -165,6 +182,12 @@ const selectedKnowledgeBases = computed(() =>
 const apiModeLabel = computed(() =>
   isRealApiMode || response.value?.isMock === false ? "真实接口" : "模拟数据",
 );
+const hasConversationContent = computed(
+  () =>
+    previousTurns.value.length > 0 ||
+    currentQuestion.value.trim().length > 0 ||
+    response.value !== undefined,
+);
 
 const parseSources = (value: unknown): SearchSourceType[] => {
   if (typeof value !== "string") return [...defaultSources];
@@ -175,25 +198,35 @@ const parseSources = (value: unknown): SearchSourceType[] => {
 
 const readInitialSearch = ():
   | {
-      readonly q: string;
+      readonly q?: string;
       readonly sources?: string;
       readonly workspaceIds?: readonly string[];
       readonly modelId?: string;
+      readonly autoSubmit: boolean;
     }
   | undefined => {
   const historyState = router.options.history.state;
   const state: unknown = historyState;
   if (typeof state !== "object" || state === null) return undefined;
-  const initialSearch = (state as Record<string, unknown>).initialSearch;
-  if (typeof initialSearch !== "object" || initialSearch === null) {
+  const stateRecord = state as Record<string, unknown>;
+  const initialSearch = stateRecord.initialSearch;
+  const searchSetup = stateRecord.searchSetup;
+  const setup =
+    typeof initialSearch === "object" && initialSearch !== null
+      ? initialSearch
+      : typeof searchSetup === "object" && searchSetup !== null
+        ? searchSetup
+        : undefined;
+  if (setup === undefined) {
     return undefined;
   }
-  const value = initialSearch as Record<string, unknown>;
-  if (typeof value.q !== "string" || value.q.trim().length === 0) {
-    return undefined;
-  }
+  const value = setup as Record<string, unknown>;
+  const q =
+    typeof value.q === "string" && value.q.trim().length > 0
+      ? value.q.trim()
+      : undefined;
   const result = {
-    q: value.q.trim(),
+    q,
     sources: typeof value.sources === "string" ? value.sources : undefined,
     workspaceIds: Array.isArray(value.workspaceIds)
       ? value.workspaceIds.filter(
@@ -204,17 +237,19 @@ const readInitialSearch = ():
       typeof value.modelId === "string" && value.modelId !== ""
         ? value.modelId
         : undefined,
+    autoSubmit: q !== undefined && initialSearch === setup,
   };
-  // 导航状态只负责发起一次搜索，消费后清除，刷新页面不会重复提交旧问题。
+  // 导航状态只消费一次，刷新页面既不会重复搜索，也不会遗留空间预选指令。
   const remainingState = { ...historyState };
   delete remainingState.initialSearch;
+  delete remainingState.searchSetup;
   router.options.history.replace(route.fullPath, remainingState);
   return result;
 };
 
-const syncFromRoute = (): void => {
+const syncFromRoute = (): boolean => {
   const initialSearch = isRealApiMode ? readInitialSearch() : undefined;
-  if (initialSearch !== undefined) {
+  if (initialSearch?.q !== undefined) {
     query.value = initialSearch.q;
   } else if (
     !isRealApiMode &&
@@ -235,6 +270,7 @@ const syncFromRoute = (): void => {
         ? route.query.model
         : modelOptions.value[0]?.value) ??
       "enterprise-general");
+  return initialSearch?.autoSubmit === true || (!isRealApiMode && query.value !== "");
 };
 
 const isNearPageBottom = (): boolean =>
@@ -271,9 +307,26 @@ const scrollToConversationEnd = async (force = false): Promise<void> => {
   });
 };
 
-const executeSearch = async (): Promise<void> => {
+const syncConversationRoute = (conversationId: string): void => {
+  if (route.query.conversation === conversationId) return;
+  skipNextRouteSync = true;
+  void router.replace({
+    path: "/search",
+    query: { conversation: conversationId },
+  });
+};
+
+const executeSearch = async (
+  questionOverride?: string,
+  preserveCompletedTurn = true,
+): Promise<void> => {
   searchController?.abort();
-  const safetyMessage = getQuerySafetyMessage(query.value);
+  const submittedQuestion = (questionOverride ?? query.value).trim();
+  if (submittedQuestion.length === 0) {
+    void message.info("请输入搜索问题");
+    return;
+  }
+  const safetyMessage = getQuerySafetyMessage(submittedQuestion);
   if (safetyMessage !== undefined) {
     searchController = undefined;
     status.value = "idle";
@@ -282,6 +335,22 @@ const executeSearch = async (): Promise<void> => {
     void message.warning(safetyMessage);
     return;
   }
+  if (
+    preserveCompletedTurn &&
+    currentQuestion.value.trim().length > 0 &&
+    response.value !== undefined
+  ) {
+    previousTurns.value = [
+      ...previousTurns.value,
+      {
+        id: response.value.answer.id,
+        question: currentQuestion.value,
+        response: response.value,
+      },
+    ];
+  }
+  currentQuestion.value = submittedQuestion;
+  query.value = "";
   searchController = new AbortController();
   status.value = "searching";
   response.value = undefined;
@@ -296,11 +365,12 @@ const executeSearch = async (): Promise<void> => {
   try {
     const nextResponse = await runAiSearch(
       {
-        query: query.value,
+        query: submittedQuestion,
         mode: mode.value,
         sources: sources.value,
         workspaceIds: workspaceIds.value,
         modelId: modelId.value,
+        conversationId: activeConversationId.value,
       },
       searchController.signal,
       {
@@ -317,11 +387,18 @@ const executeSearch = async (): Promise<void> => {
         },
         onResponse: (streamedResponse) => {
           response.value = streamedResponse;
+          if (streamedResponse.conversationId !== undefined) {
+            activeConversationId.value = streamedResponse.conversationId;
+          }
           void scrollToConversationEnd();
         },
       },
     );
     response.value = nextResponse;
+    if (nextResponse.conversationId !== undefined) {
+      activeConversationId.value = nextResponse.conversationId;
+      syncConversationRoute(nextResponse.conversationId);
+    }
     status.value = nextResponse.status;
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") return;
@@ -354,16 +431,11 @@ const submitSearch = (request: SearchRequest): void => {
       void message.info("知识库和模型仍在加载，请稍候再试");
       return;
     }
-    query.value = request.query;
     mode.value = "smart";
     sources.value = [...request.sources];
     workspaceIds.value = [...(request.workspaceIds ?? [])];
     modelId.value = request.modelId ?? modelId.value ?? "enterprise-general";
-    if (Object.keys(route.query).length > 0) {
-      skipNextRouteSync = true;
-      void router.replace({ path: "/search" });
-    }
-    void executeSearch();
+    void executeSearch(request.query);
     return;
   }
 
@@ -378,7 +450,7 @@ const submitSearch = (request: SearchRequest): void => {
     route.query.model === nextQuery.model;
 
   if (unchanged) {
-    void executeSearch();
+    void executeSearch(request.query);
   } else {
     void router.push({
       path: "/search",
@@ -408,7 +480,7 @@ const copyAnswer = async (): Promise<void> => {
 
 const downloadAnswerMarkdownLocally = (): void => {
   if (response.value === undefined) return;
-  const content = `# RAG 问答结果\n\n## 问题\n\n${query.value}\n\n## 答案\n\n${response.value.answer.markdown}\n`;
+  const content = `# RAG 问答结果\n\n## 问题\n\n${currentQuestion.value}\n\n## 答案\n\n${response.value.answer.markdown}\n`;
   const blob = new Blob([content], {
     type: "text/markdown;charset=utf-8",
   });
@@ -454,7 +526,7 @@ const confirmAnswerExport = async (): Promise<void> => {
   try {
     const result = await downloadAnswerExport({
       format: answerExportFormat.value,
-      question: query.value,
+      question: currentQuestion.value,
       answer: response.value.answer.markdown,
       citations: response.value.answer.citations.map((citation) => ({
         doc_id: citation.documentId ?? citation.id,
@@ -535,7 +607,6 @@ const favoritePreviewDocument = async (documentId: string): Promise<void> => {
 };
 
 const runRelatedSearch = (question: string): void => {
-  query.value = question;
   submitSearch({
     query: question,
     mode: mode.value,
@@ -543,6 +614,156 @@ const runRelatedSearch = (question: string): void => {
     modelId: modelId.value,
     workspaceIds: workspaceIds.value,
   });
+};
+
+const toHistoricalCitation = (
+  citation: MessageRecord["citations"][number],
+): CitationSource => ({
+  id: citation.chunk_id,
+  title: citation.doc_title ?? "知识库文档",
+  sourceName: "知识库文档",
+  sourceType: "knowledge",
+  fileType: "文档片段",
+  snippet: citation.text?.slice(0, 300) ?? "",
+  spaceName: citation.kb_id ?? "已授权知识库",
+  owner: "未提供",
+  updatedAt: "",
+  relevance: citation.score ?? 0,
+  scoreLabel: (citation.score ?? 0).toFixed(4),
+  scoreDescription: "历史检索相关度",
+  verifiedStatus: "verified",
+  permissionStatus: "available",
+  documentContent: citation.text === null ? [] : [citation.text ?? ""],
+  documentId: citation.doc_id,
+  knowledgeBaseId: citation.kb_id ?? undefined,
+});
+
+const buildHistoricalResponse = (
+  conversationId: string,
+  question: MessageRecord,
+  assistant: MessageRecord,
+): AiSearchResponse => {
+  const citations = assistant.citations.map(toHistoricalCitation);
+  const results: SearchResultItem[] = citations.map((citation) => ({
+    ...citation,
+    department: "未提供",
+    matchedKeywords: [],
+  }));
+  return {
+    request: {
+      query: question.content,
+      mode: "smart",
+      sources: ["knowledge"],
+      workspaceIds: [...workspaceIds.value],
+      modelId: modelId.value,
+      conversationId,
+    },
+    status: citations.length > 0 ? "success" : "partial",
+    answer: {
+      id: assistant.id,
+      query: question.content,
+      title: `关于"${question.content}"的知识库回答`,
+      summary:
+        citations.length > 0
+          ? `历史回答包含 ${citations.length} 条引用。`
+          : "该历史回答没有可恢复的引用。",
+      markdown: assistant.content,
+      sections: [],
+      citations,
+      relatedQuestions: [],
+      disclaimer: "这是已保存的历史回答，内容以生成时的知识库版本为准。",
+      createdAt: assistant.created_at ?? new Date().toISOString(),
+      status: citations.length > 0 ? "success" : "partial",
+    },
+    results,
+    sourceCount: new Set(citations.map((item) => item.documentId ?? item.id))
+      .size,
+    isMock: false,
+    notice: "",
+    elapsedLabel: "历史记录",
+    conversationId,
+  };
+};
+
+const loadConversation = async (conversationId: string): Promise<void> => {
+  if (!isRealApiMode) return;
+  conversationController?.abort();
+  const controller = new AbortController();
+  conversationController = controller;
+  conversationLoadState.value = "loading";
+  errorMessage.value = "";
+  try {
+    const [conversation, messages] = await Promise.all([
+      getConversation(conversationId, controller.signal),
+      listConversationMessages(conversationId, controller.signal),
+    ]);
+    const scope =
+      conversation.knowledge_base_ids.length > 0
+        ? conversation.knowledge_base_ids
+        : [conversation.kb_id];
+    workspaceIds.value = scope.filter((id) =>
+      knowledgeBaseOptions.value.some((item) => item.id === id),
+    );
+
+    const turns: ConversationTurn[] = [];
+    let pendingQuestion: MessageRecord | undefined;
+    for (const item of messages) {
+      if (item.role === "user") {
+        pendingQuestion = item;
+      } else if (item.role === "assistant" && pendingQuestion !== undefined) {
+        turns.push({
+          id: item.id,
+          question: pendingQuestion.content,
+          response: buildHistoricalResponse(
+            conversationId,
+            pendingQuestion,
+            item,
+          ),
+        });
+        pendingQuestion = undefined;
+      }
+    }
+
+    activeConversationId.value = conversationId;
+    query.value = "";
+    if (turns.length > 0) {
+      const latest = turns.at(-1)!;
+      previousTurns.value = turns.slice(0, -1);
+      currentQuestion.value = latest.question;
+      response.value = latest.response;
+      status.value = latest.response.status;
+    } else {
+      previousTurns.value = [];
+      currentQuestion.value = pendingQuestion?.content ?? "";
+      response.value = undefined;
+      status.value = pendingQuestion === undefined ? "idle" : "error";
+      errorMessage.value =
+        pendingQuestion === undefined ? "" : "该问题尚未生成完整答案。";
+    }
+    conversationLoadState.value = "idle";
+    void scrollToConversationEnd(true);
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    conversationLoadState.value = "error";
+    status.value = "error";
+    errorMessage.value = toPublicApiError(error).message;
+  }
+};
+
+const startNewConversation = (): void => {
+  searchController?.abort();
+  activeConversationId.value = undefined;
+  previousTurns.value = [];
+  currentQuestion.value = "";
+  query.value = "";
+  response.value = undefined;
+  processingStages.value = [];
+  errorMessage.value = "";
+  status.value = "idle";
+  answerFavorite.value = false;
+  answerFavoriteId.value = undefined;
+  skipNextRouteSync = true;
+  void router.replace({ path: "/search" });
 };
 
 const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
@@ -596,6 +817,12 @@ const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
     void message.warning(toPublicApiError(knowledgeBaseResult.reason).message);
   }
   searchOptionsReady.value = true;
+  if (pendingConversationId.value !== undefined) {
+    const conversationId = pendingConversationId.value;
+    pendingConversationId.value = undefined;
+    void loadConversation(conversationId);
+    return;
+  }
   if (pendingAutomaticSearch.value && query.value.trim().length > 0) {
     pendingAutomaticSearch.value = false;
     void executeSearch();
@@ -691,15 +918,27 @@ watch(
       skipNextRouteSync = false;
       return;
     }
-    syncFromRoute();
-    if (isRealApiMode && query.value.trim().length === 0) {
-      if (Object.keys(route.query).length > 0) {
-        skipNextRouteSync = true;
-        void router.replace({ path: "/search" });
+    const conversationId =
+      typeof route.query.conversation === "string"
+        ? route.query.conversation
+        : undefined;
+    if (isRealApiMode && conversationId !== undefined) {
+      if (!searchOptionsReady.value) {
+        pendingConversationId.value = conversationId;
+      } else {
+        void loadConversation(conversationId);
       }
+      return;
+    }
+
+    const shouldAutoSubmit = syncFromRoute();
+    if (!shouldAutoSubmit) {
       status.value = "idle";
       response.value = undefined;
       errorMessage.value = "";
+      currentQuestion.value = "";
+      previousTurns.value = [];
+      activeConversationId.value = undefined;
       return;
     }
     if (isRealApiMode && !searchOptionsReady.value) {
@@ -708,7 +947,7 @@ watch(
       return;
     }
     pendingAutomaticSearch.value = false;
-    void executeSearch();
+    void executeSearch(query.value);
   },
   { immediate: true },
 );
@@ -737,6 +976,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   searchController?.abort();
+  conversationController?.abort();
   window.removeEventListener("wheel", syncAnswerFollowFromWheel);
   window.removeEventListener("keydown", syncAnswerFollowFromKeyboard);
   desktopContextQuery?.removeEventListener("change", syncDesktopContext);
@@ -748,8 +988,13 @@ onBeforeUnmount(() => {
     <header class="search-result-header">
       <div class="search-result-title">
         <span>企业 AI 搜索工作台</span>
-        <h1>AI 搜索结果</h1>
-        <p>{{ query }}</p>
+        <h1>AI 搜索对话</h1>
+        <p>
+          {{
+            currentQuestion ||
+              "选择知识库后开始提问，后续问题会结合当前对话上下文。"
+          }}
+        </p>
       </div>
       <div class="search-result-actions">
         <span class="mock-result-badge">{{ apiModeLabel }}</span>
@@ -763,13 +1008,13 @@ onBeforeUnmount(() => {
           停止生成
         </button>
         <button
-          v-else
           class="secondary-button compact"
           type="button"
-          @click="executeSearch"
+          :disabled="!hasConversationContent"
+          @click="startNewConversation"
         >
-          <RefreshCw :size="16" aria-hidden="true" />
-          重新生成
+          <MessageSquarePlus :size="16" aria-hidden="true" />
+          新建对话
         </button>
         <button
           class="secondary-button compact"
@@ -824,13 +1069,43 @@ onBeforeUnmount(() => {
       :class="{ 'context-open': isContextOpen }"
     >
       <main class="search-result-main" aria-live="polite">
-        <article v-if="query.trim().length > 0" class="conversation-user-turn">
+        <section
+          v-for="turn in previousTurns"
+          :key="turn.id"
+          class="completed-conversation-turn"
+        >
+          <article class="conversation-user-turn">
+            <span>你的问题</span>
+            <p>{{ turn.question }}</p>
+          </article>
+          <AiAnswerPanel
+            :answer="turn.response.answer"
+            :id-prefix="`history-${turn.id}`"
+            readonly-view
+            @preview="openPreview"
+            @related="runRelatedSearch"
+            @feedback="showFeedback"
+            @toggle-favorite="toggleAnswerFavorite"
+          />
+        </section>
+
+        <article
+          v-if="currentQuestion.trim().length > 0"
+          class="conversation-user-turn"
+        >
           <span>你的问题</span>
-          <p>{{ query }}</p>
+          <p>{{ currentQuestion }}</p>
         </article>
 
+        <InlineState
+          v-if="conversationLoadState === 'loading'"
+          kind="loading"
+          title="正在恢复对话"
+          description="系统正在读取已保存的问题、答案和引用来源。"
+        />
+
         <div
-          v-if="status === 'searching' && response === undefined"
+          v-else-if="status === 'searching' && response === undefined"
           class="search-progress-state"
         >
           <InlineState
@@ -855,7 +1130,11 @@ onBeforeUnmount(() => {
             title="本次搜索未完成"
             :description="errorMessage"
           />
-          <button class="primary-button" type="button" @click="executeSearch">
+          <button
+            class="primary-button"
+            type="button"
+            @click="executeSearch(currentQuestion, false)"
+          >
             重新搜索
           </button>
         </div>
@@ -921,6 +1200,7 @@ onBeforeUnmount(() => {
           >
             <AiAnswerPanel
               :answer="response.answer"
+              :id-prefix="`current-${response.answer.id}`"
               :favorite="answerFavorite"
               :busy="status === 'searching'"
               @preview="openPreview"
@@ -947,7 +1227,7 @@ onBeforeUnmount(() => {
 
       <SearchContextPanel
         :open="isContextOpen"
-        :query="query"
+        :query="currentQuestion"
         :selected-knowledge-bases="selectedKnowledgeBases"
         :knowledge-base-options="knowledgeBaseOptions"
         :model-label="modelLabel"
@@ -972,6 +1252,7 @@ onBeforeUnmount(() => {
         :model-options="modelOptions"
         :knowledge-base-options="knowledgeBaseOptions"
         :requires-workspace="isRealApiMode"
+        :scope-locked="activeConversationId !== undefined"
         @submit="submitSearch"
         @notice="showLocalNotice"
       />
@@ -1132,6 +1413,13 @@ onBeforeUnmount(() => {
   border: 1px solid var(--blue-100);
   border-radius: var(--radius-8);
   background: var(--blue-50);
+}
+
+.completed-conversation-turn {
+  display: grid;
+  gap: var(--space-4);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .conversation-user-turn span {

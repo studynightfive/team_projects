@@ -8,13 +8,22 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 import structlog
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.config import settings
+from app.common.exceptions import ValidationException
 from app.common.models import User
 from app.models.providers.openai import OpenAICompatibleProvider, build_provider
 from app.rag._shared.permissions import new_request_id
+from app.rag._shared.text import fit_messages_to_budget
 from app.rag.answer_cache import get_cached_answer, set_cached_answer
+from app.rag.conversations.all import (
+    Conversation,
+    Message,
+    append_message,
+    get_conversation,
+)
 from app.rag.search.schemas import RagAnswerRequest, RagAnswerResponse, SearchHit
 from app.rag.search.service import (
     _build_answer_cache_scope,
@@ -132,6 +141,7 @@ def _done_event(
     response: RagAnswerResponse,
     *,
     started_at: float,
+    message_id: str,
 ) -> AnswerStreamEvent:
     return AnswerStreamEvent(
         event="done",
@@ -144,8 +154,111 @@ def _done_event(
             "from_cache": response.from_cache,
             "cache_match": response.cache_match,
             "cache_similarity": response.cache_similarity,
+            "conversation_id": response.conversation_id,
+            "message_id": message_id,
         },
     )
+
+
+def _conversation_scope(conversation: Conversation) -> list[str]:
+    scope = conversation.knowledge_base_ids or [conversation.kb_id]
+    return list(dict.fromkeys(scope))
+
+
+async def _load_conversation_history(
+    db: AsyncSession,
+    *,
+    conversation_id: str,
+) -> list[tuple[str, str]]:
+    result = await db.execute(
+        select(Message)
+        .where(
+            Message.conversation_id == conversation_id,
+            Message.deleted_at.is_(None),
+            Message.is_latest.is_(True),
+            Message.role.in_(("user", "assistant")),
+        )
+        .order_by(Message.created_at.desc())
+        .limit(24)
+    )
+    rows = list(reversed(result.scalars().all()))
+    compact_messages = [
+        {"role": row.role, "content": row.content}
+        for row in rows
+        if row.content.strip()
+    ]
+    fitted = fit_messages_to_budget(
+        compact_messages,
+        settings.conversation_context_max_tokens,
+    )
+    return [
+        (str(item["role"]), str(item["content"]))
+        for item in fitted
+        if item["role"] in {"user", "assistant"}
+    ]
+
+
+async def _prepare_conversation(
+    db: AsyncSession,
+    *,
+    user: User,
+    req: RagAnswerRequest,
+    knowledge_base_ids: list[str],
+) -> tuple[Conversation, Message, list[tuple[str, str]]]:
+    if req.conversation_id is None:
+        conversation = Conversation(
+            user_id=user.id,
+            kb_id=knowledge_base_ids[0],
+            knowledge_base_ids=knowledge_base_ids,
+            title=req.query.strip()[:200],
+        )
+        db.add(conversation)
+        await db.flush()
+        history: list[tuple[str, str]] = []
+    else:
+        conversation = await get_conversation(
+            db,
+            conv_id=req.conversation_id,
+            user_id=user.id,
+        )
+        stored_scope = _conversation_scope(conversation)
+        if set(stored_scope) != set(knowledge_base_ids):
+            raise ValidationException(message="会话与当前知识库范围不匹配，请新建对话")
+        history = await _load_conversation_history(
+            db,
+            conversation_id=conversation.id,
+        )
+
+    user_message = await append_message(
+        db,
+        conv_id=conversation.id,
+        role="user",
+        content=req.query,
+    )
+    await db.flush()
+    await db.commit()
+    return conversation, user_message, history
+
+
+async def _save_assistant_message(
+    db: AsyncSession,
+    *,
+    conversation_id: str,
+    answer: str,
+    hits: list[SearchHit],
+    finish_reason: str,
+) -> Message:
+    assistant_message = await append_message(
+        db,
+        conv_id=conversation_id,
+        role="assistant",
+        content=answer,
+        citations=[hit.model_dump(mode="json") for hit in hits],
+        finish_reason=finish_reason,
+    )
+    await db.flush()
+    await db.commit()
+    return assistant_message
 
 
 async def stream_answer(
@@ -156,11 +269,44 @@ async def stream_answer(
 ) -> AsyncIterator[AnswerStreamEvent]:
     started_at = time.monotonic()
     request_id = new_request_id()
+    requested_scope = req.selected_knowledge_base_ids()
+    if req.conversation_id is not None:
+        existing = await get_conversation(
+            db,
+            conv_id=req.conversation_id,
+            user_id=user.id,
+        )
+        stored_scope = _conversation_scope(existing)
+        if requested_scope is not None and requested_scope != set(stored_scope):
+            raise ValidationException(message="会话与当前知识库范围不匹配，请新建对话")
+        req = req.model_copy(
+            update={
+                "kb_id": None,
+                "kb_ids": stored_scope,
+            }
+        )
+
+    cache_scope, effective_request = await _build_answer_cache_scope(
+        db,
+        user=user,
+        req=req,
+    )
+    knowledge_base_ids = cache_scope.knowledge_scope.split(",")
+    conversation, user_message, history = await _prepare_conversation(
+        db,
+        user=user,
+        req=req,
+        knowledge_base_ids=knowledge_base_ids,
+    )
     yield AnswerStreamEvent(
         event="start",
-        data={"event": "start", "request_id": request_id},
+        data={
+            "event": "start",
+            "request_id": request_id,
+            "conversation_id": conversation.id,
+            "message_id": user_message.id,
+        },
     )
-
     yield _stage(
         stage="cache",
         label="检查可复用答案",
@@ -168,14 +314,15 @@ async def stream_answer(
         started_at=started_at,
         detail="正在核对权限、文档版本与检索配置。",
     )
-    cache_scope, effective_request = await _build_answer_cache_scope(
-        db,
-        user=user,
-        req=req,
+
+    # 追问的语义依赖历史上下文，不能复用仅按当前问题建立的答案缓存。
+    cached = (
+        await get_cached_answer(scope=cache_scope, query=req.query)
+        if not history
+        else None
     )
-    cached = await get_cached_answer(scope=cache_scope, query=req.query)
     query_embedding: list[float] | None = None
-    if cached is None:
+    if cached is None and not history:
         query_embedding = await _build_cache_query_embedding(
             db,
             req=effective_request,
@@ -189,6 +336,7 @@ async def stream_answer(
             )
     if cached is not None:
         cached.took_ms = _elapsed_ms(started_at)
+        cached.conversation_id = conversation.id
         yield _stage(
             stage="cache",
             label="检查可复用答案",
@@ -206,7 +354,18 @@ async def stream_answer(
             event="delta",
             data={"event": "delta", "text": cached.answer},
         )
-        yield _done_event(cached, started_at=started_at)
+        assistant_message = await _save_assistant_message(
+            db,
+            conversation_id=conversation.id,
+            answer=cached.answer,
+            hits=cached.hits,
+            finish_reason="cache",
+        )
+        yield _done_event(
+            cached,
+            started_at=started_at,
+            message_id=assistant_message.id,
+        )
         return
 
     yield _stage(
@@ -260,12 +419,24 @@ async def stream_answer(
             took_ms=_elapsed_ms(started_at),
             model=None,
             generated=False,
+            conversation_id=conversation.id,
         )
         yield AnswerStreamEvent(
             event="delta",
             data={"event": "delta", "text": response.answer},
         )
-        yield _done_event(response, started_at=started_at)
+        assistant_message = await _save_assistant_message(
+            db,
+            conversation_id=conversation.id,
+            answer=response.answer,
+            hits=[],
+            finish_reason="no_context",
+        )
+        yield _done_event(
+            response,
+            started_at=started_at,
+            message_id=assistant_message.id,
+        )
         return
 
     (
@@ -291,7 +462,11 @@ async def stream_answer(
     )
     provider_stream = await provider.chat(
         model_name=model_name,
-        messages=_build_answer_messages(req.query, search_response.hits),
+        messages=_build_answer_messages(
+            req.query,
+            search_response.hits,
+            history,
+        ),
         temperature=temperature,
         max_tokens=max_tokens,
         stream=True,
@@ -332,13 +507,22 @@ async def stream_answer(
         mode=search_response.mode,
         took_ms=_elapsed_ms(started_at),
         model=model_name,
+        conversation_id=conversation.id,
         generated=True,
     )
-    await set_cached_answer(
-        scope=cache_scope,
-        query=req.query,
-        response=response,
-        query_embedding=query_embedding,
+    if not history:
+        await set_cached_answer(
+            scope=cache_scope,
+            query=req.query,
+            response=response,
+            query_embedding=query_embedding,
+        )
+    assistant_message = await _save_assistant_message(
+        db,
+        conversation_id=conversation.id,
+        answer=response.answer,
+        hits=response.hits,
+        finish_reason="stop",
     )
     yield _stage(
         stage="generation",
@@ -347,4 +531,8 @@ async def stream_answer(
         started_at=started_at,
         detail="回答生成完成，引用来源已保留。",
     )
-    yield _done_event(response, started_at=started_at)
+    yield _done_event(
+        response,
+        started_at=started_at,
+        message_id=assistant_message.id,
+    )

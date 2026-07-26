@@ -74,7 +74,7 @@ export const createAppRouter = (history: RouterHistory): Router => {
             path: "search",
             name: "search",
             component: () => import("../views/user/SearchView.vue"),
-            meta: { title: "搜索结果", parentTitle: "AI 搜索" },
+            meta: { title: "AI 搜索对话", parentTitle: "AI 搜索" },
           },
           {
             path: "spaces",
@@ -83,10 +83,14 @@ export const createAppRouter = (history: RouterHistory): Router => {
             meta: { title: "我的空间", parentTitle: "企业知识中心" },
           },
           {
-            path: "favorites",
-            name: "search-favorites",
+            path: "conversations",
+            name: "conversation-history",
             component: () => import("../views/user/FavoritesView.vue"),
-            meta: { title: "收藏内容", parentTitle: "企业知识中心" },
+            meta: { title: "对话历史", parentTitle: "AI 搜索" },
+          },
+          {
+            path: "favorites",
+            redirect: "/conversations",
           },
           {
             path: "settings",

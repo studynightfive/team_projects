@@ -46,6 +46,7 @@ export interface SearchRequest {
   readonly workspaceIds?: readonly string[];
   readonly attachmentIds?: readonly string[];
   readonly modelId?: string;
+  readonly conversationId?: string;
 }
 
 export interface SearchModeOption {
@@ -279,6 +280,7 @@ export interface AiSearchResponse {
   readonly isMock: boolean;
   readonly notice: string;
   readonly elapsedLabel: string;
+  readonly conversationId?: string;
 }
 
 export type RagProcessingStageStatus = "running" | "completed";

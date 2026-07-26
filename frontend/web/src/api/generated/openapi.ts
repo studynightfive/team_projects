@@ -939,7 +939,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Conversation Endpoint */
+        get: operations["get_conversation_endpoint_api_v1_conversations__conversation_id__get"];
         put?: never;
         post?: never;
         /** Delete Conversation Endpoint */
@@ -2913,6 +2914,8 @@ export interface components {
             embedding_model_id?: string | null;
             /** Chat Model Id */
             chat_model_id?: string | null;
+            /** Conversation Id */
+            conversation_id?: string | null;
         };
         /** RateMetric */
         RateMetric: {
@@ -6228,6 +6231,57 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    get_conversation_endpoint_api_v1_conversations__conversation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

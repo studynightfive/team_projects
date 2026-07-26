@@ -26,7 +26,7 @@ describe("M01 V2 工作区布局", () => {
       "搜索",
       "知识库",
       "空间",
-      "收藏",
+      "历史",
     ]);
     expect(navigationLabels).not.toContain("搜索设置");
     await wrapper.get(".sidebar-profile-trigger").trigger("click");

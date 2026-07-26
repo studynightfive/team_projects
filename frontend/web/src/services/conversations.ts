@@ -18,6 +18,7 @@ export interface ConversationRecord {
   readonly id: string;
   readonly user_id: string;
   readonly kb_id: string;
+  readonly knowledge_base_ids: readonly string[];
   readonly title: string;
   readonly is_pinned: boolean;
   readonly is_archived: boolean;
@@ -32,8 +33,32 @@ export interface MessageRecord {
   readonly conversation_id: string;
   readonly role: "system" | "user" | "assistant" | "tool";
   readonly content: string;
+  readonly citations: readonly {
+    readonly doc_id: string;
+    readonly chunk_id: string;
+    readonly doc_title?: string | null;
+    readonly page?: number | null;
+    readonly score?: number | null;
+    readonly vector_score?: number | null;
+    readonly keyword_score?: number | null;
+    readonly rerank_score?: number | null;
+    readonly text?: string | null;
+    readonly kb_id?: string | null;
+  }[];
+  readonly finish_reason?: string | null;
   readonly created_at: string | null;
 }
+
+export const getConversation = async (
+  conversationId: string,
+  signal?: AbortSignal,
+): Promise<ConversationRecord> => {
+  const response = await apiClient.get<ApiResponse<ConversationRecord>>(
+    `/v1/conversations/${conversationId}`,
+    { signal },
+  );
+  return unwrapApiData(response.data);
+};
 
 export const listConversations = async (
   signal?: AbortSignal,

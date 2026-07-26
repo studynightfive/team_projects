@@ -177,6 +177,7 @@ export const runAiSearch = async (
     isMock: true,
     notice: aiSearchMockData.meta.notice,
     elapsedLabel: "本地模拟，无真实耗时",
+    conversationId: request.conversationId ?? `mock-${createQueryHash(query)}`,
   };
   observer?.onResponse?.(response);
   return response;
