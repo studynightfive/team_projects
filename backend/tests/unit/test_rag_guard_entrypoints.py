@@ -94,7 +94,6 @@ async def test_chat_stream_guard_runs_before_response_creation(
             ),
             user=SimpleNamespace(id="user-1"),
             _perm=None,
-            db=SimpleNamespace(),
         )
 
     guard.assert_awaited_once_with("危险输入")

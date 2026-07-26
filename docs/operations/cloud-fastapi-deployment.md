@@ -203,6 +203,28 @@ git rev-parse --short HEAD
 脚本输出的不可变标签格式为 `v1.0.0-<短提交SHA>`。将该值写入
 `deploy/env/.env` 的 `APP_IMAGE_TAG`。正式环境不要长期使用 `local` 或可覆盖标签。
 
+API 与 Worker 镜像会在 Linux 构建阶段把知识库服务、权限过滤、智能检索和许可证校验
+编译为当前 CPython ABI 的 `.so`，运行镜像会删除对应 `.py/.pyx`。构建过程会运行
+`backend/scripts/verify_native_build.py`，缺少任一扩展或仍残留受保护源码时直接失败。
+
+生产环境必须提供由交付方签名的许可证文件，并通过云 Secret 管理服务挂载到容器：
+
+```dotenv
+NATIVE_LICENSE_PUBLIC_KEY_HEX=<Ed25519 64 位十六进制公钥，仅构建时使用>
+NATIVE_CORE_REQUIRED=true
+NATIVE_CORE_LICENSE_REQUIRED=true
+KNOWLEDGE_CORE_LICENSE_FILE=/run/secrets/knowledge_core_license.json
+```
+
+`NATIVE_LICENSE_PUBLIC_KEY_HEX` 必须在构建 API 与 Worker 镜像时传入。它是公钥而非
+私钥，Compose 会将其作为构建参数编译进 `.so`，不会作为 Python 运行时环境变量保留；
+私钥只能存放在交付方独立签发系统中。未注入公钥的镜像无法通过生产许可证校验。
+
+许可证中的序列号只在 `app.native.license_core` 原生扩展内部校验，Python 接口只返回
+有效/无效状态，不提供序列号读取或展示函数。不要把许可证文件复制进镜像或提交到仓库。
+Cython 的作用是提高源码直接复制和静态阅读成本，并不能替代镜像访问控制、签名验证和
+云端 Secret 管理。
+
 ## 8. 启动服务与数据库迁移
 
 ```bash

@@ -347,8 +347,20 @@ const datasets = [
   {
     id: "dataset-medical",
     name: "医疗信息化验收测试集",
+    description: "验证医疗信息化演示文档的核心检索链路",
     kb_id: "kb-medical",
     queries: [],
+    created_by: "user-admin",
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "dataset-regional-health",
+    name: "区域卫生平台回归测试集",
+    description: "独立保存的跨机构共享检索测试集",
+    kb_id: "kb-medical",
+    queries: [],
+    created_by: "user-admin",
     created_at: now,
     updated_at: now,
   },
@@ -521,10 +533,28 @@ export const mockAdapter: AxiosAdapter = (config) => {
         numerator: 7,
         denominator: 21,
       },
+      retrieval_evaluation: {
+        rate: 80,
+        numerator: 16,
+        denominator: 20,
+      },
+      evaluation_run_count: 2,
       response_time: {
         average_ms: 860,
         sample_count: 28,
       },
+      popular_questions: [
+        {
+          question: "区域卫生信息平台如何实现跨机构数据共享？",
+          ask_count: 8,
+          last_asked_at: now,
+        },
+        {
+          question: "电子病历系统应满足哪些互联互通要求？",
+          ask_count: 5,
+          last_asked_at: now,
+        },
+      ],
       department_leaderboard: {
         items: departments.map((department, index) => ({
           rank: index + 1,

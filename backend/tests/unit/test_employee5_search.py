@@ -17,7 +17,7 @@ from app.rag.search.schemas import (
     SearchRequest,
     SearchResponse,
 )
-from app.rag.search.service import rrf_fuse
+from app.rag.search.service import _to_public_hit, rrf_fuse
 
 
 # ============================================================
@@ -67,6 +67,20 @@ class TestRRFFusion:
         )
         assert fused[0]["keyword_score"] == 0.9
         assert fused[0]["vector_score"] == 0.5
+
+    def test_public_score_matches_threshold_score_instead_of_rrf_score(self):
+        hit = _to_public_hit(
+            {
+                "doc_id": "document-1",
+                "chunk_id": "chunk-1",
+                "kb_id": "kb-1",
+                "content": "有效的知识库片段内容",
+                "score": 1 / 61,
+                "vector_score": 0.72,
+            }
+        )
+
+        assert hit.score == 0.72
 
     def test_custom_k_parameter(self):
         fused = rrf_fuse(

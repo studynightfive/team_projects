@@ -29,6 +29,19 @@ _POLITE_PREFIX = re.compile(r"^(?:请问|麻烦问一下|帮我查一下|我想�
 _PUNCTUATION = re.compile(r"[\W_]+", flags=re.UNICODE)
 _NUMBER = re.compile(r"\d+(?:\.\d+)?%?")
 _LATIN_ENTITY = re.compile(r"[a-z][a-z0-9._-]*")
+_CONTEXT_REFERENCE_PREFIX = re.compile(
+    r"^(?:那(?:个|些|种|一|么)?|这(?:个|些|种)?|它(?:们)?|其|该|上述|前述|"
+    r"前面|上面|刚才|之前|其中|对此|关于这个|继续|再说|再讲|进一步|"
+    r"展开|详细一点|还有)"
+)
+_SHORT_FOLLOW_UP = {
+    "为什么",
+    "怎么做",
+    "什么意思",
+    "具体呢",
+    "然后呢",
+    "还有呢",
+}
 _NEGATION = re.compile(
     r"(?:不能|不可|不允许|不需要|不应|不得|没有|尚未|未能|未曾|无需|禁止|"
     r"不(?:支持|包含|包括|可以|需要|具备|存在|能够|会|是|有)|"
@@ -87,6 +100,16 @@ def normalize_query(query: str) -> str:
     normalized = _POLITE_PREFIX.sub("", normalized)
     normalized = _PUNCTUATION.sub("", normalized)
     return _WHITESPACE.sub("", normalized)
+
+
+def query_depends_on_conversation(query: str) -> bool:
+    """识别无法脱离历史回答安全复用缓存的省略式追问。"""
+    normalized = normalize_query(query)
+    if not normalized:
+        return False
+    if normalized in _SHORT_FOLLOW_UP or _CONTEXT_REFERENCE_PREFIX.search(normalized):
+        return True
+    return len(normalized) <= 12 and normalized.endswith(("呢", "又如何", "怎么样"))
 
 
 def semantic_similarity(left: list[float], right: list[float]) -> float:

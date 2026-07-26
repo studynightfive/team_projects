@@ -13,6 +13,7 @@ from app.rag.answer_cache import (
     get_cached_answer,
     intents_are_compatible,
     normalize_query,
+    query_depends_on_conversation,
     semantic_similarity,
 )
 from app.rag.search.schemas import RagAnswerResponse, SearchHit
@@ -107,6 +108,15 @@ def test_intent_guard_rejects_negation_and_entity_changes() -> None:
     )
 
 
+def test_conversation_dependency_only_marks_ellipsis_followups() -> None:
+    assert query_depends_on_conversation("那数据中心呢")
+    assert query_depends_on_conversation("继续详细说明")
+    assert query_depends_on_conversation("为什么")
+    assert not query_depends_on_conversation("医疗信息化有企业在做")
+    assert not query_depends_on_conversation("医疗信息化有哪些企业在做")
+    assert not query_depends_on_conversation("医疗信息化有那些企业")
+
+
 def test_scope_digest_changes_with_knowledge_version() -> None:
     assert _scope(knowledge_version="v1").digest() != _scope(knowledge_version="v2").digest()
 
@@ -179,6 +189,33 @@ async def test_semantic_cache_rejects_opposite_intent(
     result = await get_cached_answer(
         scope=_scope(),
         query="医保结算允许撤销吗",
+        query_embedding=[1.0, 0.0],
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_semantic_cache_rejects_below_threshold_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _FakeRedis(
+        candidates=[
+            _payload("区域卫生平台如何共享数据？", [0.92, 0.392]),
+        ]
+    )
+    monkeypatch.setattr(
+        "app.rag.answer_cache._redis",
+        AsyncMock(return_value=client),
+    )
+    monkeypatch.setattr(
+        "app.rag.answer_cache.settings.rag_answer_cache_similarity_threshold",
+        0.95,
+    )
+
+    result = await get_cached_answer(
+        scope=_scope(),
+        query="区域卫生平台怎样共享数据？",
         query_embedding=[1.0, 0.0],
     )
 

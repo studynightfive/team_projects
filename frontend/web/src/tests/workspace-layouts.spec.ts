@@ -66,12 +66,15 @@ describe("M01 V2 工作区布局", () => {
     expect(wrapper.findAll("h1")).toHaveLength(1);
     expect(wrapper.findAll(".admin-stat-grid .stat-card")).toHaveLength(4);
     expect(wrapper.findAll(".admin-stat-grid .sparkline")).toHaveLength(0);
-    expect(wrapper.findAll(".dashboard-facts div")).toHaveLength(3);
+    expect(wrapper.findAll(".dashboard-facts div")).toHaveLength(4);
     expect(wrapper.find(".governance-list").exists()).toBe(false);
     expect(wrapper.text()).not.toContain("快捷入口");
-    expect(wrapper.findAll(".leaderboard-table tbody tr")).toHaveLength(1);
+    expect(
+      wrapper.findAll(".leaderboard-card .leaderboard-table tbody tr"),
+    ).toHaveLength(1);
     expect(wrapper.text()).toContain("业务运营看板");
     expect(wrapper.text()).toContain("答案缓存命中率");
+    expect(wrapper.text()).toContain("高频问题");
   });
 
   it("知识库编辑者从用户工作区进入首个有权管理页", async () => {

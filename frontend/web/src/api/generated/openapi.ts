@@ -2190,7 +2190,12 @@ export interface components {
             unanswered_queries: number;
             document_processing: components["schemas"]["RateMetric"];
             answer_cache: components["schemas"]["RateMetric"];
+            retrieval_evaluation: components["schemas"]["RateMetric"];
+            /** Evaluation Run Count */
+            evaluation_run_count: number;
             response_time: components["schemas"]["ResponseTimeMetric"];
+            /** Popular Questions */
+            popular_questions: components["schemas"]["PopularQuestionItem"][];
             department_leaderboard: components["schemas"]["PaginatedData_DepartmentLeaderboardItem_"];
         };
         /**
@@ -2875,6 +2880,18 @@ export interface components {
             page_size: number;
             /** Total */
             total: number;
+        };
+        /** PopularQuestionItem */
+        PopularQuestionItem: {
+            /** Question */
+            question: string;
+            /** Ask Count */
+            ask_count: number;
+            /**
+             * Last Asked At
+             * Format: date-time
+             */
+            last_asked_at: string;
         };
         /** RagAnswerRequest */
         RagAnswerRequest: {

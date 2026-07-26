@@ -3,6 +3,7 @@ import { nextTick } from "vue";
 import { describe, expect, it, vi } from "vitest";
 
 import SafeMarkdown from "../components/common/SafeMarkdown.vue";
+import AiAnswerPanel from "../components/search/AiAnswerPanel.vue";
 import AiSearchBox from "../components/search/AiSearchBox.vue";
 import SearchContextPanel from "../components/search/SearchContextPanel.vue";
 import { aiSearchMockData } from "../mocks/ai-search";
@@ -170,6 +171,27 @@ describe("AI 搜索工作台关键链路", () => {
 
     expect(wrapper.findAll(".context-citation-list button")).toHaveLength(1);
     expect(wrapper.text()).not.toContain("待确认");
+  });
+
+  it("答案结论依据按文档去重，同时保留正文的分块引用", () => {
+    const citation = aiSearchMockData.answer.citations[0];
+    if (citation === undefined) throw new Error("缺少引用模拟数据");
+
+    const wrapper = mount(AiAnswerPanel, {
+      props: {
+        answer: {
+          ...aiSearchMockData.answer,
+          markdown: "同一文档的两个分块分别支持结论 [1] 与 [2]。",
+          citations: [
+            citation,
+            { ...citation, id: "same-document-second-chunk" },
+          ],
+        },
+      },
+    });
+
+    expect(wrapper.findAll(".markdown-citation")).toHaveLength(2);
+    expect(wrapper.findAll(".answer-citation-links button")).toHaveLength(1);
   });
 
   it("非默认问题不会复用差旅结论，筛选后的引用编号与来源一致", async () => {

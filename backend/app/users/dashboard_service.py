@@ -6,7 +6,7 @@ from datetime import datetime, time, timedelta, timezone, tzinfo
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import func, select
+from sqlalchemy import String, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.selectable import Subquery
 
@@ -20,6 +20,7 @@ from app.documents.models import Document, DocumentStatus
 from app.knowledge.models import KnowledgeBase
 from app.rag.conversations.all import Conversation, Message
 from app.rag.metrics import RetrievalMetric
+from app.rag.tests.all import RetrievalTestDataset, RetrievalTestRun
 from app.users.dashboard_schemas import (
     ContributionItem,
     DashboardMetrics,
@@ -29,6 +30,7 @@ from app.users.dashboard_schemas import (
     IncentiveBadge,
     IncentiveRule,
     NextBadge,
+    PopularQuestionItem,
     RateMetric,
     ResponseTimeMetric,
     UserIncentives,
@@ -172,6 +174,100 @@ async def _department_leaderboard(
         page_size=page_size,
         total=total,
     )
+
+
+async def _popular_questions(
+    db: AsyncSession,
+    *,
+    department_id: str | None,
+    started_at: datetime,
+    ended_at: datetime,
+    limit: int = 10,
+) -> list[PopularQuestionItem]:
+    """按规范化文本聚合真实用户问题，避免大小写与首尾空格拆散统计。"""
+
+    normalized_question = func.lower(func.trim(Message.content))
+    ask_count = func.count(Message.id)
+    last_asked_at = func.max(Message.created_at)
+    statement = (
+        select(
+            normalized_question.label("question"),
+            ask_count.label("ask_count"),
+            last_asked_at.label("last_asked_at"),
+        )
+        .select_from(Message)
+        .join(Conversation, Conversation.id == Message.conversation_id)
+        .join(User, User.id == Conversation.user_id)
+        .where(
+            Message.role == "user",
+            Message.deleted_at.is_(None),
+            Message.created_at >= started_at,
+            Message.created_at <= ended_at,
+            func.length(normalized_question) > 0,
+        )
+        .group_by(normalized_question)
+        .order_by(ask_count.desc(), last_asked_at.desc())
+        .limit(limit)
+    )
+    if department_id is not None:
+        statement = statement.where(User.department_id == department_id)
+
+    return [
+        PopularQuestionItem(
+            question=str(row.question),
+            ask_count=int(row.ask_count),
+            last_asked_at=row.last_asked_at,
+        )
+        for row in (await db.execute(statement)).all()
+    ]
+
+
+async def _retrieval_evaluation(
+    db: AsyncSession,
+    *,
+    department_id: str | None,
+    started_at: datetime,
+    ended_at: datetime,
+) -> tuple[RateMetric, int]:
+    """从真实测试运行逐题汇总命中率，不把“有引用”误称为正确答案。"""
+
+    statement = (
+        select(RetrievalTestRun.per_query)
+        .select_from(RetrievalTestRun)
+        .join(
+            RetrievalTestDataset,
+            RetrievalTestDataset.id == RetrievalTestRun.dataset_id,
+        )
+        # 历史命中率测试表使用 PostgreSQL UUID，知识库主键使用 String(36)；
+        # 显式转换可兼容既有数据，避免仪表盘联表时触发 varchar = uuid 错误。
+        .join(
+            KnowledgeBase,
+            KnowledgeBase.id == cast(RetrievalTestDataset.kb_id, String(36)),
+        )
+        .where(
+            RetrievalTestRun.status == "done",
+            RetrievalTestRun.finished_at.is_not(None),
+            RetrievalTestRun.finished_at >= started_at,
+            RetrievalTestRun.finished_at <= ended_at,
+        )
+    )
+    if department_id is not None:
+        statement = statement.where(
+            KnowledgeBase.department_id == department_id
+        )
+
+    rows = (await db.execute(statement)).scalars().all()
+    evaluated = 0
+    hits = 0
+    for per_query in rows:
+        if not isinstance(per_query, list):
+            continue
+        for item in per_query:
+            if not isinstance(item, dict):
+                continue
+            evaluated += 1
+            hits += int(item.get("hit") is True)
+    return _rate(hits, evaluated), len(rows)
 
 
 async def get_dashboard_metrics(
@@ -376,6 +472,12 @@ async def get_dashboard_metrics(
     average_response_ms = round(float(metric_row[5] or 0.0), 1)
 
     document_processing = _rate(processed_ready, processed_total)
+    retrieval_evaluation, evaluation_run_count = await _retrieval_evaluation(
+        db,
+        department_id=scope_department_id,
+        started_at=started_at,
+        ended_at=ended_at,
+    )
     return DashboardMetrics(
         total_users=int(user_row[0] or 0),
         active_users=int(user_row[1] or 0),
@@ -402,9 +504,17 @@ async def get_dashboard_metrics(
         unanswered_queries=unanswered_queries,
         document_processing=document_processing,
         answer_cache=_rate(cache_hits, answer_count),
+        retrieval_evaluation=retrieval_evaluation,
+        evaluation_run_count=evaluation_run_count,
         response_time=ResponseTimeMetric(
             average_ms=average_response_ms,
             sample_count=active_searches,
+        ),
+        popular_questions=await _popular_questions(
+            db,
+            department_id=scope_department_id,
+            started_at=started_at,
+            ended_at=ended_at,
         ),
         department_leaderboard=await _department_leaderboard(
             db,

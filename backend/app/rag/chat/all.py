@@ -19,7 +19,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_any_permission
 from app.common.config import settings
-from app.common.database import get_db
 from app.common.exceptions import ForbiddenException, ValidationException
 from app.common.models import User
 from app.documents.permissions import user_can_access_kb
@@ -32,6 +31,7 @@ from app.rag._shared.permissions import (
     post_filter_hits,
 )
 from app.rag._shared.sse import format_keepalive, format_sse, new_message_id
+from app.rag._shared.stream_session import stream_user_session
 from app.rag.conversations.all import (
     Conversation,
     Message,
@@ -90,7 +90,11 @@ async def _retrieve_context(
     # 二次权限过滤（即使 search 内已过滤）
     hits_dicts: list[dict[str, object]] = [h.model_dump() for h in search_resp.hits]
     accessible = await get_user_accessible_kb_ids(db, user)
-    safe = post_filter_hits(hits=hits_dicts, accessible_kb_ids=accessible)
+    # 显式标注可同时兼容源码类型检查与运行镜像中的 Cython 扩展边界。
+    safe: list[dict[str, object]] = post_filter_hits(
+        hits=hits_dicts,
+        accessible_kb_ids=accessible,
+    )
     return safe
 
 
@@ -316,21 +320,21 @@ async def _chat_stream(
     conv.message_count = (conv.message_count or 0) + 1
     # 自动标题生成：流式结束后若 title 仍空，用聊天模型生成 ≤20 字
     if not conv.title and accumulated:
-            try:
-                title_stream = await p.chat(
-                    model_name=chat_model.model_name,
-                    messages=[
-                        {"role": "user", "content": f"用不超过 20 个字总结：{accumulated[:200]}"}
-                    ],
-                    temperature=0.2,
-                    stream=False,
-                    max_tokens=64,
-                    timeout=settings.model_provider_timeout_seconds,
-                )
-                title_text = title_stream if isinstance(title_stream, str) else ""
-                conv.title = (title_text or "新会话")[:20]
-            except Exception:
-                conv.title = "新会话"
+        try:
+            title_stream = await p.chat(
+                model_name=chat_model.model_name,
+                messages=[
+                    {"role": "user", "content": f"用不超过 20 个字总结：{accumulated[:200]}"}
+                ],
+                temperature=0.2,
+                stream=False,
+                max_tokens=64,
+                timeout=settings.model_provider_timeout_seconds,
+            )
+            title_text = title_stream if isinstance(title_stream, str) else ""
+            conv.title = (title_text or "新会话")[:20]
+        except Exception:
+            conv.title = "新会话"
 
     yield format_sse(
         event="done",
@@ -352,14 +356,19 @@ async def chat_stream_endpoint(
     payload: ChatStreamRequest,
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("chat.use", "chat:write")),
-    db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     await ensure_safe_query(payload.question)
+    user_id = user.id
 
     async def event_gen() -> AsyncIterator[str]:
         try:
-            async for chunk in _chat_stream(db, user=user, req=payload):
-                yield chunk
+            async with stream_user_session(user_id) as (stream_db, stream_user):
+                async for chunk in _chat_stream(
+                    stream_db,
+                    user=stream_user,
+                    req=payload,
+                ):
+                    yield chunk
         except asyncio.CancelledError:
             # 客户端断开
             return

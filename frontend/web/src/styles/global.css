@@ -586,6 +586,19 @@ p {
     );
 }
 
+/* 搜索页不显示全局搜索时，右侧账号操作仍固定在顶栏末列。 */
+.user-topbar-layout > .topbar-breadcrumb {
+  grid-column: 1;
+}
+
+.user-topbar-layout > .global-search {
+  grid-column: 2;
+}
+
+.user-topbar-layout > .topbar-actions {
+  grid-column: 3;
+}
+
 .admin-topbar-layout {
   grid-template-columns: minmax(180px, 1fr) max-content;
 }

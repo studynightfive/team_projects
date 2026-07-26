@@ -84,6 +84,13 @@ class Settings(BaseSettings):
     rag_answer_cache_candidate_limit: int = Field(default=50, ge=1, le=200)
 
     # ============================================================
+    # 知识库原生核心与许可证
+    # ============================================================
+    native_core_required: bool = False
+    native_core_license_required: bool = False
+    knowledge_core_license_file: str = "/run/secrets/knowledge_core_license.json"
+
+    # ============================================================
     # 文档处理（员工 4）
     # ============================================================
     max_upload_files: int = 20
@@ -207,6 +214,12 @@ class Settings(BaseSettings):
                 raise ValueError("生产环境必须设置 MODEL_KEY_FERNET_KEY")
             if not self.export_download_signing_key.strip():
                 raise ValueError("生产环境必须设置 EXPORT_DOWNLOAD_SIGNING_KEY")
+            if not self.native_core_required:
+                raise ValueError("生产环境必须设置 NATIVE_CORE_REQUIRED=true")
+            if not self.native_core_license_required:
+                raise ValueError(
+                    "生产环境必须设置 NATIVE_CORE_LICENSE_REQUIRED=true"
+                )
         return self
 
     # ============================================================

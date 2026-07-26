@@ -262,11 +262,13 @@ const startCreate = (): boolean => {
   selectedModelId.value = undefined;
   isCreating.value = true;
   clearSensitiveState();
+  const providerCode =
+    providers.value.find((provider) => provider.enabled)?.code ?? "";
+  const kind: ModelKind = "chat";
   Object.assign(editor, {
-    providerCode:
-      providers.value.find((provider) => provider.enabled)?.code ?? "",
-    modelName: "deepseek-chat",
-    kind: "chat",
+    providerCode,
+    modelName: modelNamePresets[providerCode]?.[kind]?.[0] ?? "",
+    kind,
     enabled: true,
     temperature: 0.2,
     maxTokens: 4096,

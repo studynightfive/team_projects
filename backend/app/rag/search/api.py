@@ -17,6 +17,7 @@ from app.common.schemas import APIResponse
 from app.rag._shared.audit_helper import audit
 from app.rag._shared.permissions import new_request_id
 from app.rag._shared.sse import format_sse
+from app.rag._shared.stream_session import stream_user_session
 from app.rag.guard import ensure_safe_query
 from app.rag.metrics import record_retrieval_metric
 from app.rag.search import service
@@ -119,9 +120,10 @@ async def answer_stream_endpoint(
     payload: RagAnswerRequest,
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("retrieval.search", "chat.use", "chat:write")),
-    db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     await ensure_safe_query(payload.query)
+    user_id = user.id
+    request_id = _request_id(request)
 
     async def event_generator() -> AsyncIterator[str]:
         completed = False
@@ -130,47 +132,54 @@ async def answer_stream_endpoint(
         cache_hit = False
         took_ms = 0
         try:
-            async for event in stream_answer(db, user=user, req=payload):
-                if event.event == "citation":
-                    citation_count += 1
-                if event.event == "done":
-                    completed = True
-                    generated = event.data.get("generated") is True
-                    cache_hit = event.data.get("from_cache") is True
-                    event_took_ms = event.data.get("took_ms")
-                    if isinstance(event_took_ms, int) and not isinstance(
-                        event_took_ms,
-                        bool,
-                    ):
-                        took_ms = event_took_ms
-                yield format_sse(event=event.event, data=event.data)
-            if completed:
-                await record_retrieval_metric(
-                    db,
-                    user=user,
-                    event_type="answer",
-                    request_id=_request_id(request),
-                    knowledge_base_id=payload.kb_id,
-                    hit_count=citation_count,
-                    generated=generated,
-                    cache_hit=cache_hit,
-                    took_ms=took_ms,
+            async with stream_user_session(user_id) as (stream_db, stream_user):
+                async for event in stream_answer(
+                    stream_db,
+                    user=stream_user,
+                    req=payload,
+                ):
+                    if event.event == "citation":
+                        citation_count += 1
+                    if event.event == "done":
+                        completed = True
+                        generated = event.data.get("generated") is True
+                        cache_hit = event.data.get("from_cache") is True
+                        event_took_ms = event.data.get("took_ms")
+                        if isinstance(event_took_ms, int) and not isinstance(
+                            event_took_ms,
+                            bool,
+                        ):
+                            took_ms = event_took_ms
+                    yield format_sse(event=event.event, data=event.data)
+                if completed:
+                    await record_retrieval_metric(
+                        stream_db,
+                        user=stream_user,
+                        event_type="answer",
+                        request_id=request_id,
+                        knowledge_base_id=payload.kb_id,
+                        hit_count=citation_count,
+                        generated=generated,
+                        cache_hit=cache_hit,
+                        took_ms=took_ms,
+                    )
+                await audit(
+                    stream_db,
+                    action="rag_answer_stream",
+                    user_id=stream_user.id,
+                    resource_type="kb",
+                    resource_id=payload.kb_id,
+                    detail=(
+                        f"mode={payload.mode} top_k={payload.top_k} "
+                        f"completed={completed}"
+                    ),
+                    request=request,
                 )
-            await audit(
-                db,
-                action="rag_answer_stream",
-                user_id=user.id,
-                resource_type="kb",
-                resource_id=payload.kb_id,
-                detail=f"mode={payload.mode} top_k={payload.top_k} completed={completed}",
-                request=request,
-            )
-            await db.commit()
+                await stream_db.commit()
         except asyncio.CancelledError:
-            logger.info("rag_answer_stream_cancelled", user_id=user.id)
+            logger.info("rag_answer_stream_cancelled", user_id=user_id)
             return
         except Exception as exc:  # noqa: BLE001
-            request_id = new_request_id()
             logger.warning(
                 "rag_answer_stream_failed",
                 request_id=request_id,

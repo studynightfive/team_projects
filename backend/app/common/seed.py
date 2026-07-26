@@ -102,6 +102,7 @@ KNOWLEDGE_EDITOR_PERMISSION_CODES = DEFAULT_USER_PERMISSION_CODES | frozenset(
         "admin.knowledge_base.edit",
         "admin.document.view",
         "admin.document.upload",
+        "admin.document.delete",
         "admin.task.view",
     }
 )

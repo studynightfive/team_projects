@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,9 @@ from app.common.models import User
 from app.departments.models import Department
 from app.documents.models import Document, DocumentStatus
 from app.knowledge.models import KnowledgeBase
+from app.rag.conversations.all import Conversation, Message
 from app.rag.metrics import RetrievalMetric, record_retrieval_metric
+from app.rag.tests.all import RetrievalTestDataset, RetrievalTestRun
 from app.users.dashboard_service import (
     get_dashboard_metrics,
     get_user_incentives,
@@ -51,8 +54,15 @@ def _document(
 async def test_dashboard_scope_and_incentive_deduplication(
     pg_session: AsyncSession,
 ) -> None:
-    department = Department(id=_id(), name="医疗信息部")
-    other_department = Department(id=_id(), name="教育信息部")
+    test_suffix = _id()[:8]
+    department = Department(
+        id=_id(),
+        name=f"医疗信息部-{test_suffix}",
+    )
+    other_department = Department(
+        id=_id(),
+        name=f"教育信息部-{test_suffix}",
+    )
     pg_session.add_all([department, other_department])
     await pg_session.flush()
 
@@ -88,20 +98,105 @@ async def test_dashboard_scope_and_incentive_deduplication(
 
     knowledge_base = KnowledgeBase(
         id=_id(),
-        name="医疗制度库",
+        name=f"医疗制度库-{test_suffix}",
         department_id=department.id,
         kind="enterprise",
         status="active",
     )
     other_knowledge_base = KnowledgeBase(
         id=_id(),
-        name="教育制度库",
+        name=f"教育制度库-{test_suffix}",
         department_id=other_department.id,
         kind="enterprise",
         status="active",
     )
     pg_session.add_all([knowledge_base, other_knowledge_base])
     await pg_session.flush()
+
+    conversation = Conversation(
+        id=_id(),
+        user_id=user.id,
+        kb_id=knowledge_base.id,
+        knowledge_base_ids=[knowledge_base.id],
+        title="医疗平台数据共享",
+    )
+    other_conversation = Conversation(
+        id=_id(),
+        user_id=other_user.id,
+        kb_id=other_knowledge_base.id,
+        knowledge_base_ids=[other_knowledge_base.id],
+        title="教学平台",
+    )
+    pg_session.add_all([conversation, other_conversation])
+    await pg_session.flush()
+    pg_session.add_all(
+        [
+            Message(
+                id=_id(),
+                conversation_id=conversation.id,
+                role="user",
+                content="区域卫生平台如何共享数据？",
+            ),
+            Message(
+                id=_id(),
+                conversation_id=conversation.id,
+                role="user",
+                content=" 区域卫生平台如何共享数据？ ",
+            ),
+            Message(
+                id=_id(),
+                conversation_id=other_conversation.id,
+                role="user",
+                content="教学平台如何排课？",
+            ),
+        ]
+    )
+
+    dataset = RetrievalTestDataset(
+        id=_id(),
+        name="医疗检索回归集",
+        description="",
+        kb_id=knowledge_base.id,
+        queries=[],
+        created_by=user.id,
+    )
+    other_dataset = RetrievalTestDataset(
+        id=_id(),
+        name="教育检索回归集",
+        description="",
+        kb_id=other_knowledge_base.id,
+        queries=[],
+        created_by=other_user.id,
+    )
+    pg_session.add_all([dataset, other_dataset])
+    await pg_session.flush()
+    finished_at = datetime.now(timezone.utc)
+    pg_session.add_all(
+        [
+            RetrievalTestRun(
+                id=_id(),
+                dataset_id=dataset.id,
+                config={},
+                config_hash="medical",
+                status="done",
+                progress=2,
+                total=2,
+                per_query=[{"hit": True}, {"hit": False}],
+                finished_at=finished_at,
+            ),
+            RetrievalTestRun(
+                id=_id(),
+                dataset_id=other_dataset.id,
+                config={},
+                config_hash="education",
+                status="done",
+                progress=1,
+                total=1,
+                per_query=[{"hit": True}],
+                finished_at=finished_at,
+            ),
+        ]
+    )
 
     duplicated_hash = "a" * 64
     pg_session.add_all(
@@ -236,6 +331,10 @@ async def test_dashboard_scope_and_incentive_deduplication(
     assert dashboard.effective_answers == 2
     assert dashboard.unanswered_queries == 1
     assert dashboard.answer_cache.rate == 33.3
+    assert dashboard.retrieval_evaluation.rate == 50.0
+    assert dashboard.evaluation_run_count == 1
+    assert dashboard.popular_questions[0].question == "区域卫生平台如何共享数据？"
+    assert dashboard.popular_questions[0].ask_count == 2
     assert dashboard.department_leaderboard.total == 1
     assert dashboard.department_leaderboard.items[0].points == 20
     assert dashboard.department_leaderboard.items[0].contribution_count == 2

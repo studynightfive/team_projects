@@ -560,6 +560,7 @@ describe("M09-M14 管理页面真实 API 渲染", () => {
       ),
     ).map((option) => option.value);
     expect(modelSuggestions).toContain("deepseek-v4-pro");
+    expect(modelSuggestions).toContain(modelName.value);
 
     modelName.value = "enterprise-custom-chat";
     modelName.dispatchEvent(new Event("input", { bubbles: true }));
@@ -645,7 +646,45 @@ describe("M09-M14 管理页面真实 API 渲染", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain("医疗信息化验收测试集");
+    expect(wrapper.text()).toContain("区域卫生平台回归测试集");
     expect(wrapper.text()).toContain("run-1");
+    expect(wrapper.text()).toContain("检索候选数（TopK）");
+    expect(wrapper.text()).toContain("命中阈值");
+
+    const postSpy = vi.spyOn(apiClient, "post");
+    await wrapper
+      .get(".single-question-field textarea")
+      .setValue("区域卫生信息平台如何共享数据？");
+    await wrapper
+      .get('.single-parameter-grid input[type="number"]')
+      .setValue("5");
+    await wrapper
+      .get('.single-parameter-grid input[type="range"]')
+      .setValue("0.73");
+    await wrapper.get(".single-test-form").trigger("submit");
+    await flushPromises();
+    const singleRequest = postSpy.mock.calls.find(
+      ([path]) => path === "/v1/retrieval-tests/single",
+    );
+    expect(singleRequest?.[1]).toMatchObject({
+      config: {
+        top_k: 5,
+        threshold: 0.73,
+      },
+    });
+
+    await getButton(wrapper, "新建测试集").trigger("click");
+    await flushPromises();
+    getDocumentButton("添加问题").click();
+    await flushPromises();
+    const questionInputs = Array.from(
+      document.querySelectorAll<HTMLInputElement>(
+        'input[name="dataset-question"]',
+      ),
+    );
+    expect(questionInputs).toHaveLength(2);
+    expect(document.activeElement).toBe(questionInputs[0]);
+
     await wrapper.get(".retrieval-form").trigger("submit");
     await flushPromises();
     expect(wrapper.text()).toContain("真实测试记录");

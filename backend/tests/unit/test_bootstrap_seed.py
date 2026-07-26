@@ -94,6 +94,8 @@ async def test_builtin_roles_use_exact_permission_allowlists(monkeypatch) -> Non
     )
     assert "admin.export.cleanup" not in seed_module.DEFAULT_USER_PERMISSION_CODES
     assert "admin.export.cleanup" not in seed_module.KNOWLEDGE_EDITOR_PERMISSION_CODES
+    # 编辑者管理本部门文档全生命周期，实际范围仍由知识库访问校验限制。
+    assert "admin.document.delete" in seed_module.KNOWLEDGE_EDITOR_PERMISSION_CODES
     db.commit.assert_awaited_once()
 
 

@@ -99,6 +99,8 @@ describe("真实问答页工作流", () => {
     });
     await flushPromises();
 
+    expect(wrapper.get("h1").classes()).toContain("visually-hidden");
+    expect(wrapper.find(".conversation-header").exists()).toBe(false);
     expect(wrapper.get(".selected-knowledge-chip").text()).toContain(
       "医疗信息化系统",
     );
@@ -109,6 +111,7 @@ describe("真实问答页工作流", () => {
     await wrapper.get("form.ai-search-box").trigger("submit");
     await flushPromises();
 
+    expect(wrapper.find(".conversation-header").exists()).toBe(true);
     expect(serviceMocks.runAiSearch).toHaveBeenCalledWith(
       expect.objectContaining({ workspaceIds: ["kb-medical"] }),
       expect.any(AbortSignal),
