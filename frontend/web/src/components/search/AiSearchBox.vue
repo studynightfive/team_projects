@@ -58,6 +58,9 @@ const availableKnowledgeBases = computed(() => {
   return props.knowledgeBaseOptions.filter((item) => !selectedIds.has(item.id));
 });
 const querySafetyMessage = computed(() => getQuerySafetyMessage(props.query));
+const selectedScopeHasReadyDocument = computed(() =>
+  selectedKnowledgeBases.value.some((item) => item.readyDocumentCount > 0),
+);
 const normalizeKnowledgeBaseName = (name: string): string =>
   name.normalize("NFKC").trim().toLocaleLowerCase("zh-CN").replace(/\s+/gu, " ");
 const selectedScopeIsValid = computed(() => {
@@ -72,7 +75,10 @@ const selectedScopeIsValid = computed(() => {
   const names = selectedKnowledgeBases.value.map((item) =>
     normalizeKnowledgeBaseName(item.name),
   );
-  return new Set(names).size === names.length;
+  return (
+    new Set(names).size === names.length &&
+    selectedScopeHasReadyDocument.value
+  );
 });
 const canSubmit = computed(
   () =>
@@ -111,9 +117,11 @@ watch(
       validIds.push(id);
       if (validIds.length === 10) break;
     }
+    const defaultOption =
+      options.find((item) => item.readyDocumentCount > 0) ?? options[0];
     const nextIds =
-      validIds.length === 0 && options[0] !== undefined
-        ? [options[0].id]
+      validIds.length === 0 && defaultOption !== undefined
+        ? [defaultOption.id]
         : validIds;
     if (
       nextIds.length !== workspaceIds.length ||
@@ -174,7 +182,14 @@ const submit = (): void => {
     } else if (props.requiresWorkspace && props.workspaceIds.length === 0) {
       emit("notice", "请选择要检索的知识库");
     } else if (!selectedScopeIsValid.value) {
-      emit("notice", "知识库范围无效，请移除同名或失效的知识库");
+      emit(
+        "notice",
+        selectedKnowledgeBases.value.every(
+          (item) => item.readyDocumentCount === 0,
+        )
+          ? "所选知识库暂无已处理文档，请更换知识库后再检索"
+          : "知识库范围无效，请移除同名或失效的知识库",
+      );
     }
     return;
   }
@@ -247,6 +262,17 @@ defineExpose({
       role="alert"
     >
       {{ querySafetyMessage }}
+    </p>
+    <p
+      v-else-if="
+        requiresWorkspace &&
+          selectedKnowledgeBases.length > 0 &&
+          !selectedScopeHasReadyDocument
+      "
+      class="search-scope-warning"
+      role="status"
+    >
+      所选知识库暂无已处理文档，请更换知识库后再检索。
     </p>
 
     <div class="search-toolbar">
@@ -449,6 +475,12 @@ defineExpose({
 .search-input-error {
   margin: calc(var(--space-2) * -1) 0 0;
   color: var(--color-danger-text);
+  font-size: var(--font-size-13);
+}
+
+.search-scope-warning {
+  margin: calc(var(--space-2) * -1) 0 0;
+  color: var(--color-warning-text);
   font-size: var(--font-size-13);
 }
 

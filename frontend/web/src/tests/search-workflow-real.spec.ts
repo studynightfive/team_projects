@@ -36,6 +36,86 @@ describe("真实问答页工作流", () => {
     serviceMocks.runAiSearch.mockReset();
   });
 
+  it("默认跳过空个人知识库并检索第一份已有就绪文档的知识库", async () => {
+    serviceMocks.listKnowledgeBases.mockResolvedValue([
+      {
+        id: "kb-personal",
+        name: "我的个人知识库",
+        description: "暂无文档",
+        kind: "personal",
+        department_id: null,
+        department_name: null,
+        status: "active",
+        document_count: 0,
+        ready_document_count: 0,
+        chunk_count: 0,
+      },
+      {
+        id: "kb-medical",
+        name: "医疗信息化系统",
+        description: "演示资料",
+        kind: "department",
+        department_id: "department-1",
+        department_name: "医疗部",
+        status: "active",
+        document_count: 15,
+        ready_document_count: 15,
+        chunk_count: 120,
+      },
+    ]);
+    serviceMocks.listRealChatModelOptions.mockResolvedValue([
+      {
+        value: "chat-model-1",
+        label: "真实问答模型",
+        description: "测试",
+      },
+    ]);
+    serviceMocks.runAiSearch.mockResolvedValue({
+      request: {
+        query: "医疗信息化系统包含哪些模块？",
+        mode: "smart",
+        sources: ["knowledge"],
+        workspaceIds: ["kb-medical"],
+        modelId: "chat-model-1",
+      },
+      isMock: false,
+      status: "success",
+      answer: aiSearchMockData.answer,
+      results: aiSearchMockData.results,
+      sourceCount: aiSearchMockData.results.length,
+      notice: "",
+      elapsedLabel: "100ms",
+    });
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/", component: SearchView }],
+    });
+    await router.push("/");
+    await router.isReady();
+    const wrapper = mount(AntApp, {
+      attachTo: document.body,
+      slots: { default: () => h(SearchView) },
+      global: { plugins: [router] },
+    });
+    await flushPromises();
+
+    expect(wrapper.get(".selected-knowledge-chip").text()).toContain(
+      "医疗信息化系统",
+    );
+    expect(wrapper.text()).not.toContain("我的个人知识库");
+    await wrapper
+      .get("#ai-search-query")
+      .setValue("医疗信息化系统包含哪些模块？");
+    await wrapper.get("form.ai-search-box").trigger("submit");
+    await flushPromises();
+
+    expect(serviceMocks.runAiSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ workspaceIds: ["kb-medical"] }),
+      expect.any(AbortSignal),
+      expect.any(Object),
+    );
+  });
+
   it("空间提问等待真实选项加载后只搜索一次，并保持底部输入框", async () => {
     let resolveKnowledgeBases:
       | ((value: readonly Record<string, unknown>[]) => void)
@@ -73,10 +153,10 @@ describe("真实问答页工作流", () => {
 
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: [{ path: "/search", component: SearchView }],
+      routes: [{ path: "/", component: SearchView }],
     });
     await router.push({
-      path: "/search",
+      path: "/",
       state: {
         initialSearch: {
           q: "请总结医疗知识库",
@@ -163,10 +243,10 @@ describe("真实问答页工作流", () => {
     ]);
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: [{ path: "/search", component: SearchView }],
+      routes: [{ path: "/", component: SearchView }],
     });
     await router.push({
-      path: "/search",
+      path: "/",
       state: {
         searchSetup: {
           workspaceIds: ["kb-medical"],
@@ -240,9 +320,9 @@ describe("真实问答页工作流", () => {
     );
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: [{ path: "/search", component: SearchView }],
+      routes: [{ path: "/", component: SearchView }],
     });
-    await router.push("/search");
+    await router.push("/");
     await router.isReady();
     const wrapper = mount(AntApp, {
       attachTo: document.body,

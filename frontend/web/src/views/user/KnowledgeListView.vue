@@ -116,7 +116,7 @@ onBeforeUnmount(() => {
       "
     >
       <template #actions>
-        <RouterLink class="primary-button" to="/search">
+        <RouterLink class="primary-button" to="/">
           <Search :size="17" aria-hidden="true" />
           开始检索
         </RouterLink>

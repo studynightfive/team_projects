@@ -46,7 +46,7 @@ const businessRoutes: readonly BusinessRouteCase[] = [
   {
     name: "search",
     path: "/search",
-    title: "AI 搜索对话",
+    title: "AI 搜索",
     shell: "user",
     activeNavigation: "AI 搜索",
   },
@@ -239,7 +239,6 @@ describe("M02-M14 本地业务路由", () => {
   });
 
   it.each([
-    { path: "/search", moduleName: "AI 搜索" },
     {
       path: "/knowledge/product-handbook",
       moduleName: "企业知识库",
@@ -413,16 +412,14 @@ describe("M03-M07 用户页面本地交互", () => {
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
-  it("AI 搜索保留查询参数、切换结果视图且空问题不会访问业务 API", async () => {
+  it("AI 搜索同页提交、兼容旧查询参数且空问题不会访问业务 API", async () => {
     const requestSpy = vi.spyOn(apiClient, "request");
     const home = await renderAppAt("/");
-    await home.wrapper.get("#global-search-input").setValue("回滚");
-    await home.wrapper
-      .get("#global-search-input")
-      .trigger("keydown", { key: "Enter" });
+    await home.wrapper.get("#ai-search-query").setValue("回滚");
+    await home.wrapper.get("form.ai-search-box").trigger("submit");
     await flushPromises();
-    expect(home.router.currentRoute.value.path).toBe("/search");
-    expect(home.router.currentRoute.value.query.q).toBe("回滚");
+    expect(home.router.currentRoute.value.path).toBe("/");
+    expect(home.router.currentRoute.value.query.q).toBeUndefined();
     expect(
       (home.wrapper.get("#ai-search-query").element as HTMLTextAreaElement)
         .value,
@@ -441,7 +438,6 @@ describe("M03-M07 用户页面本地交互", () => {
     await flushPromises();
     await vi.waitFor(() => {
       expect(wrapper.find(".result-tabs").exists()).toBe(true);
-      expect(wrapper.text()).toContain("本地模拟，无真实耗时");
     });
 
     await getButton(wrapper, "原始结果").trigger("click");

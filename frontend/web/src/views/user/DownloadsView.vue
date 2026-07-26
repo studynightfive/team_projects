@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { App as AntApp } from "ant-design-vue";
+import {
+  App as AntApp,
+  Modal as AntModal,
+  Segmented,
+} from "ant-design-vue";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import InlineState from "../../components/InlineState.vue";
@@ -38,13 +42,12 @@ const realTotal = ref(0);
 const loadState = ref<"idle" | "loading" | "error">("idle");
 const loadError = ref("");
 const busyTaskId = ref<string>();
-const answerDownloadFormats = ref<Record<string, DownloadableAnswerFormat>>({});
 
 let loadController: AbortController | undefined;
 let pollTimer: ReturnType<typeof setTimeout> | undefined;
 let disposed = false;
 const activeExportStatuses = new Set<ExportStatus>(["pending", "running"]);
-const answerFormatChoices: readonly {
+const answerFormatChoices: {
   readonly value: DownloadableAnswerFormat;
   readonly label: string;
 }[] = [
@@ -67,6 +70,10 @@ interface DownloadRow {
   readonly errorMessage?: string | null;
   readonly sourceType?: "document" | "answer";
 }
+
+const selectedAnswerDownload = ref<DownloadRow>();
+const selectedAnswerFormat = ref<DownloadableAnswerFormat>("markdown");
+const isAnswerDownloadDialogOpen = ref(false);
 
 const statusLabels = {
   pending: "等待中",
@@ -184,18 +191,6 @@ const loadRealDownloads = async (silent = false): Promise<void> => {
     if (disposed || loadController !== currentController) return;
     realDownloads.value = page.items;
     realTotal.value = page.total;
-    for (const item of page.items) {
-      if (
-        item.source_type === "answer" &&
-        answerDownloadFormats.value[item.id] === undefined
-      ) {
-        answerDownloadFormats.value[item.id] = ["markdown", "docx", "pdf"].includes(
-          item.format,
-        )
-          ? (item.format as DownloadableAnswerFormat)
-          : "markdown";
-      }
-    }
     loadState.value = "idle";
   } catch (error: unknown) {
     if (disposed || loadController !== currentController) return;
@@ -233,7 +228,10 @@ const downloadFormatOptions = {
   }
 >;
 
-const requestDownload = async (item: DownloadRow): Promise<void> => {
+const requestDownload = async (
+  item: DownloadRow,
+  answerFormat?: DownloadableAnswerFormat,
+): Promise<void> => {
   if (!isRealApiMode) {
     void message.info(`${item.name} 等待鉴权下载接口，当前不会构造文件地址`);
     return;
@@ -245,9 +243,7 @@ const requestDownload = async (item: DownloadRow): Promise<void> => {
   }
 
   const answerTargetFormat =
-    item.sourceType === "answer"
-      ? (answerDownloadFormats.value[item.id] ?? "markdown")
-      : undefined;
+    item.sourceType === "answer" ? (answerFormat ?? "markdown") : undefined;
   const targetFormat = answerTargetFormat ?? item.rawFormat;
   const shouldConvert =
     item.sourceType === "answer" &&
@@ -283,12 +279,36 @@ const requestDownload = async (item: DownloadRow): Promise<void> => {
         : await downloadExportBlob(item.downloadUrl);
     await destination.save(result.blob, result.filename);
     void message.success("文件已通过鉴权接口保存。");
+    if (item.sourceType === "answer") {
+      isAnswerDownloadDialogOpen.value = false;
+      selectedAnswerDownload.value = undefined;
+    }
     if (shouldConvert) await loadRealDownloads(true);
   } catch (error: unknown) {
     void message.error(toPublicApiError(error).message);
   } finally {
     busyTaskId.value = undefined;
   }
+};
+
+const openDownload = (item: DownloadRow): void => {
+  if (item.sourceType !== "answer") {
+    void requestDownload(item);
+    return;
+  }
+  selectedAnswerDownload.value = item;
+  selectedAnswerFormat.value = ["markdown", "docx", "pdf"].includes(
+    item.rawFormat ?? "",
+  )
+    ? (item.rawFormat as DownloadableAnswerFormat)
+    : "markdown";
+  isAnswerDownloadDialogOpen.value = true;
+};
+
+const confirmAnswerDownload = (): void => {
+  const item = selectedAnswerDownload.value;
+  if (item === undefined) return;
+  void requestDownload(item, selectedAnswerFormat.value);
 };
 
 const recreateExport = async (item: DownloadRow): Promise<void> => {
@@ -448,27 +468,7 @@ onBeforeUnmount(() => {
           <tbody>
             <tr v-for="item in pagedDownloads" :key="item.id">
               <td class="download-name">{{ item.name }}</td>
-              <td>
-                <label
-                  v-if="item.sourceType === 'answer' && item.status === '已完成'"
-                  class="answer-format-select"
-                >
-                  <span class="visually-hidden">下载 {{ item.name }} 的格式</span>
-                  <select
-                    v-model="answerDownloadFormats[item.id]"
-                    :aria-label="`下载 ${item.name} 的格式`"
-                  >
-                    <option
-                      v-for="format in answerFormatChoices"
-                      :key="format.value"
-                      :value="format.value"
-                    >
-                      {{ format.label }}
-                    </option>
-                  </select>
-                </label>
-                <span v-else>{{ item.format }}</span>
-              </td>
+              <td>{{ item.format }}</td>
               <td>
                 <span class="status-chip" :class="statusTone(item.status)">
                   {{ item.status }}
@@ -495,7 +495,7 @@ onBeforeUnmount(() => {
                     class="table-action"
                     type="button"
                     :disabled="busyTaskId === item.id"
-                    @click="requestDownload(item)"
+                    @click="openDownload(item)"
                   >
                     <Download :size="15" aria-hidden="true" />
                     下载
@@ -562,6 +562,35 @@ onBeforeUnmount(() => {
         <span>已加载全部记录</span>
       </template>
     </ResourcePanel>
+
+    <AntModal
+      v-model:open="isAnswerDownloadDialogOpen"
+      title="选择答案下载格式"
+      :ok-text="`下载 ${
+        answerFormatChoices.find(
+          (item) => item.value === selectedAnswerFormat,
+        )?.label ?? '文件'
+      }`"
+      cancel-text="取消"
+      :confirm-loading="selectedAnswerDownload?.id === busyTaskId"
+      :closable="selectedAnswerDownload?.id !== busyTaskId"
+      :mask-closable="selectedAnswerDownload?.id !== busyTaskId"
+      :cancel-button-props="{
+        disabled: selectedAnswerDownload?.id === busyTaskId,
+      }"
+      centered
+      @ok="confirmAnswerDownload"
+    >
+      <div class="answer-download-form">
+        <p>选择格式后再指定保存位置，下载内容仅包含问题、答案和引用摘要。</p>
+        <Segmented
+          v-model:value="selectedAnswerFormat"
+          :options="answerFormatChoices"
+          :disabled="selectedAnswerDownload?.id === busyTaskId"
+          block
+        />
+      </div>
+    </AntModal>
   </div>
 </template>
 
@@ -583,9 +612,15 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.answer-format-select select {
-  min-width: 112px;
-  min-height: 36px;
+.answer-download-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.answer-download-form p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.65;
 }
 
 .progress-cell {

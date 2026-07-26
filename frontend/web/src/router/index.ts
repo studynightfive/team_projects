@@ -15,7 +15,6 @@ import AdminHomeView from "../views/AdminHomeView.vue";
 import ForbiddenView from "../views/ForbiddenView.vue";
 import LoginView from "../views/LoginView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
-import UserHomeView from "../views/UserHomeView.vue";
 
 const publicRouteNames = new Set(["login", "forbidden", "not-found"]);
 
@@ -29,8 +28,8 @@ export const createAppRouter = (history: RouterHistory): Router => {
         children: [
           {
             path: "",
-            name: "user-home",
-            component: UserHomeView,
+            name: "search",
+            component: () => import("../views/user/SearchView.vue"),
             meta: { title: "AI 搜索", parentTitle: "企业知识中心" },
           },
           {
@@ -72,9 +71,12 @@ export const createAppRouter = (history: RouterHistory): Router => {
           },
           {
             path: "search",
-            name: "search",
-            component: () => import("../views/user/SearchView.vue"),
-            meta: { title: "AI 搜索对话", parentTitle: "AI 搜索" },
+            name: "legacy-search",
+            redirect: (to) => ({
+              path: "/",
+              query: to.query,
+              hash: to.hash,
+            }),
           },
           {
             path: "spaces",

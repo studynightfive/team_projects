@@ -16,15 +16,12 @@ import AiAnswerPanel from "../../components/search/AiAnswerPanel.vue";
 import AiSearchBox from "../../components/search/AiSearchBox.vue";
 import DocumentPreviewDrawer from "../../components/search/DocumentPreviewDrawer.vue";
 import RagProcessingTimeline from "../../components/search/RagProcessingTimeline.vue";
-import SearchContextPanel from "../../components/search/SearchContextPanel.vue";
-import SearchStatusBadge from "../../components/search/SearchStatusBadge.vue";
 import SourceResultsPanel from "../../components/search/SourceResultsPanel.vue";
 import {
   Bookmark,
   Copy,
   Download,
   MessageSquarePlus,
-  PanelRightOpen,
   SlidersHorizontal,
   Square,
 } from "../../components/icons";
@@ -70,7 +67,7 @@ const router = useRouter();
 
 const defaultSources: readonly SearchSourceType[] = ["knowledge"];
 
-const defaultQuery = isRealApiMode ? "" : aiSearchMockData.answer.query;
+const defaultQuery = "";
 
 const query = ref<string>(defaultQuery);
 const currentQuestion = ref("");
@@ -86,13 +83,11 @@ const response = ref<AiSearchResponse>();
 const processingStages = ref<readonly RagProcessingStage[]>([]);
 const errorMessage = ref("");
 const activeTab = ref<"answer" | "results">("answer");
-const isContextOpen = ref(false);
 const previewDocument = ref<CitationSource | SearchResultItem>();
 const isPreviewOpen = ref(false);
 const previewTrigger = ref<HTMLElement>();
 const answerFavorite = ref(false);
 const answerFavoriteId = ref<string>();
-const contextTrigger = ref<HTMLElement>();
 const answerTabRef = ref<HTMLButtonElement>();
 const resultsTabRef = ref<HTMLButtonElement>();
 const isExportDialogOpen = ref(false);
@@ -154,14 +149,8 @@ const answerExportOptions: Array<{
 ];
 
 let searchController: AbortController | undefined;
-let desktopContextQuery: MediaQueryList | undefined;
 let skipNextRouteSync = false;
 
-const modelLabel = computed(
-  () =>
-    modelOptions.value.find((option) => option.value === modelId.value)
-      ?.label ?? "企业通用模型",
-);
 const selectedKnowledgeBaseLabel = computed(() => {
   const names = workspaceIds.value
     .map(
@@ -174,11 +163,6 @@ const selectedKnowledgeBaseLabel = computed(() => {
   if (names.length <= 2) return names.join("、");
   return `${names.slice(0, 2).join("、")}等 ${names.length} 个知识库`;
 });
-const selectedKnowledgeBases = computed(() =>
-  workspaceIds.value
-    .map((id) => knowledgeBaseOptions.value.find((item) => item.id === id))
-    .filter((item): item is KnowledgeBaseOption => item !== undefined),
-);
 const apiModeLabel = computed(() =>
   isRealApiMode || response.value?.isMock === false ? "真实接口" : "模拟数据",
 );
@@ -311,7 +295,7 @@ const syncConversationRoute = (conversationId: string): void => {
   if (route.query.conversation === conversationId) return;
   skipNextRouteSync = true;
   void router.replace({
-    path: "/search",
+    path: "/",
     query: { conversation: conversationId },
   });
 };
@@ -426,37 +410,15 @@ const cancelSearch = (): void => {
 };
 
 const submitSearch = (request: SearchRequest): void => {
-  if (isRealApiMode) {
-    if (!searchOptionsReady.value) {
-      void message.info("知识库和模型仍在加载，请稍候再试");
-      return;
-    }
-    mode.value = "smart";
-    sources.value = [...request.sources];
-    workspaceIds.value = [...(request.workspaceIds ?? [])];
-    modelId.value = request.modelId ?? modelId.value ?? "enterprise-general";
-    void executeSearch(request.query);
+  if (isRealApiMode && !searchOptionsReady.value) {
+    void message.info("知识库和模型仍在加载，请稍候再试");
     return;
   }
-
-  const nextQuery = {
-    q: request.query,
-    sources: request.sources.join(","),
-    model: request.modelId,
-  };
-  const unchanged =
-    route.query.q === nextQuery.q &&
-    route.query.sources === nextQuery.sources &&
-    route.query.model === nextQuery.model;
-
-  if (unchanged) {
-    void executeSearch(request.query);
-  } else {
-    void router.push({
-      path: "/search",
-      query: nextQuery,
-    });
-  }
+  mode.value = "smart";
+  sources.value = [...request.sources];
+  workspaceIds.value = [...(request.workspaceIds ?? [])];
+  modelId.value = request.modelId ?? modelId.value ?? "enterprise-general";
+  void executeSearch(request.query);
 };
 
 const openPreview = (
@@ -763,7 +725,7 @@ const startNewConversation = (): void => {
   answerFavorite.value = false;
   answerFavoriteId.value = undefined;
   skipNextRouteSync = true;
-  void router.replace({ path: "/search" });
+  void router.replace({ path: "/" });
 };
 
 const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
@@ -806,11 +768,14 @@ const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
     workspaceIds.value = workspaceIds.value.filter((id) =>
       knowledgeBaseOptions.value.some((item) => item.id === id),
     );
-    if (
-      workspaceIds.value.length === 0 &&
-      knowledgeBaseOptions.value[0] !== undefined
-    )
-      workspaceIds.value = [knowledgeBaseOptions.value[0].id];
+    if (workspaceIds.value.length === 0) {
+      const defaultKnowledgeBase =
+        knowledgeBaseOptions.value.find((item) => item.readyDocumentCount > 0) ??
+        knowledgeBaseOptions.value[0];
+      if (defaultKnowledgeBase !== undefined) {
+        workspaceIds.value = [defaultKnowledgeBase.id];
+      }
+    }
   } else {
     knowledgeBaseOptions.value = [];
     workspaceIds.value = [];
@@ -882,11 +847,6 @@ const showLocalNotice = (notice: string): void => {
   void message.info(notice);
 };
 
-const openContext = (trigger: HTMLElement): void => {
-  contextTrigger.value = trigger;
-  isContextOpen.value = true;
-};
-
 const selectResultTab = (tab: "answer" | "results", focus = false): void => {
   activeTab.value = tab;
   if (focus) {
@@ -903,12 +863,6 @@ const handleResultTabKeydown = (event: KeyboardEvent): void => {
     event.preventDefault();
     selectResultTab("results", true);
   }
-};
-
-const syncDesktopContext = (
-  event: MediaQueryListEvent | MediaQueryList,
-): void => {
-  isContextOpen.value = event.matches;
 };
 
 watch(
@@ -968,10 +922,6 @@ onMounted(() => {
     passive: true,
   });
   window.addEventListener("keydown", syncAnswerFollowFromKeyboard);
-  if (typeof window.matchMedia !== "function") return;
-  desktopContextQuery = window.matchMedia("(min-width: 1440px)");
-  syncDesktopContext(desktopContextQuery);
-  desktopContextQuery.addEventListener("change", syncDesktopContext);
 });
 
 onBeforeUnmount(() => {
@@ -979,25 +929,17 @@ onBeforeUnmount(() => {
   conversationController?.abort();
   window.removeEventListener("wheel", syncAnswerFollowFromWheel);
   window.removeEventListener("keydown", syncAnswerFollowFromKeyboard);
-  desktopContextQuery?.removeEventListener("change", syncDesktopContext);
 });
 </script>
 
 <template>
   <div class="business-page ai-search-results-page">
-    <header class="search-result-header">
+    <header class="conversation-header">
       <div class="search-result-title">
-        <span>企业 AI 搜索工作台</span>
-        <h1>AI 搜索对话</h1>
-        <p>
-          {{
-            currentQuestion ||
-              "选择知识库后开始提问，后续问题会结合当前对话上下文。"
-          }}
-        </p>
+        <h1>AI 搜索</h1>
+        <p>{{ selectedKnowledgeBaseLabel }}</p>
       </div>
       <div class="search-result-actions">
-        <span class="mock-result-badge">{{ apiModeLabel }}</span>
         <button
           v-if="status === 'searching'"
           class="secondary-button compact"
@@ -1017,57 +959,43 @@ onBeforeUnmount(() => {
           新建对话
         </button>
         <button
-          class="secondary-button compact"
+          v-if="response !== undefined"
+          class="icon-button conversation-action-icon"
           type="button"
-          :disabled="response === undefined || status === 'searching'"
+          :disabled="status === 'searching'"
+          aria-label="复制当前答案"
+          title="复制答案"
           @click="copyAnswer"
         >
           <Copy :size="16" aria-hidden="true" />
-          复制答案
         </button>
         <button
-          class="secondary-button compact"
+          v-if="response !== undefined"
+          class="icon-button conversation-action-icon"
           type="button"
-          :disabled="
-            response === undefined || status === 'searching' || isExporting
-          "
+          :disabled="status === 'searching' || isExporting"
+          aria-label="下载当前答案"
+          title="下载答案"
           @click="openAnswerExport"
         >
           <Download :size="16" aria-hidden="true" />
-          下载答案
         </button>
         <button
-          class="secondary-button compact"
+          v-if="response !== undefined"
+          class="icon-button conversation-action-icon"
           type="button"
           :aria-pressed="answerFavorite"
-          :disabled="response === undefined || status === 'searching'"
+          :disabled="status === 'searching'"
+          :aria-label="answerFavorite ? '取消收藏当前答案' : '收藏当前答案'"
+          :title="answerFavorite ? '取消收藏' : '收藏答案'"
           @click="toggleAnswerFavorite"
         >
           <Bookmark :size="16" aria-hidden="true" />
-          {{ answerFavorite ? "已收藏" : "收藏结果" }}
         </button>
       </div>
     </header>
 
-    <div class="search-query-meta" aria-label="查询摘要">
-      <SearchStatusBadge :status="status" />
-      <span>{{ selectedKnowledgeBaseLabel }}</span>
-      <span>{{ response?.sourceCount ?? 0 }} 个知识来源</span>
-      <span>{{ response?.elapsedLabel ?? "等待检索" }}</span>
-      <button
-        v-if="!isContextOpen"
-        type="button"
-        @click="openContext($event.currentTarget as HTMLElement)"
-      >
-        <PanelRightOpen :size="16" aria-hidden="true" />
-        搜索上下文
-      </button>
-    </div>
-
-    <div
-      class="search-result-layout"
-      :class="{ 'context-open': isContextOpen }"
-    >
+    <div class="search-result-layout">
       <main class="search-result-main" aria-live="polite">
         <section
           v-for="turn in previousTurns"
@@ -1224,18 +1152,6 @@ onBeforeUnmount(() => {
           </div>
         </template>
       </main>
-
-      <SearchContextPanel
-        :open="isContextOpen"
-        :query="currentQuestion"
-        :selected-knowledge-bases="selectedKnowledgeBases"
-        :knowledge-base-options="knowledgeBaseOptions"
-        :model-label="modelLabel"
-        :citations="response?.answer.citations ?? []"
-        :return-focus-to="contextTrigger"
-        @close="isContextOpen = false"
-        @preview="openPreview"
-      />
     </div>
 
     <div ref="conversationEndRef" class="conversation-end-anchor" />
@@ -1310,20 +1226,24 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .ai-search-results-page {
+  display: grid;
+  width: 100%;
+  min-height: calc(100vh - 176px);
+  grid-template-rows: auto minmax(320px, 1fr) auto auto;
   gap: var(--space-5);
 }
 
-.search-result-header,
+.conversation-header,
 .search-result-actions,
-.search-query-meta,
-.search-query-meta button,
 .partial-result-notice,
 .result-tabs {
   display: flex;
   align-items: center;
 }
 
-.search-result-header {
+.conversation-header {
+  width: min(100%, 960px);
+  margin: 0 auto;
   justify-content: space-between;
   gap: var(--space-5);
 }
@@ -1332,16 +1252,10 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-.search-result-title > span {
-  color: var(--color-primary);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-}
-
 .search-result-title h1 {
-  margin: var(--space-1) 0 var(--space-2);
+  margin: 0 0 var(--space-1);
   color: var(--color-text);
-  font-size: var(--font-size-24);
+  font-size: var(--font-size-20);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -1361,38 +1275,9 @@ onBeforeUnmount(() => {
   gap: var(--space-2);
 }
 
-.mock-result-badge {
-  min-height: 28px;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-4);
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-medium);
-}
-
-.search-query-meta {
-  min-height: 36px;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-12);
-}
-
-.search-query-meta > span:not(:first-child) {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-4);
-  background: var(--color-surface);
-}
-
-.search-query-meta button {
-  min-height: 30px;
-  gap: var(--space-1);
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-8);
-  color: var(--color-primary);
-  background: transparent;
+.conversation-action-icon {
+  width: 36px;
+  height: 36px;
 }
 
 .search-result-layout,
@@ -1400,19 +1285,26 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
+.search-result-layout {
+  width: min(100%, 960px);
+  margin: 0 auto;
+}
+
 .search-result-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
+  align-content: start;
+  gap: var(--space-6);
 }
 
 .conversation-user-turn {
-  width: min(760px, 92%);
+  width: fit-content;
+  max-width: min(720px, 86%);
   margin-left: auto;
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--blue-100);
   border-radius: var(--radius-8);
-  background: var(--blue-50);
+  color: var(--white);
+  background: var(--slate-800);
 }
 
 .completed-conversation-turn {
@@ -1423,14 +1315,14 @@ onBeforeUnmount(() => {
 }
 
 .conversation-user-turn span {
-  color: var(--color-primary);
+  color: var(--slate-300);
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
 }
 
 .conversation-user-turn p {
   margin: var(--space-1) 0 0;
-  color: var(--color-text);
+  color: var(--white);
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
@@ -1443,8 +1335,17 @@ onBeforeUnmount(() => {
   position: sticky;
   bottom: var(--space-3);
   z-index: 8;
+  width: min(100%, 960px);
+  margin: 0 auto;
   padding: var(--space-2) 0;
-  background: var(--color-background);
+  background: var(--color-canvas);
+}
+
+.search-result-main :deep(.ai-answer-panel) {
+  padding: var(--space-2) 0 var(--space-5);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .search-progress-state,
@@ -1452,10 +1353,7 @@ onBeforeUnmount(() => {
 .search-empty-state {
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-6);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-12);
-  background: var(--color-surface);
+  padding: var(--space-10) 0;
   justify-items: start;
 }
 
@@ -1561,16 +1459,8 @@ onBeforeUnmount(() => {
   color: var(--color-text-muted);
 }
 
-@media (min-width: 1440px) {
-  .search-result-layout.context-open {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: var(--space-5);
-  }
-}
-
 @media (max-width: 1180px) {
-  .search-result-header {
+  .conversation-header {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -1600,21 +1490,19 @@ onBeforeUnmount(() => {
   }
 
   .search-result-actions {
-    display: grid;
+    display: flex;
     width: 100%;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-wrap: wrap;
   }
 
   .search-result-actions > * {
-    width: 100%;
     min-height: 44px;
     min-width: 0;
     white-space: normal;
   }
 
-  .mock-result-badge {
-    display: grid;
-    place-items: center;
+  .conversation-action-icon {
+    width: 44px;
   }
 
   .result-tabs,
@@ -1625,10 +1513,6 @@ onBeforeUnmount(() => {
   .result-tabs button {
     min-height: 44px;
     justify-content: center;
-  }
-
-  .search-query-meta button {
-    min-height: 44px;
   }
 
   .answer-export-summary > div {

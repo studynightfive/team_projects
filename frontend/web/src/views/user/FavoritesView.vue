@@ -152,7 +152,7 @@ const loadHistory = async (): Promise<void> => {
 const continueConversation = (): void => {
   if (selectedConversationId.value === "") return;
   void router.push({
-    path: "/search",
+    path: "/",
     query: { conversation: selectedConversationId.value },
   });
 };

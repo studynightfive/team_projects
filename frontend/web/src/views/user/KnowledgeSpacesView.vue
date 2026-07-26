@@ -103,7 +103,7 @@ const {
 const askSpace = (space: DisplaySpace): void => {
   if (isRealApiMode) {
     void router.push({
-      path: "/search",
+      path: "/",
       state: {
         searchSetup: {
           sources: "knowledge",
@@ -114,7 +114,7 @@ const askSpace = (space: DisplaySpace): void => {
     return;
   }
   void router.push({
-    path: "/search",
+    path: "/",
     query: {
       sources: "knowledge",
       model: "enterprise-general",

@@ -78,19 +78,28 @@ describe("我的下载问答格式", () => {
     const wrapper = mount(Harness, { attachTo: document.body });
     await flushPromises();
 
-    const formatSelect = wrapper.get<HTMLSelectElement>(
-      'select[aria-label^="下载 RAG-answer.md 的格式"]',
-    );
-    expect(
-      formatSelect.findAll("option").map((option) => option.text()),
-    ).toEqual(["Markdown", "Word", "PDF"]);
-
-    await formatSelect.setValue("docx");
     const downloadButton = wrapper
       .findAll("button")
       .find((button) => button.text().trim() === "下载");
     if (downloadButton === undefined) throw new Error("缺少下载按钮");
     await downloadButton.trigger("click");
+    await flushPromises();
+
+    const labels = Array.from(
+      document.querySelectorAll(".ant-segmented-item-label"),
+    ).map((item) => item.textContent?.trim());
+    expect(labels).toEqual(["Markdown", "Word", "PDF"]);
+    const wordLabel = Array.from(
+      document.querySelectorAll<HTMLElement>(".ant-segmented-item-label"),
+    ).find((item) => item.textContent?.trim() === "Word");
+    if (wordLabel === undefined) throw new Error("缺少 Word 格式选项");
+    wordLabel.click();
+    await flushPromises();
+    const confirmButton = Array.from(document.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "下载 Word",
+    );
+    if (confirmButton === undefined) throw new Error("缺少下载 Word 按钮");
+    confirmButton.click();
     await flushPromises();
 
     expect(serviceMocks.convertAnswerExport).toHaveBeenCalledWith(
