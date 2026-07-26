@@ -10,7 +10,6 @@ import asyncio
 import time
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-from typing import cast
 
 import structlog
 from fastapi import APIRouter, Depends, Request
@@ -91,9 +90,12 @@ async def _retrieve_context(
     # 二次权限过滤（即使 search 内已过滤）
     hits_dicts: list[dict[str, object]] = [h.model_dump() for h in search_resp.hits]
     accessible = await get_user_accessible_kb_ids(db, user)
-    safe = post_filter_hits(hits=hits_dicts, accessible_kb_ids=accessible)
-    # 运行镜像中权限模块为 Cython 扩展，显式收窄其边界返回类型。
-    return cast(list[dict[str, object]], safe)
+    # 显式标注可同时兼容源码类型检查与运行镜像中的 Cython 扩展边界。
+    safe: list[dict[str, object]] = post_filter_hits(
+        hits=hits_dicts,
+        accessible_kb_ids=accessible,
+    )
+    return safe
 
 
 def _build_prompt(
