@@ -546,6 +546,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/knowledge-bases/{kb_id}/documents/name-conflicts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check Document Name Conflicts */
+        post: operations["check_document_name_conflicts_api_v1_knowledge_bases__kb_id__documents_name_conflicts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{document_id}": {
         parameters: {
             query?: never;
@@ -1365,6 +1382,25 @@ export interface components {
              */
             message: string;
             data?: components["schemas"]["DocumentDetail"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
+        /** APIResponse[DocumentNameConflictResponse] */
+        APIResponse_DocumentNameConflictResponse_: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            data?: components["schemas"]["DocumentNameConflictResponse"] | null;
             /**
              * Request Id
              * @default
@@ -2289,6 +2325,32 @@ export interface components {
             /** Document Ids */
             document_ids: string[];
         };
+        /** DocumentNameConflictItem */
+        DocumentNameConflictItem: {
+            /** Filename */
+            filename: string;
+            /** Document Name */
+            document_name: string;
+            /**
+             * Conflict Type
+             * @enum {string}
+             */
+            conflict_type: "existing" | "batch";
+            /** Existing Document Id */
+            existing_document_id?: string | null;
+            /** Existing Document Title */
+            existing_document_title?: string | null;
+        };
+        /** DocumentNameConflictRequest */
+        DocumentNameConflictRequest: {
+            /** Filenames */
+            filenames: string[];
+        };
+        /** DocumentNameConflictResponse */
+        DocumentNameConflictResponse: {
+            /** Conflicts */
+            conflicts: components["schemas"]["DocumentNameConflictItem"][];
+        };
         /** DocumentSummary */
         DocumentSummary: {
             /** Id */
@@ -2796,6 +2858,8 @@ export interface components {
             mode: "keyword" | "vector" | "hybrid";
             /** Kb Id */
             kb_id?: string | null;
+            /** Kb Ids */
+            kb_ids?: string[] | null;
             /**
              * Top K
              * @default 10
@@ -3023,6 +3087,8 @@ export interface components {
             mode: "keyword" | "vector" | "hybrid";
             /** Kb Id */
             kb_id?: string | null;
+            /** Kb Ids */
+            kb_ids?: string[] | null;
             /**
              * Top K
              * @default 10
@@ -4730,6 +4796,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["APIResponse_PaginatedData_RecycleBinItem__"];
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    check_document_name_conflicts_api_v1_knowledge_bases__kb_id__documents_name_conflicts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kb_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentNameConflictRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_DocumentNameConflictResponse_"];
                 };
             };
             /** @description 未登录、Token 无效或已过期 */

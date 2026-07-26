@@ -13,11 +13,21 @@ export type KnowledgeBaseRecord = Readonly<
 
 export type DocumentRecord = Readonly<Required<ApiSchema<"DocumentSummary">>>;
 export type ChunkStrategy = "fixed" | "semantic" | "recursive" | "format";
+export type DocumentDuplicatePolicy = "new_version" | "replace" | "rename";
 
 export type DocumentUploadOptions = Readonly<{
   chunkStrategy: ChunkStrategy;
   chunkSize: number;
   chunkOverlap: number;
+  duplicatePolicy?: DocumentDuplicatePolicy;
+}>;
+
+export type DocumentNameConflict = Readonly<{
+  filename: string;
+  document_name: string;
+  conflict_type: "existing" | "batch";
+  existing_document_id: string | null;
+  existing_document_title: string | null;
 }>;
 
 export type DocumentDetailRecord = Readonly<
@@ -25,20 +35,14 @@ export type DocumentDetailRecord = Readonly<
 >;
 
 export type MarkdownContent = Readonly<Required<ApiSchema<"MarkdownContent">>>;
-export type DocumentChunkRecord = Readonly<
-  Required<ApiSchema<"ChunkItem">>
->;
-export type DocumentTaskRecord = Readonly<
-  Required<ApiSchema<"TaskResponse">>
->;
+export type DocumentChunkRecord = Readonly<Required<ApiSchema<"ChunkItem">>>;
+export type DocumentTaskRecord = Readonly<Required<ApiSchema<"TaskResponse">>>;
 export type DocumentBatchTaskItem = Readonly<
   Omit<Required<ApiSchema<"BatchTaskItem">>, "task"> & {
     readonly task: DocumentTaskRecord;
   }
 >;
-export type RecycleBinRecord = Readonly<
-  Required<ApiSchema<"RecycleBinItem">>
->;
+export type RecycleBinRecord = Readonly<Required<ApiSchema<"RecycleBinItem">>>;
 
 export type UploadResult = Readonly<
   Omit<Required<ApiSchema<"UploadResultItem">>, "document"> & {
@@ -202,7 +206,8 @@ export const uploadDocuments = async (
   for (const file of files) {
     form.append("files", file);
   }
-  form.append("duplicate_policy", "new_version");
+  // 未经用户确认时绝不静默覆盖或改名；并发同名由后端返回 409 后重新确认。
+  form.append("duplicate_policy", options.duplicatePolicy ?? "new_version");
   form.append("ocr_enabled", "true");
   form.append("language", "chi_sim+eng");
   form.append("chunk_strategy", options.chunkStrategy);
@@ -214,6 +219,20 @@ export const uploadDocuments = async (
     form,
   );
   return unwrapApiData(response.data).items;
+};
+
+export const checkDocumentNameConflicts = async (
+  kbId: string,
+  files: readonly File[],
+): Promise<readonly DocumentNameConflict[]> => {
+  const response = await apiClient.post<
+    ApiResponse<
+      Readonly<{ readonly conflicts: readonly DocumentNameConflict[] }>
+    >
+  >(`/v1/knowledge-bases/${kbId}/documents/name-conflicts`, {
+    filenames: files.map((file) => file.name),
+  });
+  return unwrapApiData(response.data).conflicts;
 };
 
 export const reprocessDocument = async (documentId: string): Promise<void> => {
@@ -248,6 +267,42 @@ export const getDocumentTask = async (
   );
   return unwrapApiData(response.data);
 };
+
+export const getUploadTaskItems = async (
+  items: readonly UploadResult[],
+): Promise<readonly DocumentBatchTaskItem[]> =>
+  Promise.all(
+    items
+      .filter((item) => !item.skipped)
+      .map(async (item) => {
+        try {
+          return {
+            document_id: item.document.id,
+            document_title: item.document.title,
+            task: await getDocumentTask(item.task_id),
+          };
+        } catch {
+          // 上传已由后端确认成功，任务详情的瞬时失败不能把整批上传误报为失败。
+          return {
+            document_id: item.document.id,
+            document_title: item.document.title,
+            task: {
+              task_id: item.task_id,
+              task_type: "document_convert",
+              status: "queued",
+              stage: item.document.status,
+              progress: 5,
+              retry_count: 0,
+              error_code: null,
+              error_message: null,
+              request_id: "",
+              created_at: item.document.created_at,
+              finished_at: null,
+            },
+          };
+        }
+      }),
+  );
 
 export const batchDeleteDocuments = async (
   documentIds: readonly string[],

@@ -63,7 +63,7 @@ const defaultQuery = isRealApiMode ? "" : aiSearchMockData.answer.query;
 const query = ref<string>(defaultQuery);
 const mode = ref<SearchMode>("smart");
 const sources = ref<SearchSourceType[]>([...defaultSources]);
-const workspaceId = ref<string>();
+const workspaceIds = ref<string[]>([]);
 const modelId = ref("enterprise-general");
 const modelOptions = ref<readonly ModelOption[]>(aiSearchMockData.modelOptions);
 const knowledgeBaseOptions = ref<readonly KnowledgeBaseOption[]>([]);
@@ -135,15 +135,21 @@ const modelLabel = computed(
       ?.label ?? "企业通用模型",
 );
 const selectedKnowledgeBaseLabel = computed(() => {
-  const selected = knowledgeBaseOptions.value.find(
-    (item) => item.id === workspaceId.value,
-  );
-  return (
-    selected?.name ?? knowledgeBaseOptions.value[0]?.name ?? "暂无可用知识库"
-  );
+  const names = workspaceIds.value
+    .map(
+      (id) => knowledgeBaseOptions.value.find((item) => item.id === id)?.name,
+    )
+    .filter((name): name is string => name !== undefined);
+  if (names.length === 0) {
+    return knowledgeBaseOptions.value[0]?.name ?? "暂无可用知识库";
+  }
+  if (names.length <= 2) return names.join("、");
+  return `${names.slice(0, 2).join("、")}等 ${names.length} 个知识库`;
 });
-const selectedKnowledgeBase = computed(() =>
-  knowledgeBaseOptions.value.find((item) => item.id === workspaceId.value),
+const selectedKnowledgeBases = computed(() =>
+  workspaceIds.value
+    .map((id) => knowledgeBaseOptions.value.find((item) => item.id === id))
+    .filter((item): item is KnowledgeBaseOption => item !== undefined),
 );
 const apiModeLabel = computed(() =>
   isRealApiMode || response.value?.isMock === false ? "真实接口" : "模拟数据",
@@ -160,7 +166,7 @@ const readInitialSearch = ():
   | {
       readonly q: string;
       readonly sources?: string;
-      readonly workspaceId?: string;
+      readonly workspaceIds?: readonly string[];
       readonly modelId?: string;
     }
   | undefined => {
@@ -177,10 +183,11 @@ const readInitialSearch = ():
   return {
     q: value.q.trim(),
     sources: typeof value.sources === "string" ? value.sources : undefined,
-    workspaceId:
-      typeof value.workspaceId === "string" && value.workspaceId !== ""
-        ? value.workspaceId
-        : undefined,
+    workspaceIds: Array.isArray(value.workspaceIds)
+      ? value.workspaceIds.filter(
+          (item): item is string => typeof item === "string" && item !== "",
+        )
+      : undefined,
     modelId:
       typeof value.modelId === "string" && value.modelId !== ""
         ? value.modelId
@@ -203,7 +210,7 @@ const syncFromRoute = (): void => {
   }
   mode.value = "smart";
   sources.value = parseSources(initialSearch?.sources ?? route.query.sources);
-  workspaceId.value = initialSearch?.workspaceId;
+  workspaceIds.value = [...(initialSearch?.workspaceIds ?? [])];
   modelId.value =
     initialSearch?.modelId ??
     (typeof route.query.model === "string"
@@ -238,7 +245,7 @@ const executeSearch = async (): Promise<void> => {
         query: query.value,
         mode: mode.value,
         sources: sources.value,
-        workspaceId: workspaceId.value,
+        workspaceIds: workspaceIds.value,
         modelId: modelId.value,
       },
       searchController.signal,
@@ -291,7 +298,7 @@ const submitSearch = (request: SearchRequest): void => {
     query.value = request.query;
     mode.value = "smart";
     sources.value = [...request.sources];
-    workspaceId.value = request.workspaceId;
+    workspaceIds.value = [...(request.workspaceIds ?? [])];
     modelId.value = request.modelId ?? modelId.value ?? "enterprise-general";
     if (Object.keys(route.query).length > 0) {
       skipNextRouteSync = true;
@@ -475,7 +482,7 @@ const runRelatedSearch = (question: string): void => {
     mode: mode.value,
     sources: sources.value,
     modelId: modelId.value,
-    workspaceId: workspaceId.value,
+    workspaceIds: workspaceIds.value,
   });
 };
 
@@ -516,15 +523,17 @@ const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
       readyDocumentCount: item.ready_document_count,
       status: item.status,
     }));
+    workspaceIds.value = workspaceIds.value.filter((id) =>
+      knowledgeBaseOptions.value.some((item) => item.id === id),
+    );
     if (
-      knowledgeBaseOptions.value.length > 0 &&
-      !knowledgeBaseOptions.value.some((item) => item.id === workspaceId.value)
-    ) {
-      workspaceId.value = knowledgeBaseOptions.value[0]?.id;
-    }
+      workspaceIds.value.length === 0 &&
+      knowledgeBaseOptions.value[0] !== undefined
+    )
+      workspaceIds.value = [knowledgeBaseOptions.value[0].id];
   } else {
     knowledgeBaseOptions.value = [];
-    workspaceId.value = undefined;
+    workspaceIds.value = [];
     void message.warning(toPublicApiError(knowledgeBaseResult.reason).message);
   }
 };
@@ -727,7 +736,7 @@ onBeforeUnmount(() => {
     <AiSearchBox
       v-model:query="query"
       v-model:sources="sources"
-      v-model:workspace-id="workspaceId"
+      v-model:workspace-ids="workspaceIds"
       v-model:model-id="modelId"
       :mode="mode"
       compact
@@ -863,7 +872,7 @@ onBeforeUnmount(() => {
       <SearchContextPanel
         :open="isContextOpen"
         :query="query"
-        :selected-knowledge-base="selectedKnowledgeBase"
+        :selected-knowledge-bases="selectedKnowledgeBases"
         :knowledge-base-options="knowledgeBaseOptions"
         :model-label="modelLabel"
         :citations="response?.answer.citations ?? []"

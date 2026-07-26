@@ -292,7 +292,9 @@ export async function* parseSseStream(
   try {
     while (true) {
       const { done, value } = await reader.read();
-      buffer += decoder.decode(value, { stream: !done }).replace(/\r\n/gu, "\n");
+      buffer += decoder
+        .decode(value, { stream: !done })
+        .replace(/\r\n/gu, "\n");
       let boundary = buffer.indexOf("\n\n");
       while (boundary >= 0) {
         const block = buffer.slice(0, boundary);
@@ -311,9 +313,8 @@ export async function* parseSseStream(
 }
 
 const refreshAccessTokenForStream = async (): Promise<string> => {
-  const response = await apiClient.post<ApiResponse<RefreshTokenData>>(
-    "/v1/auth/refresh",
-  );
+  const response =
+    await apiClient.post<ApiResponse<RefreshTokenData>>("/v1/auth/refresh");
   const token = unwrap(response.data).access_token;
   setAccessToken(token);
   return token;
@@ -428,7 +429,10 @@ export const runRealSearch = async (
   const backendReq: BackendSearchRequest = {
     query,
     mode: toBackendMode(request.mode),
-    kb_id: request.workspaceId,
+    kb_ids:
+      request.workspaceIds !== undefined
+        ? [...request.workspaceIds]
+        : undefined,
     top_k: 10,
     threshold: 0.0,
     rerank: true,

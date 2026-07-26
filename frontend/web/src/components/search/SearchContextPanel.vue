@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 
 import type {
   CitationSource,
@@ -7,21 +14,24 @@ import type {
 } from "../../types/ai-search";
 import { BookOpen, FileText, Settings2, X } from "../icons";
 
-const props = defineProps<{
-  open: boolean;
-  query: string;
-  selectedKnowledgeBase?: KnowledgeBaseOption;
-  knowledgeBaseOptions: readonly KnowledgeBaseOption[];
-  modelLabel: string;
-  citations: readonly CitationSource[];
-  returnFocusTo?: HTMLElement;
-}>();
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    query: string;
+    selectedKnowledgeBases?: readonly KnowledgeBaseOption[];
+    knowledgeBaseOptions: readonly KnowledgeBaseOption[];
+    modelLabel: string;
+    citations: readonly CitationSource[];
+    returnFocusTo?: HTMLElement;
+  }>(),
+  {
+    selectedKnowledgeBases: () => [],
+    returnFocusTo: undefined,
+  },
+);
 
 const totalDocumentCount = computed(() =>
-  props.knowledgeBaseOptions.reduce(
-    (sum, item) => sum + item.documentCount,
-    0,
-  ),
+  props.knowledgeBaseOptions.reduce((sum, item) => sum + item.documentCount, 0),
 );
 const totalReadyDocumentCount = computed(() =>
   props.knowledgeBaseOptions.reduce(
@@ -179,7 +189,13 @@ onBeforeUnmount(() => {
         <dl class="context-definition-list">
           <div>
             <dt>当前知识库</dt>
-            <dd>{{ selectedKnowledgeBase?.name ?? "未选择" }}</dd>
+            <dd>
+              {{
+                selectedKnowledgeBases.length > 0
+                  ? selectedKnowledgeBases.map((item) => item.name).join("、")
+                  : "未选择"
+              }}
+            </dd>
           </div>
           <div>
             <dt>AI 模型</dt>

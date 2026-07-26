@@ -38,6 +38,9 @@ const loadError = ref("");
 const busyTaskId = ref<string>();
 
 let loadController: AbortController | undefined;
+let pollTimer: ReturnType<typeof setTimeout> | undefined;
+let disposed = false;
+const activeExportStatuses = new Set<ExportStatus>(["pending", "running"]);
 
 interface DownloadRow {
   readonly id: string;
@@ -141,23 +144,45 @@ const statusTone = (itemStatus: string): string => {
   return "warning";
 };
 
-const loadRealDownloads = async (): Promise<void> => {
+const scheduleProgressPoll = (): void => {
+  if (pollTimer !== undefined) clearTimeout(pollTimer);
+  pollTimer = undefined;
+  if (
+    disposed ||
+    !isRealApiMode ||
+    !realDownloads.value.some((item) => activeExportStatuses.has(item.status))
+  )
+    return;
+  pollTimer = setTimeout(() => void loadRealDownloads(true), 1000);
+};
+
+const loadRealDownloads = async (silent = false): Promise<void> => {
   if (!isRealApiMode) return;
 
   loadController?.abort();
-  loadController = new AbortController();
-  loadState.value = "loading";
-  loadError.value = "";
+  const currentController = new AbortController();
+  loadController = currentController;
+  if (!silent) {
+    loadState.value = "loading";
+    loadError.value = "";
+  }
 
   try {
-    const page = await listAllExportTasks(loadController.signal);
+    const page = await listAllExportTasks(currentController.signal);
+    // 手动刷新或页面离开会让旧请求失效，避免迟到响应覆盖最新任务状态。
+    if (disposed || loadController !== currentController) return;
     realDownloads.value = page.items;
     realTotal.value = page.total;
     loadState.value = "idle";
   } catch (error: unknown) {
+    if (disposed || loadController !== currentController) return;
     if (error instanceof DOMException && error.name === "AbortError") return;
     loadError.value = toPublicApiError(error).message;
     loadState.value = "error";
+  } finally {
+    if (!disposed && loadController === currentController) {
+      scheduleProgressPoll();
+    }
   }
 };
 
@@ -299,6 +324,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  disposed = true;
+  if (pollTimer !== undefined) clearTimeout(pollTimer);
   loadController?.abort();
 });
 </script>

@@ -80,8 +80,7 @@ const filteredSpaces = computed(() => {
   const normalizedKeyword = keyword.value.trim().toLocaleLowerCase("zh-CN");
   return spaces.value.filter(
     (space) =>
-      (department.value === "all" ||
-        space.department === department.value) &&
+      (department.value === "all" || space.department === department.value) &&
       (normalizedKeyword.length === 0 ||
         `${space.name}${space.description}${space.department}`
           .toLocaleLowerCase("zh-CN")
@@ -111,7 +110,7 @@ const askSpace = (space: DisplaySpace): void => {
           q: question,
           mode: "smart",
           sources: "knowledge",
-          workspaceId: space.id,
+          workspaceIds: [space.id],
         },
       },
     });
@@ -231,10 +230,7 @@ onBeforeUnmount(() => loadController?.abort());
           </div>
         </dl>
         <footer>
-          <RouterLink
-            class="secondary-button"
-            :to="`/knowledge/${space.id}`"
-          >
+          <RouterLink class="secondary-button" :to="`/knowledge/${space.id}`">
             <BookOpen :size="16" aria-hidden="true" />
             查看文档
           </RouterLink>

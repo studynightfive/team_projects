@@ -2,22 +2,30 @@
 import { computed, ref, watch } from "vue";
 
 import { FileUp, Trash2, X } from "../icons";
+import type {
+  DocumentDuplicatePolicy,
+  DocumentNameConflict,
+} from "../../services/knowledge";
 
 const props = withDefaults(
   defineProps<{
     readonly uploading?: boolean;
     readonly maxFiles?: number;
     readonly resetToken?: number;
+    readonly conflicts?: readonly DocumentNameConflict[];
   }>(),
   {
     uploading: false,
     maxFiles: 20,
     resetToken: 0,
+    conflicts: () => [],
   },
 );
 
 const emit = defineEmits<{
   submit: [files: readonly File[]];
+  "resolve-conflicts": [policy: DocumentDuplicatePolicy];
+  "cancel-conflicts": [];
 }>();
 
 const inputRef = ref<HTMLInputElement>();
@@ -26,6 +34,9 @@ const dragging = ref(false);
 const notice = ref("");
 const canSubmit = computed(
   () => queuedFiles.value.length > 0 && !props.uploading,
+);
+const hasBatchConflict = computed(() =>
+  props.conflicts.some((item) => item.conflict_type === "batch"),
 );
 
 const fileKey = (file: File): string =>
@@ -145,7 +156,53 @@ watch(
 
     <p v-if="notice" class="queue-notice">{{ notice }}</p>
 
-    <div class="queue-actions">
+    <div v-if="conflicts.length > 0" class="conflict-panel" role="alert">
+      <strong>发现 {{ conflicts.length }} 个同名文档</strong>
+      <p>
+        {{
+          conflicts
+            .slice(0, 3)
+            .map((item) => item.document_name)
+            .join("、")
+        }}{{ conflicts.length > 3 ? "等" : "" }}
+      </p>
+      <p v-if="hasBatchConflict" class="conflict-guidance">
+        同一批文件存在重名，无法判断哪一份用于替换。请移除重复项，或选择添加标识后上传。
+      </p>
+      <div>
+        <button
+          class="secondary-button"
+          type="button"
+          :disabled="uploading"
+          @click="emit('cancel-conflicts')"
+        >
+          取消
+        </button>
+        <button
+          class="secondary-button"
+          type="button"
+          :disabled="uploading"
+          @click="emit('resolve-conflicts', 'rename')"
+        >
+          添加标识后上传
+        </button>
+        <button
+          class="primary-button"
+          type="button"
+          :disabled="uploading || hasBatchConflict"
+          :title="
+            hasBatchConflict
+              ? '同一批文件重名时不能使用替换'
+              : '使用上传文件替换知识库中的同名文档'
+          "
+          @click="emit('resolve-conflicts', 'replace')"
+        >
+          替换已有文档
+        </button>
+      </div>
+    </div>
+
+    <div v-else class="queue-actions">
       <span>统一使用当前切分与 OCR 配置</span>
       <button
         class="primary-button"
@@ -257,10 +314,36 @@ watch(
   border-top: 1px solid var(--color-border);
 }
 
+.conflict-panel {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-8);
+  background: var(--color-warning-soft);
+}
+
+.conflict-panel p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.conflict-panel > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
 @media (max-width: 767px) {
   .queue-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .conflict-panel > div {
+    display: grid;
   }
 
   .queue-actions .primary-button {

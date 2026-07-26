@@ -21,10 +21,7 @@ import {
 } from "../components/icons";
 import { isRealApiMode } from "../config/runtime";
 import { loadAiSearchHome } from "../services/ai-search";
-import {
-  getMyIncentives,
-  type UserIncentives,
-} from "../services/incentives";
+import { getMyIncentives, type UserIncentives } from "../services/incentives";
 import { listKnowledgeBases } from "../services/knowledge";
 import { useSessionStore } from "../stores/session";
 import type {
@@ -44,7 +41,7 @@ const loadError = ref("");
 const query = ref("");
 const mode = ref<SearchMode>("smart");
 const sources = ref<SearchSourceType[]>([]);
-const workspaceId = ref<string>();
+const workspaceIds = ref<string[]>([]);
 const modelId = ref("enterprise-general");
 const knowledgeBaseOptions = ref<readonly KnowledgeBaseOption[]>([]);
 const isContextOpen = ref(false);
@@ -72,8 +69,10 @@ const modelLabel = computed(
       (option) => option.value === modelId.value,
     )?.label ?? "企业通用模型",
 );
-const selectedKnowledgeBase = computed(() =>
-  knowledgeBaseOptions.value.find((item) => item.id === workspaceId.value),
+const selectedKnowledgeBases = computed(() =>
+  workspaceIds.value
+    .map((id) => knowledgeBaseOptions.value.find((item) => item.id === id))
+    .filter((item): item is KnowledgeBaseOption => item !== undefined),
 );
 const canUploadKnowledge = computed(() => {
   const permissions = sessionStore.currentUser?.permissions ?? [];
@@ -115,12 +114,14 @@ const initializeHome = async (): Promise<void> => {
         readyDocumentCount: item.ready_document_count,
         status: item.status,
       }));
+      workspaceIds.value = workspaceIds.value.filter((id) =>
+        knowledgeBaseOptions.value.some((item) => item.id === id),
+      );
       if (
-        knowledgeBaseOptions.value.length > 0 &&
-        !knowledgeBaseOptions.value.some((item) => item.id === workspaceId.value)
-      ) {
-        workspaceId.value = knowledgeBaseOptions.value[0]?.id;
-      }
+        workspaceIds.value.length === 0 &&
+        knowledgeBaseOptions.value[0] !== undefined
+      )
+        workspaceIds.value = [knowledgeBaseOptions.value[0].id];
     }
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") return;
@@ -174,7 +175,7 @@ const submitSearch = (request: SearchRequest): void => {
         initialSearch: {
           q: request.query,
           sources: request.sources.join(","),
-          workspaceId: request.workspaceId,
+          workspaceIds: [...(request.workspaceIds ?? [])],
           modelId: request.modelId,
         },
       },
@@ -198,7 +199,7 @@ const runQuickAction = (action: QuickAction): void => {
       void message.warning("当前账号没有上传文档权限");
       return;
     }
-    const kbId = workspaceId.value ?? knowledgeBaseOptions.value[0]?.id;
+    const kbId = workspaceIds.value[0] ?? knowledgeBaseOptions.value[0]?.id;
     if (kbId === undefined) {
       void message.warning("暂无可用知识库，请先到企业知识库创建后再上传");
       void router.push("/knowledge");
@@ -289,7 +290,7 @@ onBeforeUnmount(() => {
           <AiSearchBox
             v-model:query="query"
             v-model:sources="sources"
-            v-model:workspace-id="workspaceId"
+            v-model:workspace-ids="workspaceIds"
             v-model:model-id="modelId"
             :mode="mode"
             :model-options="homeData.modelOptions"
@@ -487,7 +488,7 @@ onBeforeUnmount(() => {
         class="home-search-context"
         :open="isContextOpen"
         :query="query || '尚未输入搜索问题'"
-        :selected-knowledge-base="selectedKnowledgeBase"
+        :selected-knowledge-bases="selectedKnowledgeBases"
         :knowledge-base-options="knowledgeBaseOptions"
         :model-label="modelLabel"
         :citations="[]"
@@ -879,7 +880,6 @@ onBeforeUnmount(() => {
   .home-information-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-
 }
 
 @media (max-width: 767px) {

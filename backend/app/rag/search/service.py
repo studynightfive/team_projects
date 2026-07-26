@@ -10,6 +10,7 @@ import hashlib
 import json
 import re
 import time
+import unicodedata
 from typing import TypeAlias
 
 import structlog
@@ -20,6 +21,7 @@ from app.common.config import settings
 from app.common.exceptions import ValidationException
 from app.common.models import User
 from app.documents.models import Document, DocumentChunk
+from app.knowledge.models import KnowledgeBase
 from app.models import service as model_service
 from app.models.providers.openai import OpenAICompatibleProvider, build_provider
 from app.models.security import decrypt_api_key
@@ -419,23 +421,51 @@ async def _rerank(
 # ============================================================
 # 统一入口
 # ============================================================
+def _normalize_knowledge_base_name(name: str) -> str:
+    normalized = unicodedata.normalize("NFKC", name).strip().casefold()
+    return " ".join(normalized.split())
+
+
+async def _resolve_knowledge_base_scope(
+    db: AsyncSession,
+    *,
+    user: User,
+    req: SearchRequest,
+) -> set[str]:
+    """解析本次检索范围，并在任何缓存读取前完成权限与名称校验。"""
+    accessible = await get_user_accessible_kb_ids(db, user)
+    requested = req.selected_knowledge_base_ids()
+    if requested is not None and not requested.issubset(accessible):
+        # 不区分知识库不存在还是无权限，避免利用错误信息探测其他部门数据。
+        return set()
+
+    selected = requested if requested is not None else accessible
+    if requested is not None and len(selected) > 1:
+        names = (
+            await db.execute(select(KnowledgeBase.name).where(KnowledgeBase.id.in_(selected)))
+        ).scalars()
+        normalized_names = [_normalize_knowledge_base_name(name) for name in names]
+        if len(set(normalized_names)) != len(normalized_names):
+            raise ValidationException(message="不能同时选择同名知识库")
+    return selected
+
+
 async def search(
     db: AsyncSession,
     *,
     user: User,
     req: SearchRequest,
     guard_checked: bool = False,
+    query_embedding: list[float] | None = None,
 ) -> SearchResponse:
     if not guard_checked:
         await ensure_safe_query(req.query)
     start = time.time()
     if req.metadata_filter:
         raise ValidationException(message="metadata_filter 尚未接入，不能静默忽略筛选条件")
-    accessible = await get_user_accessible_kb_ids(db, user)
-    if req.kb_id and req.kb_id not in accessible:
-        # 用户显式指定了无权 kb：直接空响应，不暴露存在性
+    accessible_kbs = await _resolve_knowledge_base_scope(db, user=user, req=req)
+    if not accessible_kbs and req.selected_knowledge_base_ids() is not None:
         return SearchResponse(hits=[], mode=req.mode, reranked=False, took_ms=0, total_candidates=0)
-    accessible_kbs = {req.kb_id} if req.kb_id else accessible
 
     debug_kt, debug_vt, debug_rt = 0, 0, 0
     total = 0
@@ -459,7 +489,11 @@ async def search(
                 total_candidates=0,
             )
         ts = time.time()
-        emb = await _embed_query(db, query=req.query, embedding_model_id=embedding_model_id)
+        emb = query_embedding or await _embed_query(
+            db,
+            query=req.query,
+            embedding_model_id=embedding_model_id,
+        )
         debug_vt = int((time.time() - ts) * 1000)
         vec_hits, total = await _vector_search(
             db, embedding=emb, accessible_kb_ids=accessible_kbs, top_k=req.top_k
@@ -479,7 +513,11 @@ async def search(
         else:
             try:
                 ts = time.time()
-                emb = await _embed_query(db, query=req.query, embedding_model_id=embedding_model_id)
+                emb = query_embedding or await _embed_query(
+                    db,
+                    query=req.query,
+                    embedding_model_id=embedding_model_id,
+                )
                 debug_vt = int((time.time() - ts) * 1000)
                 vec_hits, _ = await _vector_search(
                     db, embedding=emb, accessible_kb_ids=accessible_kbs, top_k=req.top_k
@@ -702,12 +740,8 @@ async def _build_answer_cache_scope(
     user: User,
     req: RagAnswerRequest,
 ) -> tuple[AnswerCacheScope, RagAnswerRequest]:
-    accessible = await get_user_accessible_kb_ids(db, user)
-    knowledge_base_ids = (
-        {req.kb_id}
-        if req.kb_id is not None and req.kb_id in accessible
-        else (set() if req.kb_id is not None else accessible)
-    )
+    # 缓存作用域与真实检索复用同一个范围解析器，禁止缓存命中绕过权限或同名校验。
+    knowledge_base_ids = await _resolve_knowledge_base_scope(db, user=user, req=req)
     embedding_model_id = (
         await _resolve_embedding_model_id(db, req.embedding_model_id)
         if req.mode in {"vector", "hybrid"}
@@ -715,9 +749,7 @@ async def _build_answer_cache_scope(
     )
     rerank_enabled = req.rerank or req.top_k > settings.rag_max_top_k
     rerank_model_id = (
-        await _resolve_rerank_model_id(db, req.rerank_model_id)
-        if rerank_enabled
-        else None
+        await _resolve_rerank_model_id(db, req.rerank_model_id) if rerank_enabled else None
     )
     effective_request = req.model_copy(
         update={
@@ -781,6 +813,27 @@ async def _build_answer_cache_scope(
     )
 
 
+async def _build_cache_query_embedding(
+    db: AsyncSession,
+    *,
+    req: RagAnswerRequest,
+) -> list[float] | None:
+    if req.mode not in {"vector", "hybrid"} or req.embedding_model_id is None:
+        return None
+    try:
+        return await _embed_query(
+            db,
+            query=req.query,
+            embedding_model_id=req.embedding_model_id,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "rag_answer_cache_embedding_failed",
+            error_type=type(exc).__name__,
+        )
+        return None
+
+
 async def answer(
     db: AsyncSession,
     *,
@@ -798,9 +851,26 @@ async def answer(
         scope=cache_scope,
         query=req.query,
     )
+    query_embedding: list[float] | None = None
+    if cached is None:
+        query_embedding = await _build_cache_query_embedding(
+            db,
+            req=effective_request,
+        )
+        if query_embedding is not None:
+            cached = await get_cached_answer(
+                scope=cache_scope,
+                query=req.query,
+                query_embedding=query_embedding,
+                check_exact=False,
+            )
     if cached is not None:
         cached.took_ms = int((time.time() - start) * 1000)
-        logger.info("rag_answer_cache_hit", kb_id=req.kb_id)
+        logger.info(
+            "rag_answer_cache_hit",
+            knowledge_base_ids=sorted(req.selected_knowledge_base_ids() or []),
+            cache_match=cached.cache_match,
+        )
         return cached
 
     search_resp = await search(
@@ -808,6 +878,7 @@ async def answer(
         user=user,
         req=effective_request,
         guard_checked=True,
+        query_embedding=query_embedding,
     )
 
     if not search_resp.hits:
@@ -883,5 +954,6 @@ async def answer(
         scope=cache_scope,
         query=req.query,
         response=response,
+        query_embedding=query_embedding,
     )
     return response

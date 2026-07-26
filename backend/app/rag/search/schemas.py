@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 SearchMode = Literal["keyword", "vector", "hybrid"]
 CacheMatch = Literal["exact", "similar"]
@@ -14,12 +14,28 @@ class SearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000)
     mode: SearchMode
     kb_id: str | None = None
+    kb_ids: list[str] | None = Field(default=None, min_length=1, max_length=10)
     top_k: int = Field(default=10, ge=1, le=50)
     threshold: float = Field(default=0.0, ge=0.0, le=1.0)
     metadata_filter: dict[str, Any] | None = None
     rerank: bool = True
     rerank_model_id: str | None = None
     embedding_model_id: str | None = None
+
+    @model_validator(mode="after")
+    def validate_knowledge_base_scope(self) -> SearchRequest:
+        if self.kb_id is not None and self.kb_ids is not None:
+            raise ValueError("kb_id 与 kb_ids 不能同时传入")
+        if self.kb_ids is not None and len(set(self.kb_ids)) != len(self.kb_ids):
+            raise ValueError("kb_ids 不能包含重复项")
+        return self
+
+    def selected_knowledge_base_ids(self) -> set[str] | None:
+        if self.kb_ids is not None:
+            return set(self.kb_ids)
+        if self.kb_id is not None:
+            return {self.kb_id}
+        return None
 
 
 class SearchHitPosition(BaseModel):

@@ -43,7 +43,7 @@ export interface SearchRequest {
   readonly query: string;
   readonly mode: SearchMode;
   readonly sources: readonly SearchSourceType[];
-  readonly workspaceId?: string;
+  readonly workspaceIds?: readonly string[];
   readonly attachmentIds?: readonly string[];
   readonly modelId?: string;
 }

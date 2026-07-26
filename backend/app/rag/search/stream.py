@@ -19,6 +19,7 @@ from app.rag.search.schemas import RagAnswerRequest, RagAnswerResponse, SearchHi
 from app.rag.search.service import (
     _build_answer_cache_scope,
     _build_answer_messages,
+    _build_cache_query_embedding,
     _resolve_chat_model,
     search,
 )
@@ -173,6 +174,19 @@ async def stream_answer(
         req=req,
     )
     cached = await get_cached_answer(scope=cache_scope, query=req.query)
+    query_embedding: list[float] | None = None
+    if cached is None:
+        query_embedding = await _build_cache_query_embedding(
+            db,
+            req=effective_request,
+        )
+        if query_embedding is not None:
+            cached = await get_cached_answer(
+                scope=cache_scope,
+                query=req.query,
+                query_embedding=query_embedding,
+                check_exact=False,
+            )
     if cached is not None:
         cached.took_ms = _elapsed_ms(started_at)
         yield _stage(
@@ -214,6 +228,7 @@ async def stream_answer(
         user=user,
         req=effective_request,
         guard_checked=True,
+        query_embedding=query_embedding,
     )
     yield _stage(
         stage="retrieval",
@@ -323,6 +338,7 @@ async def stream_answer(
         scope=cache_scope,
         query=req.query,
         response=response,
+        query_embedding=query_embedding,
     )
     yield _stage(
         stage="generation",

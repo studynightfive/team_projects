@@ -25,6 +25,8 @@ from app.documents.schemas import (
     ChunkItem,
     DocumentDetail,
     DocumentIdBatchRequest,
+    DocumentNameConflictRequest,
+    DocumentNameConflictResponse,
     DocumentSummary,
     MarkdownContent,
     RecycleBinItem,
@@ -161,9 +163,7 @@ async def upload_documents(
     ocr_enabled: bool = Form(True),
     language: str = Form("chi_sim+eng", min_length=1, max_length=64),
     duplicate_policy: str = Form("new_version"),
-    chunk_strategy: Literal["fixed", "semantic", "recursive", "format"] = Form(
-        "recursive"
-    ),
+    chunk_strategy: Literal["fixed", "semantic", "recursive", "format"] = Form("recursive"),
     chunk_size: int = Form(800, ge=100, le=4000),
     chunk_overlap: int = Form(120, ge=0, le=1000),
 ) -> APIResponse[UploadResponse]:
@@ -211,6 +211,22 @@ async def upload_documents(
         ),
     )
     return APIResponse(data=result, request_id=request_id)
+
+
+@router.post("/knowledge-bases/{kb_id}/documents/name-conflicts")
+async def check_document_name_conflicts(
+    kb_id: str,
+    body: DocumentNameConflictRequest,
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(
+        require_any_permission(
+            "admin.document.upload", "document.upload", "personal.document.upload"
+        )
+    ),
+    service: DocumentService = Depends(get_service),
+) -> APIResponse[DocumentNameConflictResponse]:
+    data = await service.check_name_conflicts(user, kb_id, body.filenames)
+    return APIResponse(data=data, request_id=str(uuid.uuid4()))
 
 
 @router.get("/documents/{document_id}")

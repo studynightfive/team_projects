@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { App as AntApp, Drawer } from "ant-design-vue";
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import InlineState from "../../components/InlineState.vue";
@@ -16,6 +16,10 @@ const query = ref("");
 const statusFilter = ref("全部状态");
 const selectedId = ref<string>();
 const loading = ref(false);
+let pollTimer: ReturnType<typeof setTimeout> | undefined;
+let disposed = false;
+let loadGeneration = 0;
+const activeTaskStatuses = new Set(["queued", "running"]);
 const selectedTask = computed(() =>
   tasks.value.find((item) => item.task_id === selectedId.value),
 );
@@ -24,8 +28,8 @@ const filteredTasks = computed(() => {
   return tasks.value.filter((item) => {
     const matchesQuery =
       keyword.length === 0 ||
-      [item.document_title, item.stage, item.knowledge_base_name].some((value) =>
-        value.toLowerCase().includes(keyword),
+      [item.document_title, item.stage, item.knowledge_base_name].some(
+        (value) => value.toLowerCase().includes(keyword),
       );
     return (
       matchesQuery &&
@@ -64,19 +68,42 @@ const statusTone = (status: string): string =>
 const formatDate = (value: string | null): string =>
   value === null ? "-" : new Date(value).toLocaleString("zh-CN");
 
-const loadData = async (): Promise<void> => {
-  loading.value = true;
+const scheduleProgressPoll = (): void => {
+  if (pollTimer !== undefined) clearTimeout(pollTimer);
+  pollTimer = undefined;
+  if (
+    disposed ||
+    !tasks.value.some((item) => activeTaskStatuses.has(item.status))
+  )
+    return;
+  pollTimer = setTimeout(() => void loadData(true), 1000);
+};
+
+const loadData = async (silent = false): Promise<void> => {
+  const generation = ++loadGeneration;
+  if (!silent) loading.value = true;
   try {
     const page = await listAdminTasks();
+    // 较早的刷新请求不得覆盖较新的任务快照。
+    if (disposed || generation !== loadGeneration) return;
     tasks.value = page.items;
   } catch (err) {
+    if (disposed || generation !== loadGeneration) return;
     message.error(toPublicApiError(err).message);
   } finally {
-    loading.value = false;
+    if (!disposed && generation === loadGeneration) {
+      loading.value = false;
+      scheduleProgressPoll();
+    }
   }
 };
 
-onMounted(loadData);
+onMounted(() => void loadData());
+onBeforeUnmount(() => {
+  disposed = true;
+  loadGeneration += 1;
+  if (pollTimer !== undefined) clearTimeout(pollTimer);
+});
 </script>
 
 <template>
@@ -87,7 +114,7 @@ onMounted(loadData);
       description="查看真实文档处理任务的阶段、进度、失败原因和请求标识。"
     >
       <template #actions>
-        <button class="secondary-button" type="button" @click="loadData">
+        <button class="secondary-button" type="button" @click="loadData()">
           刷新
         </button>
       </template>
