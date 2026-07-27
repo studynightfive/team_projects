@@ -34,6 +34,8 @@ from app.rag.search.service import (
     _build_answer_messages,
     _build_cache_query_embedding,
     _resolve_chat_model,
+    is_no_context_answer,
+    sanitize_no_context_answer,
     search,
 )
 
@@ -341,6 +343,14 @@ async def stream_answer(
                 check_exact=False,
             )
     if cached is not None:
+        if is_no_context_answer(cached.answer):
+            # 历史缓存可能保留了“无答案”文本与相似片段，返回前统一清理。
+            cached = cached.model_copy(
+                update={
+                    "answer": sanitize_no_context_answer(cached.answer),
+                    "hits": [],
+                }
+            )
         cached.took_ms = _elapsed_ms(started_at)
         cached.conversation_id = conversation.id
         yield _stage(
@@ -404,7 +414,10 @@ async def stream_answer(
         label="检索知识库",
         status="completed",
         started_at=started_at,
-        detail=f"已找到 {len(search_response.hits)} 条可引用内容。",
+        detail=(
+            f"已找到 {len(search_response.hits)} 条候选片段，"
+            "等待回答阶段确认是否足以支持结论。"
+        ),
     )
     if effective_request.rerank:
         yield _stage(
@@ -418,12 +431,9 @@ async def stream_answer(
                 else "重排模型不可用，已保留检索排序。"
             ),
         )
-    for hit in search_response.hits:
-        yield _citation_event(hit)
-
     if not search_response.hits:
         response = RagAnswerResponse(
-            answer="未在文档中找到相关引用。请换用更贴近文档内容的关键词后重试。",
+            answer="未在文档中找到相关信息。请换用更贴近文档内容的关键词后重试。",
             hits=[],
             mode=search_response.mode,
             took_ms=_elapsed_ms(started_at),
@@ -506,21 +516,24 @@ async def stream_answer(
 
     answer_text = "".join(answer_parts).strip()
     if not answer_text:
-        answer_text = "未在文档中找到相关引用。"
+        answer_text = "未在文档中找到相关信息。"
         yield AnswerStreamEvent(
             event="delta",
             data={"event": "delta", "text": answer_text},
         )
+    answer_text = sanitize_no_context_answer(answer_text)
+    no_context = is_no_context_answer(answer_text)
+    final_hits = [] if no_context else search_response.hits
     response = RagAnswerResponse(
         answer=answer_text,
-        hits=search_response.hits,
+        hits=final_hits,
         mode=search_response.mode,
         took_ms=_elapsed_ms(started_at),
         model=model_name,
         conversation_id=conversation.id,
         generated=True,
     )
-    if not history:
+    if not history and final_hits:
         await set_cached_answer(
             scope=cache_scope,
             query=req.query,
@@ -532,14 +545,20 @@ async def stream_answer(
         conversation_id=conversation.id,
         answer=response.answer,
         hits=response.hits,
-        finish_reason="stop",
+        finish_reason="no_context" if no_context else "stop",
     )
+    for hit in final_hits:
+        yield _citation_event(hit)
     yield _stage(
         stage="generation",
         label="生成知识库回答",
         status="completed",
         started_at=started_at,
-        detail="回答生成完成，引用来源已保留。",
+        detail=(
+            "回答生成完成，但当前文档不足以提供可靠依据。"
+            if no_context
+            else "回答生成完成，引用来源已保留。"
+        ),
     )
     yield _done_event(
         response,

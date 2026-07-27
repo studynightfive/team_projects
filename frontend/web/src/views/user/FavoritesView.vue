@@ -18,6 +18,7 @@ import {
   type ConversationRecord,
   type MessageRecord,
 } from "../../services/conversations";
+import { sanitizeNoDocumentEvidenceAnswer } from "../../services/rag-answer-state";
 
 const router = useRouter();
 const { message, modal } = AntApp.useApp();
@@ -300,7 +301,10 @@ onBeforeUnmount(() => {
           >
             <span>{{ item.role === "user" ? "你的问题" : "AI 回答" }}</span>
             <p v-if="item.role === 'user'">{{ item.content }}</p>
-            <SafeMarkdown v-else :content="item.content" />
+            <SafeMarkdown
+              v-else
+              :content="sanitizeNoDocumentEvidenceAnswer(item.content)"
+            />
           </article>
         </div>
         <InlineState

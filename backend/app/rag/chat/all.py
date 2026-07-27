@@ -40,6 +40,7 @@ from app.rag.conversations.all import (
 )
 from app.rag.guard import ensure_safe_query
 from app.rag.search.schemas import SearchRequest
+from app.rag.search.service import is_no_context_answer, sanitize_no_context_answer
 from app.rag.search.service import search as search_rag
 
 router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
@@ -111,7 +112,8 @@ def _build_prompt(
         )
     system = (
         "你是一名严谨的问答助手。只能基于给定的 context 回答问题；"
-        "若 context 不包含答案，必须回答“未在文档中找到相关引用”。\n\n"
+        "若 context 不包含答案，必须以“未在文档中找到相关信息。”开头，"
+        "且不得添加引用编号。\n\n"
         f"## Context\n{context_text}"
     )
     return [{"role": "system", "content": system}, {"role": "user", "content": question}]
@@ -210,7 +212,7 @@ async def _chat_stream(
         await db.commit()
         return
 
-    # 4. 发送 citations（受 post_filter 保护）
+    # 4. 暂存 citations，等待模型确认资料足以回答后再发送。
     citations_payload: list[dict[str, object]] = []
     for c in contexts:
         evt = {
@@ -224,7 +226,6 @@ async def _chat_stream(
             "position": c.get("position"),
         }
         citations_payload.append(evt)
-        yield format_sse(event="citation", data=evt)
 
     messages = _build_prompt(req.question, contexts)
 
@@ -312,7 +313,17 @@ async def _chat_stream(
             },
         )
 
-    # 6. 落库最终消息
+    # 6. 只有完整答案受文档支持时才公开并保存引用。
+    no_context = finish_reason == "stop" and is_no_context_answer(accumulated)
+    if finish_reason != "stop" or no_context:
+        citations_payload = []
+        if no_context:
+            accumulated = sanitize_no_context_answer(accumulated)
+    else:
+        for citation in citations_payload:
+            yield format_sse(event="citation", data=citation)
+
+    # 7. 落库最终消息
     assistant_msg.content = accumulated
     assistant_msg.citations = citations_payload
     assistant_msg.finish_reason = finish_reason
