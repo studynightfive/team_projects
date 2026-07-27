@@ -73,8 +73,10 @@ describe("M01 V2 工作区布局", () => {
       wrapper.findAll(".leaderboard-card .leaderboard-table tbody tr"),
     ).toHaveLength(1);
     expect(wrapper.text()).toContain("业务运营看板");
-    expect(wrapper.text()).toContain("答案缓存命中率");
-    expect(wrapper.text()).toContain("高频问题");
+    expect(wrapper.text()).toContain("相似商品问答缓存命中率");
+    expect(wrapper.text()).toContain("热门商品");
+    expect(wrapper.text()).toContain("智能门店终端 Pro");
+    expect(wrapper.text()).not.toContain("高频问题");
   });
 
   it("知识库编辑者从用户工作区进入首个有权管理页", async () => {

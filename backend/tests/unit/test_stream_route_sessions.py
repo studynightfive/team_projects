@@ -53,6 +53,14 @@ async def test_retrieval_stream_owns_session_until_done(
             data={"event": "start", "request_id": "request-1"},
         )
         yield AnswerStreamEvent(
+            event="citation",
+            data={
+                "event": "citation",
+                "doc_id": "product-1",
+                "doc_title": "智能门店终端 Pro",
+            },
+        )
+        yield AnswerStreamEvent(
             event="done",
             data={
                 "event": "done",
@@ -64,7 +72,8 @@ async def test_retrieval_stream_owns_session_until_done(
 
     monkeypatch.setattr(search_api, "stream_user_session", fake_stream_session)
     monkeypatch.setattr(search_api, "stream_answer", fake_stream_answer)
-    monkeypatch.setattr(search_api, "record_retrieval_metric", AsyncMock())
+    metric_mock = AsyncMock()
+    monkeypatch.setattr(search_api, "record_retrieval_metric", metric_mock)
     monkeypatch.setattr(search_api, "audit", AsyncMock())
     monkeypatch.setattr(search_api, "ensure_safe_query", AsyncMock())
 
@@ -78,6 +87,11 @@ async def test_retrieval_stream_owns_session_until_done(
 
     assert lifecycle == ["opened", "closed"]
     assert any("event: done" in str(chunk) for chunk in chunks)
+    assert metric_mock.await_args.kwargs["primary_product_id"] == "product-1"
+    assert (
+        metric_mock.await_args.kwargs["primary_product_name"]
+        == "智能门店终端 Pro"
+    )
     db.commit.assert_awaited_once()
 
 

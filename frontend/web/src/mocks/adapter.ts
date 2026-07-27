@@ -523,6 +523,12 @@ export const mockAdapter: AxiosAdapter = (config) => {
         denominator: 4,
       },
       active_searches: 28,
+      product_queries: 24,
+      product_match: {
+        rate: 87.5,
+        numerator: 21,
+        denominator: 24,
+      },
       effective_answers: 21,
       unanswered_queries: 3,
       document_processing: {
@@ -545,16 +551,18 @@ export const mockAdapter: AxiosAdapter = (config) => {
         average_ms: 860,
         sample_count: 28,
       },
-      popular_questions: [
+      popular_products: [
         {
-          question: "区域卫生信息平台如何实现跨机构数据共享？",
-          ask_count: 8,
-          last_asked_at: now,
+          product_id: "product-store-terminal",
+          product_name: "智能门店终端 Pro",
+          query_count: 8,
+          last_queried_at: now,
         },
         {
-          question: "电子病历系统应满足哪些互联互通要求？",
-          ask_count: 5,
-          last_asked_at: now,
+          product_id: "product-inventory-screen",
+          product_name: "库存展示屏 S2",
+          query_count: 5,
+          last_queried_at: now,
         },
       ],
       department_leaderboard: {

@@ -8527,6 +8527,14 @@
             "minimum": 0.0,
             "title": "Active Searches"
           },
+          "product_queries": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Product Queries"
+          },
+          "product_match": {
+            "$ref": "#/components/schemas/RateMetric"
+          },
           "effective_answers": {
             "type": "integer",
             "minimum": 0.0,
@@ -8554,12 +8562,12 @@
           "response_time": {
             "$ref": "#/components/schemas/ResponseTimeMetric"
           },
-          "popular_questions": {
+          "popular_products": {
             "items": {
-              "$ref": "#/components/schemas/PopularQuestionItem"
+              "$ref": "#/components/schemas/PopularProductItem"
             },
             "type": "array",
-            "title": "Popular Questions"
+            "title": "Popular Products"
           },
           "department_leaderboard": {
             "$ref": "#/components/schemas/PaginatedData_DepartmentLeaderboardItem_"
@@ -8571,6 +8579,8 @@
           "scope",
           "knowledge_coverage",
           "active_searches",
+          "product_queries",
+          "product_match",
           "effective_answers",
           "unanswered_queries",
           "document_processing",
@@ -8578,7 +8588,7 @@
           "retrieval_evaluation",
           "evaluation_run_count",
           "response_time",
-          "popular_questions",
+          "popular_products",
           "department_leaderboard"
         ],
         "title": "DashboardMetrics",
@@ -10621,30 +10631,35 @@
         ],
         "title": "PaginatedData[RecycleBinItem]"
       },
-      "PopularQuestionItem": {
+      "PopularProductItem": {
         "properties": {
-          "question": {
+          "product_id": {
             "type": "string",
-            "title": "Question"
+            "title": "Product Id"
           },
-          "ask_count": {
+          "product_name": {
+            "type": "string",
+            "title": "Product Name"
+          },
+          "query_count": {
             "type": "integer",
             "minimum": 1.0,
-            "title": "Ask Count"
+            "title": "Query Count"
           },
-          "last_asked_at": {
+          "last_queried_at": {
             "type": "string",
             "format": "date-time",
-            "title": "Last Asked At"
+            "title": "Last Queried At"
           }
         },
         "type": "object",
         "required": [
-          "question",
-          "ask_count",
-          "last_asked_at"
+          "product_id",
+          "product_name",
+          "query_count",
+          "last_queried_at"
         ],
-        "title": "PopularQuestionItem"
+        "title": "PopularProductItem"
       },
       "RagAnswerRequest": {
         "properties": {

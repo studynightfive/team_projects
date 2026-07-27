@@ -41,32 +41,32 @@ const canSelectDepartment = computed(() =>
 
 const summaryCards = computed(() => [
   {
-    label: "知识覆盖率",
+    label: "商品知识库可用率",
     value: `${metrics.value?.knowledge_coverage.rate ?? 0}%`,
     trend: `${metrics.value?.knowledge_coverage.numerator ?? 0} / ${
       metrics.value?.knowledge_coverage.denominator ?? 0
-    } 个企业知识库`,
+    } 个知识库已有可检索商品`,
     tone: "blue" as const,
     icon: Database,
   },
   {
-    label: "活跃检索",
-    value: String(metrics.value?.active_searches ?? 0),
-    trend: `最近 ${metrics.value?.period.days ?? days.value} 天已完成请求`,
+    label: "商品查询量",
+    value: String(metrics.value?.product_queries ?? 0),
+    trend: `最近 ${metrics.value?.period.days ?? days.value} 天完成的商品问答`,
     tone: "violet" as const,
     icon: Gauge,
   },
   {
-    label: "有效回答",
-    value: String(metrics.value?.effective_answers ?? 0),
-    trend: "命中引用并完成生成或缓存复用",
+    label: "商品匹配率",
+    value: `${metrics.value?.product_match.rate ?? 0}%`,
+    trend: `${metrics.value?.effective_answers ?? 0} 次查询匹配到商品资料`,
     tone: "green" as const,
     icon: BadgeCheck,
   },
   {
-    label: "未命中",
+    label: "未匹配商品查询",
     value: String(metrics.value?.unanswered_queries ?? 0),
-    trend: "未找到可引用内容的回答",
+    trend: "建议补充商品别名、详情或门店位置",
     tone: "red" as const,
     icon: CircleX,
   },
@@ -136,7 +136,7 @@ onMounted(() => {
         <span class="system-label">管理系统</span>
         <h1>业务运营看板</h1>
         <p>
-          按真实知识建设与检索结果，观察覆盖、回答质量、处理效率和部门贡献。
+          从商品查询、资料匹配和门店知识建设角度，观察真实业务运营情况。
         </p>
       </div>
       <div class="admin-heading-actions dashboard-controls">
@@ -184,7 +184,7 @@ onMounted(() => {
       v-else-if="metrics === undefined"
       kind="loading"
       title="正在汇总业务指标"
-      description="正在计算知识覆盖、检索质量与部门贡献。"
+      description="正在计算商品查询、资料匹配与部门贡献。"
     />
 
     <template v-else>
@@ -213,7 +213,7 @@ onMounted(() => {
         </header>
         <dl class="dashboard-facts">
           <div>
-            <dt>文档处理成功率</dt>
+            <dt>商品资料处理成功率</dt>
             <dd>{{ metrics.document_processing.rate }}%</dd>
             <small>
               成功 {{ metrics.document_processing.numerator }} /
@@ -221,7 +221,7 @@ onMounted(() => {
             </small>
           </div>
           <div>
-            <dt>答案缓存命中率</dt>
+            <dt>相似商品问答缓存命中率</dt>
             <dd>{{ metrics.answer_cache.rate }}%</dd>
             <small>
               命中 {{ metrics.answer_cache.numerator }} /
@@ -229,7 +229,7 @@ onMounted(() => {
             </small>
           </div>
           <div>
-            <dt>评测命中率</dt>
+            <dt>商品检索评测命中率</dt>
             <dd>{{ metrics.retrieval_evaluation.rate }}%</dd>
             <small>
               命中 {{ metrics.retrieval_evaluation.numerator }} /
@@ -238,7 +238,7 @@ onMounted(() => {
             </small>
           </div>
           <div>
-            <dt>平均响应时间</dt>
+            <dt>平均商品查询响应</dt>
             <dd>{{ metrics.response_time.average_ms }} ms</dd>
             <small>{{ metrics.response_time.sample_count }} 次完成请求</small>
           </div>
@@ -248,31 +248,31 @@ onMounted(() => {
       <section class="content-card popular-card" aria-labelledby="popular-title">
         <header class="card-heading">
           <div>
-            <h2 id="popular-title">高频问题</h2>
-            <p>根据当前统计范围内的真实用户提问聚合，不展示系统生成的样例。</p>
+            <h2 id="popular-title">热门商品</h2>
+            <p>同一商品的不同问法按最终首条引用归并，不保存或展示用户原问题。</p>
           </div>
         </header>
         <div
-          v-if="metrics.popular_questions.length > 0"
+          v-if="metrics.popular_products.length > 0"
           class="leaderboard-table-scroll"
           tabindex="0"
         >
           <table class="leaderboard-table">
             <thead>
               <tr>
-                <th scope="col">问题</th>
-                <th scope="col">提问次数</th>
-                <th scope="col">最近提问</th>
+                <th scope="col">商品</th>
+                <th scope="col">查询次数</th>
+                <th scope="col">最近查询</th>
               </tr>
             </thead>
             <tbody>
               <tr
-                v-for="item in metrics.popular_questions"
-                :key="`${item.question}-${item.last_asked_at}`"
+                v-for="item in metrics.popular_products"
+                :key="item.product_id"
               >
-                <td class="question-cell">{{ item.question }}</td>
-                <td><strong>{{ item.ask_count }}</strong></td>
-                <td>{{ new Date(item.last_asked_at).toLocaleString("zh-CN") }}</td>
+                <td class="question-cell">{{ item.product_name }}</td>
+                <td><strong>{{ item.query_count }}</strong></td>
+                <td>{{ new Date(item.last_queried_at).toLocaleString("zh-CN") }}</td>
               </tr>
             </tbody>
           </table>
@@ -280,8 +280,8 @@ onMounted(() => {
         <InlineState
           v-else
           kind="empty"
-          title="暂无高频问题"
-          description="用户完成真实问答后，这里会按问题统计热度。"
+          title="暂无商品查询数据"
+          description="用户完成有引用的商品问答后，这里会按商品统计热度。"
         />
       </section>
 

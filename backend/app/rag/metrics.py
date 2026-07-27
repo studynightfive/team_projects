@@ -58,6 +58,12 @@ class RetrievalMetric(Base):
             "event_type",
             "created_at",
         ),
+        Index(
+            "ix_retrieval_metrics_product_created",
+            "department_id",
+            "primary_product_id",
+            "created_at",
+        ),
     )
 
     id: Mapped[str] = mapped_column(
@@ -77,6 +83,14 @@ class RetrievalMetric(Base):
     )
     knowledge_base_id: Mapped[str | None] = mapped_column(
         String(36),
+        nullable=True,
+    )
+    primary_product_id: Mapped[str | None] = mapped_column(
+        String(36),
+        nullable=True,
+    )
+    primary_product_name: Mapped[str | None] = mapped_column(
+        String(500),
         nullable=True,
     )
     event_type: Mapped[str] = mapped_column(String(16), nullable=False)
@@ -103,8 +117,17 @@ async def record_retrieval_metric(
     generated: bool,
     cache_hit: bool,
     took_ms: int,
+    primary_product_id: str | None = None,
+    primary_product_name: str | None = None,
 ) -> None:
     """记录指标且不让观测数据故障阻断用户检索。"""
+
+    product_id = (primary_product_id or "").strip()[:36] or None
+    product_name = (primary_product_name or "").strip()[:500] or None
+    if product_id is None or product_name is None:
+        # 商品标识和展示名称必须成对出现，避免生成无法解释的运营数据。
+        product_id = None
+        product_name = None
 
     try:
         async with db.begin_nested():
@@ -113,6 +136,8 @@ async def record_retrieval_metric(
                     user_id=user.id,
                     department_id=user.department_id,
                     knowledge_base_id=knowledge_base_id,
+                    primary_product_id=product_id,
+                    primary_product_name=product_name,
                     event_type=event_type,
                     hit_count=max(hit_count, 0),
                     generated=generated,

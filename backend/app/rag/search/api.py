@@ -21,7 +21,7 @@ from app.rag._shared.stream_session import stream_user_session
 from app.rag.guard import ensure_safe_query
 from app.rag.metrics import record_retrieval_metric
 from app.rag.search import service
-from app.rag.search.schemas import RagAnswerRequest, SearchRequest
+from app.rag.search.schemas import RagAnswerRequest, SearchHit, SearchRequest
 from app.rag.search.stream import stream_answer
 
 router = APIRouter(prefix="/api/v1/retrieval", tags=["retrieval"])
@@ -31,6 +31,18 @@ logger = structlog.get_logger()
 def _request_id(request: Request) -> str:
     request_id = getattr(request.state, "request_id", None)
     return request_id if isinstance(request_id, str) and request_id else new_request_id()
+
+
+def _primary_product(hits: list[SearchHit]) -> tuple[str | None, str | None]:
+    """以最终首条引用作为本次问答的主商品，不使用问题文本猜测商品。"""
+
+    if not hits:
+        return None, None
+    hit = hits[0]
+    product_name = (hit.doc_title or "").strip()
+    if not hit.doc_id.strip() or not product_name:
+        return None, None
+    return hit.doc_id, product_name
 
 
 @router.post("/search")
@@ -43,6 +55,7 @@ async def search_endpoint(
 ) -> dict[str, object]:
     response = await service.search(db, user=user, req=payload)
     request_id = _request_id(request)
+    product_id, product_name = _primary_product(response.hits)
     await record_retrieval_metric(
         db,
         user=user,
@@ -53,6 +66,8 @@ async def search_endpoint(
         generated=False,
         cache_hit=False,
         took_ms=response.took_ms,
+        primary_product_id=product_id,
+        primary_product_name=product_name,
     )
     await audit(
         db,
@@ -77,6 +92,7 @@ async def answer_endpoint(
 ) -> dict[str, object]:
     response = await service.answer(db, user=user, req=payload)
     request_id = _request_id(request)
+    product_id, product_name = _primary_product(response.hits)
     await record_retrieval_metric(
         db,
         user=user,
@@ -87,6 +103,8 @@ async def answer_endpoint(
         generated=response.generated,
         cache_hit=response.from_cache,
         took_ms=response.took_ms,
+        primary_product_id=product_id,
+        primary_product_name=product_name,
     )
     await audit(
         db,
@@ -131,6 +149,8 @@ async def answer_stream_endpoint(
         generated = False
         cache_hit = False
         took_ms = 0
+        primary_product_id: str | None = None
+        primary_product_name: str | None = None
         try:
             async with stream_user_session(user_id) as (stream_db, stream_user):
                 async for event in stream_answer(
@@ -140,6 +160,17 @@ async def answer_stream_endpoint(
                 ):
                     if event.event == "citation":
                         citation_count += 1
+                        if primary_product_id is None:
+                            event_product_id = event.data.get("doc_id")
+                            event_product_name = event.data.get("doc_title")
+                            if (
+                                isinstance(event_product_id, str)
+                                and event_product_id.strip()
+                                and isinstance(event_product_name, str)
+                                and event_product_name.strip()
+                            ):
+                                primary_product_id = event_product_id
+                                primary_product_name = event_product_name
                     if event.event == "done":
                         completed = True
                         generated = event.data.get("generated") is True
@@ -162,6 +193,8 @@ async def answer_stream_endpoint(
                         generated=generated,
                         cache_hit=cache_hit,
                         took_ms=took_ms,
+                        primary_product_id=primary_product_id,
+                        primary_product_name=primary_product_name,
                     )
                 await audit(
                     stream_db,

@@ -30,7 +30,7 @@ from app.users.dashboard_schemas import (
     IncentiveBadge,
     IncentiveRule,
     NextBadge,
-    PopularQuestionItem,
+    PopularProductItem,
     RateMetric,
     ResponseTimeMetric,
     UserIncentives,
@@ -176,47 +176,72 @@ async def _department_leaderboard(
     )
 
 
-async def _popular_questions(
+async def _popular_products(
     db: AsyncSession,
     *,
     department_id: str | None,
     started_at: datetime,
     ended_at: datetime,
     limit: int = 10,
-) -> list[PopularQuestionItem]:
-    """按规范化文本聚合真实用户问题，避免大小写与首尾空格拆散统计。"""
+) -> list[PopularProductItem]:
+    """按最终首条引用文档聚合商品热度，使不同问法归入同一商品。"""
 
-    normalized_question = func.lower(func.trim(Message.content))
-    ask_count = func.count(Message.id)
-    last_asked_at = func.max(Message.created_at)
-    statement = (
+    ranked_metrics = (
         select(
-            normalized_question.label("question"),
-            ask_count.label("ask_count"),
-            last_asked_at.label("last_asked_at"),
+            RetrievalMetric.primary_product_id.label("product_id"),
+            RetrievalMetric.primary_product_name.label("product_name"),
+            func.count(RetrievalMetric.id)
+            .over(partition_by=RetrievalMetric.primary_product_id)
+            .label("query_count"),
+            func.max(RetrievalMetric.created_at)
+            .over(partition_by=RetrievalMetric.primary_product_id)
+            .label("last_queried_at"),
+            func.row_number()
+            .over(
+                partition_by=RetrievalMetric.primary_product_id,
+                order_by=(
+                    RetrievalMetric.created_at.desc(),
+                    RetrievalMetric.id.desc(),
+                ),
+            )
+            .label("product_rank"),
         )
-        .select_from(Message)
-        .join(Conversation, Conversation.id == Message.conversation_id)
-        .join(User, User.id == Conversation.user_id)
         .where(
-            Message.role == "user",
-            Message.deleted_at.is_(None),
-            Message.created_at >= started_at,
-            Message.created_at <= ended_at,
-            func.length(normalized_question) > 0,
+            RetrievalMetric.event_type == "answer",
+            RetrievalMetric.hit_count > 0,
+            RetrievalMetric.primary_product_id.is_not(None),
+            RetrievalMetric.primary_product_name.is_not(None),
+            func.length(func.trim(RetrievalMetric.primary_product_name)) > 0,
+            RetrievalMetric.created_at >= started_at,
+            RetrievalMetric.created_at <= ended_at,
         )
-        .group_by(normalized_question)
-        .order_by(ask_count.desc(), last_asked_at.desc())
-        .limit(limit)
     )
     if department_id is not None:
-        statement = statement.where(User.department_id == department_id)
+        ranked_metrics = ranked_metrics.where(
+            RetrievalMetric.department_id == department_id
+        )
+    ranked_products = ranked_metrics.subquery()
+    statement = (
+        select(
+            ranked_products.c.product_id,
+            ranked_products.c.product_name,
+            ranked_products.c.query_count,
+            ranked_products.c.last_queried_at,
+        )
+        .where(ranked_products.c.product_rank == 1)
+        .order_by(
+            ranked_products.c.query_count.desc(),
+            ranked_products.c.last_queried_at.desc(),
+        )
+        .limit(limit)
+    )
 
     return [
-        PopularQuestionItem(
-            question=str(row.question),
-            ask_count=int(row.ask_count),
-            last_asked_at=row.last_asked_at,
+        PopularProductItem(
+            product_id=str(row.product_id),
+            product_name=str(row.product_name),
+            query_count=int(row.query_count),
+            last_queried_at=row.last_queried_at,
         )
         for row in (await db.execute(statement)).all()
     ]
@@ -446,15 +471,15 @@ async def get_dashboard_metrics(
         func.count().filter(
             (RetrievalMetric.event_type == "answer")
             & (RetrievalMetric.hit_count == 0)
-            & RetrievalMetric.generated.is_(False)
-            & RetrievalMetric.cache_hit.is_(False)
         ),
         func.count().filter(RetrievalMetric.event_type == "answer"),
         func.count().filter(
             (RetrievalMetric.event_type == "answer")
             & RetrievalMetric.cache_hit.is_(True)
         ),
-        func.avg(RetrievalMetric.took_ms),
+        func.avg(RetrievalMetric.took_ms).filter(
+            RetrievalMetric.event_type == "answer"
+        ),
     ).where(
         RetrievalMetric.created_at >= started_at,
         RetrievalMetric.created_at <= ended_at,
@@ -500,6 +525,8 @@ async def get_dashboard_metrics(
         ),
         knowledge_coverage=_rate(coverage_ready, coverage_total),
         active_searches=active_searches,
+        product_queries=answer_count,
+        product_match=_rate(effective_answers, answer_count),
         effective_answers=effective_answers,
         unanswered_queries=unanswered_queries,
         document_processing=document_processing,
@@ -508,9 +535,9 @@ async def get_dashboard_metrics(
         evaluation_run_count=evaluation_run_count,
         response_time=ResponseTimeMetric(
             average_ms=average_response_ms,
-            sample_count=active_searches,
+            sample_count=answer_count,
         ),
-        popular_questions=await _popular_questions(
+        popular_products=await _popular_products(
             db,
             department_id=scope_department_id,
             started_at=started_at,
