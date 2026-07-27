@@ -54,7 +54,43 @@ describe("文档任务进度轮询", () => {
     expect(wrapper.text()).toContain("100%");
     await vi.advanceTimersByTimeAsync(1000);
     expect(wrapper.emitted("finished")).toHaveLength(1);
+    expect(wrapper.emitted("finished")?.[0]?.[0]).toEqual([
+      {
+        ...queuedItem,
+        task: {
+          ...queuedItem.task,
+          status: "succeeded",
+          stage: "ready",
+          progress: 100,
+          finished_at: "2026-07-25T00:00:01Z",
+        },
+      },
+    ]);
     expect(serviceMocks.getDocumentTask).toHaveBeenCalledTimes(1);
+  });
+
+  it("以终态任务重新挂载时不重复轮询和触发完成回调", async () => {
+    vi.useFakeTimers();
+    const completedItem: DocumentBatchTaskItem = {
+      ...queuedItem,
+      task: {
+        ...queuedItem.task,
+        status: "succeeded",
+        stage: "ready",
+        progress: 100,
+        finished_at: "2026-07-25T00:00:01Z",
+      },
+    };
+
+    const wrapper = mount(DocumentTaskProgress, {
+      props: { items: [completedItem] },
+    });
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(wrapper.text()).toContain("1 / 1 已完成");
+    expect(serviceMocks.getDocumentTask).not.toHaveBeenCalled();
+    expect(wrapper.emitted("finished")).toBeUndefined();
   });
 
   it("组件卸载后已中止请求不能重新创建定时器", async () => {

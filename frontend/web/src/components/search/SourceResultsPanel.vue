@@ -12,7 +12,6 @@ import ListPagination from "../ListPagination.vue";
 import { useListPagination } from "../../composables/useListPagination";
 import type { SearchResultItem, SearchSourceType } from "../../types/ai-search";
 import {
-  Bookmark,
   ExternalLink,
   LayoutList,
   ListFilter,
@@ -30,7 +29,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   preview: [result: SearchResultItem, trigger: HTMLElement];
-  favorite: [resultId: string];
 }>();
 
 type TimeFilter = "all" | "30" | "90";
@@ -44,7 +42,6 @@ const timeFilter = ref<TimeFilter>("all");
 const sortMode = ref<SortMode>("relevance");
 const compact = ref(false);
 const isFilterPanelOpen = ref(false);
-const favoriteIds = ref<ReadonlySet<string>>(new Set());
 const filterPanelRef = ref<HTMLElement>();
 const filterToggleRef = ref<HTMLButtonElement>();
 const filterCloseRef = ref<HTMLButtonElement>();
@@ -130,20 +127,6 @@ const resetFilters = (): void => {
   departmentFilter.value = "all";
   timeFilter.value = "all";
   sortMode.value = "relevance";
-};
-
-const isFavorite = (resultId: string): boolean =>
-  favoriteIds.value.has(resultId);
-
-const toggleFavorite = (resultId: string): void => {
-  const nextFavoriteIds = new Set(favoriteIds.value);
-  const willFavorite = !nextFavoriteIds.has(resultId);
-
-  if (willFavorite) nextFavoriteIds.add(resultId);
-  else nextFavoriteIds.delete(resultId);
-
-  favoriteIds.value = nextFavoriteIds;
-  if (willFavorite) emit("favorite", resultId);
 };
 
 const openFilterPanel = (): void => {
@@ -432,20 +415,6 @@ onBeforeUnmount(() => {
           <span>{{ result.scoreDescription ?? "相关度" }}</span>
           <button
             type="button"
-            :class="{ 'favorite-active': isFavorite(result.id) }"
-            :aria-pressed="isFavorite(result.id)"
-            :aria-label="
-              isFavorite(result.id)
-                ? `取消收藏结果 ${result.title}`
-                : `收藏结果 ${result.title}`
-            "
-            :title="isFavorite(result.id) ? '取消收藏结果' : '收藏结果'"
-            @click="toggleFavorite(result.id)"
-          >
-            <Bookmark :size="16" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
             :aria-label="`预览原文 ${result.title}`"
             title="预览原文"
             @click="
@@ -694,12 +663,6 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-8);
   color: var(--color-text-secondary);
   background: var(--color-surface);
-}
-
-.source-result-side button.favorite-active {
-  border-color: var(--blue-300);
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
 }
 
 .source-result-list.compact .source-result-item {

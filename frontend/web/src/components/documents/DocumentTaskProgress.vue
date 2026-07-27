@@ -14,7 +14,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  finished: [];
+  finished: [items: readonly DocumentBatchTaskItem[]];
 }>();
 
 const terminalStatuses = new Set([
@@ -62,8 +62,9 @@ const poll = async (generation: number): Promise<void> => {
     (item) => !terminalStatuses.has(item.task.status),
   );
   if (pending.length === 0) {
+    const completedItems = rows.value;
     stopPolling();
-    if (!disposed) emit("finished");
+    if (!disposed) emit("finished", completedItems);
     return;
   }
 
@@ -101,7 +102,12 @@ watch(
     tasks.value = Object.fromEntries(
       items.map((item) => [item.task.task_id, item.task]),
     );
-    if (items.length > 0) void poll(pollGeneration);
+    // 父页面重挂载时可能传入已完成任务，终态任务不能再次触发完成回调。
+    if (
+      items.some((item) => !terminalStatuses.has(item.task.status))
+    ) {
+      void poll(pollGeneration);
+    }
   },
   { immediate: true },
 );

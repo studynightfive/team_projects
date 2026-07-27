@@ -241,6 +241,14 @@ const cancelUploadConflicts = (): void => {
   pendingUploadFiles.value = [];
 };
 
+const handleUploadTasksFinished = (
+  items: readonly DocumentBatchTaskItem[],
+): void => {
+  // 保存最终任务状态，抽屉刷新后不会重新轮询已经完成的上传任务。
+  uploadTasks.value = items;
+  void loadData();
+};
+
 const confirmArchive = (item: KnowledgeBaseRecord): void => {
   const nextStatus = item.status === "active" ? "archived" : "active";
   modal.confirm({
@@ -471,7 +479,7 @@ onMounted(loadData);
           v-if="uploadTasks.length > 0"
           :items="uploadTasks"
           title="文档上传处理进度"
-          @finished="loadData"
+          @finished="handleUploadTasksFinished"
         />
       </div>
     </Drawer>
