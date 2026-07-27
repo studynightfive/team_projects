@@ -3,7 +3,6 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 
 import type { CitationSource, SearchResultItem } from "../../types/ai-search";
 import {
-  Bookmark,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -21,7 +20,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:open": [value: boolean];
-  favorite: [documentId: string];
   notice: [message: string];
 }>();
 
@@ -198,14 +196,6 @@ onBeforeUnmount(() => document.body.classList.remove("preview-drawer-open"));
         <button class="secondary-button" type="button" @click="copyLink">
           <Copy :size="16" aria-hidden="true" />
           复制链接
-        </button>
-        <button
-          class="secondary-button"
-          type="button"
-          @click="emit('favorite', document.id)"
-        >
-          <Bookmark :size="16" aria-hidden="true" />
-          收藏文档
         </button>
         <button class="primary-button" type="button" @click="openOriginal">
           <ExternalLink :size="16" aria-hidden="true" />

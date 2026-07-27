@@ -18,7 +18,6 @@ import DocumentPreviewDrawer from "../../components/search/DocumentPreviewDrawer
 import RagProcessingTimeline from "../../components/search/RagProcessingTimeline.vue";
 import SourceResultsPanel from "../../components/search/SourceResultsPanel.vue";
 import {
-  Bookmark,
   Copy,
   Download,
   MessageSquarePlus,
@@ -41,7 +40,6 @@ import {
   prepareFileSave,
   type PreparedFileSave,
 } from "../../services/file-save";
-import { createFavorite, deleteFavorite } from "../../services/favorites";
 import { listKnowledgeBases } from "../../services/knowledge";
 import {
   getConversation,
@@ -86,8 +84,6 @@ const activeTab = ref<"answer" | "results">("answer");
 const previewDocument = ref<CitationSource | SearchResultItem>();
 const isPreviewOpen = ref(false);
 const previewTrigger = ref<HTMLElement>();
-const answerFavorite = ref(false);
-const answerFavoriteId = ref<string>();
 const answerTabRef = ref<HTMLButtonElement>();
 const resultsTabRef = ref<HTMLButtonElement>();
 const isExportDialogOpen = ref(false);
@@ -329,8 +325,6 @@ const executeSearch = async (
   processingStages.value = [];
   errorMessage.value = "";
   activeTab.value = "answer";
-  answerFavorite.value = false;
-  answerFavoriteId.value = undefined;
   shouldFollowAnswer.value = true;
   void scrollToConversationEnd(true);
 
@@ -494,68 +488,6 @@ const confirmAnswerExport = async (): Promise<void> => {
   }
 };
 
-const favoriteDocumentResult = async (
-  result: SearchResultItem | CitationSource,
-): Promise<void> => {
-  if (!isRealApiMode) {
-    void message.info("文档已加入本地收藏");
-    return;
-  }
-
-  const documentId =
-    "documentId" in result && typeof result.documentId === "string"
-      ? result.documentId
-      : result.id;
-  if (documentId.length === 0) {
-    void message.warning("当前结果缺少文档标识，无法收藏");
-    return;
-  }
-
-  try {
-    await createFavorite({
-      type: "document",
-      title: result.title,
-      summary: result.snippet,
-      tags: ["文档", "搜索结果"],
-      note: "",
-      source_id: documentId,
-      source_payload: {
-        documentId,
-        knowledgeBaseId:
-          "knowledgeBaseId" in result ? result.knowledgeBaseId : undefined,
-        sourceName: result.sourceName,
-      },
-    });
-    void message.success("文档已保存到真实收藏");
-  } catch (error: unknown) {
-    void message.error(toPublicApiError(error).message);
-  }
-};
-
-const favoriteResultById = async (resultId: string): Promise<void> => {
-  const result = response.value?.results.find((item) => item.id === resultId);
-  if (result === undefined) {
-    void message.warning("未找到对应检索结果");
-    return;
-  }
-  await favoriteDocumentResult(result);
-};
-
-const favoritePreviewDocument = async (documentId: string): Promise<void> => {
-  const preview = previewDocument.value;
-  if (preview === undefined) {
-    void message.warning("当前没有可收藏的预览文档");
-    return;
-  }
-  await favoriteDocumentResult({
-    ...preview,
-    documentId:
-      "documentId" in preview && typeof preview.documentId === "string"
-        ? preview.documentId
-        : documentId,
-  });
-};
-
 const runRelatedSearch = (question: string): void => {
   submitSearch({
     query: question,
@@ -710,8 +642,6 @@ const startNewConversation = (): void => {
   processingStages.value = [];
   errorMessage.value = "";
   status.value = "idle";
-  answerFavorite.value = false;
-  answerFavoriteId.value = undefined;
   skipNextRouteSync = true;
   void router.replace({ path: "/" });
 };
@@ -784,51 +714,6 @@ const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
 
 const showFeedback = (value: string): void => {
   void message.success(`已记录“${value}”反馈，本地刷新后将清除`);
-};
-
-const toggleAnswerFavorite = async (): Promise<void> => {
-  if (response.value === undefined) return;
-
-  if (isRealApiMode) {
-    try {
-      if (answerFavorite.value && answerFavoriteId.value !== undefined) {
-        await deleteFavorite(answerFavoriteId.value);
-        answerFavorite.value = false;
-        answerFavoriteId.value = undefined;
-        void message.success("已取消收藏");
-        return;
-      }
-
-      const favorite = await createFavorite({
-        type: "answer",
-        title: response.value.answer.title,
-        summary: response.value.answer.summary,
-        tags: ["RAG", "AI 答案"],
-        note: "",
-        source_id: response.value.answer.id,
-        source_payload: {
-          query: response.value.answer.query,
-          markdown: response.value.answer.markdown,
-          citations: response.value.answer.citations.map((citation) => ({
-            id: citation.id,
-            title: citation.title,
-            snippet: citation.snippet,
-          })),
-        },
-      });
-      answerFavorite.value = true;
-      answerFavoriteId.value = favorite.id;
-      void message.success("答案已保存到真实收藏");
-    } catch (error: unknown) {
-      void message.error(toPublicApiError(error).message);
-    }
-    return;
-  }
-
-  answerFavorite.value = !answerFavorite.value;
-  void message.success(
-    answerFavorite.value ? "答案已加入本地收藏" : "已取消本地收藏",
-  );
 };
 
 const showLocalNotice = (notice: string): void => {
@@ -969,18 +854,6 @@ onBeforeUnmount(() => {
         >
           <Download :size="16" aria-hidden="true" />
         </button>
-        <button
-          v-if="response !== undefined"
-          class="icon-button conversation-action-icon"
-          type="button"
-          :aria-pressed="answerFavorite"
-          :disabled="status === 'searching'"
-          :aria-label="answerFavorite ? '取消收藏当前答案' : '收藏当前答案'"
-          :title="answerFavorite ? '取消收藏' : '收藏答案'"
-          @click="toggleAnswerFavorite"
-        >
-          <Bookmark :size="16" aria-hidden="true" />
-        </button>
       </div>
     </header>
 
@@ -1002,7 +875,6 @@ onBeforeUnmount(() => {
             @preview="openPreview"
             @related="runRelatedSearch"
             @feedback="showFeedback"
-            @toggle-favorite="toggleAnswerFavorite"
           />
         </section>
 
@@ -1118,12 +990,10 @@ onBeforeUnmount(() => {
             <AiAnswerPanel
               :answer="response.answer"
               :id-prefix="`current-${response.answer.id}`"
-              :favorite="answerFavorite"
               :busy="status === 'searching'"
               @preview="openPreview"
               @related="runRelatedSearch"
               @feedback="showFeedback"
-              @toggle-favorite="toggleAnswerFavorite"
             />
           </div>
 
@@ -1136,7 +1006,6 @@ onBeforeUnmount(() => {
             <SourceResultsPanel
               :results="response.results"
               @preview="openPreview"
-              @favorite="favoriteResultById"
             />
           </div>
         </template>
@@ -1167,7 +1036,6 @@ onBeforeUnmount(() => {
       v-model:open="isPreviewOpen"
       :document="previewDocument"
       :return-focus-to="previewTrigger"
-      @favorite="favoritePreviewDocument"
       @notice="showLocalNotice"
     />
 

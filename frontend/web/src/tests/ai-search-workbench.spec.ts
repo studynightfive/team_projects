@@ -192,6 +192,7 @@ describe("AI 搜索工作台关键链路", () => {
 
     expect(wrapper.findAll(".markdown-citation")).toHaveLength(2);
     expect(wrapper.findAll(".answer-citation-links button")).toHaveLength(1);
+    expect(wrapper.text()).not.toContain("收藏答案");
   });
 
   it("非默认问题不会复用差旅结论，筛选后的引用编号与来源一致", async () => {
@@ -308,6 +309,31 @@ describe("AI 搜索工作台关键链路", () => {
     expect(modalText).toContain("Markdown");
     expect(modalText).toContain("RAG问答结果.md");
     expect(modalText).toContain("下载 Markdown");
+  });
+
+  it("AI 搜索页不再提供答案或文档收藏入口", async () => {
+    const { wrapper } = await renderAppAt("/search?q=差旅报销");
+    await vi.waitFor(() => {
+      expect(wrapper.find(".result-tabs").exists()).toBe(true);
+    });
+
+    expect(wrapper.text()).not.toContain("收藏答案");
+    expect(
+      wrapper
+        .findAll("button")
+        .some((button) => button.attributes("aria-label")?.includes("收藏")),
+    ).toBe(false);
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("原始结果"))
+      ?.trigger("click");
+    await flushPromises();
+    expect(
+      wrapper
+        .findAll("button")
+        .some((button) => button.attributes("aria-label")?.includes("收藏")),
+    ).toBe(false);
   });
 
   it("空间深链接选中目标空间，已删除的历史页面返回 404", async () => {

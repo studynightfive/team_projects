@@ -356,6 +356,14 @@ const cancelUploadConflicts = (): void => {
   pendingUploadFiles.value = [];
 };
 
+const handleBatchTasksFinished = (
+  items: readonly DocumentBatchTaskItem[],
+): void => {
+  // 先保存终态，避免加载态重挂载进度组件后按旧的排队状态再次轮询。
+  batchTasks.value = items;
+  void loadRealDetail();
+};
+
 watch(
   () => route.params.kb_id,
   () => {
@@ -521,7 +529,7 @@ onBeforeUnmount(() => {
         v-if="batchTasks.length > 0"
         :items="batchTasks"
         :title="batchTaskTitle"
-        @finished="loadRealDetail"
+        @finished="handleBatchTasksFinished"
       />
 
       <div class="filter-bar">

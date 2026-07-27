@@ -4,7 +4,6 @@ import { computed, ref, watch } from "vue";
 import type { AiAnswer, CitationSource } from "../../types/ai-search";
 import SafeMarkdown from "../common/SafeMarkdown.vue";
 import {
-  Bookmark,
   CheckCircle2,
   MessageSquareText,
   ThumbsDown,
@@ -15,7 +14,6 @@ import SearchStatusBadge from "./SearchStatusBadge.vue";
 
 const props = defineProps<{
   answer: AiAnswer;
-  favorite?: boolean;
   busy?: boolean;
   idPrefix?: string;
   readonlyView?: boolean;
@@ -25,7 +23,6 @@ const emit = defineEmits<{
   preview: [citation: CitationSource, trigger: HTMLElement];
   related: [question: string];
   feedback: [value: string];
-  "toggle-favorite": [];
 }>();
 
 const selectedFeedback = ref("");
@@ -94,17 +91,6 @@ watch(
       </div>
       <div class="answer-heading-actions">
         <SearchStatusBadge :status="busy ? 'searching' : answer.status" />
-        <button
-          v-if="!readonlyView"
-          class="answer-favorite-button"
-          type="button"
-          :aria-pressed="favorite"
-          :disabled="busy"
-          @click="emit('toggle-favorite')"
-        >
-          <Bookmark :size="16" aria-hidden="true" />
-          {{ favorite ? "已收藏" : "收藏答案" }}
-        </button>
       </div>
     </header>
 
@@ -221,7 +207,6 @@ watch(
 
 .ai-answer-heading,
 .answer-heading-actions,
-.answer-favorite-button,
 .answer-disclaimer,
 .answer-feedback,
 .feedback-actions,
@@ -257,7 +242,6 @@ watch(
   gap: var(--space-2);
 }
 
-.answer-favorite-button,
 .feedback-actions button {
   min-height: 34px;
   gap: var(--space-1);
@@ -269,7 +253,6 @@ watch(
   font-size: var(--font-size-13);
 }
 
-.answer-favorite-button[aria-pressed="true"],
 .feedback-actions button.active {
   border-color: var(--blue-300);
   color: var(--color-primary);
@@ -398,7 +381,6 @@ watch(
   }
 
   .feedback-actions button,
-  .answer-favorite-button,
   .answer-citation-links button {
     min-height: 44px;
   }
