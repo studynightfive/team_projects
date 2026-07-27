@@ -12,7 +12,7 @@ import { ArrowUpRight, BookOpen, Search } from "../../components/icons";
 import { localPageData } from "../../data/local-pages";
 import { toPublicApiError } from "../../api/client";
 import {
-  listKnowledgeBases,
+  listAvailableKnowledgeBases,
   type KnowledgeBaseRecord,
 } from "../../services/knowledge";
 const query = ref("");
@@ -86,7 +86,9 @@ const loadRealKnowledgeBases = async (): Promise<void> => {
   loadState.value = "loading";
   loadError.value = "";
   try {
-    realKnowledgeBases.value = await listKnowledgeBases(loadController.signal);
+    realKnowledgeBases.value = await listAvailableKnowledgeBases(
+      loadController.signal,
+    );
     loadState.value = "idle";
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") return;

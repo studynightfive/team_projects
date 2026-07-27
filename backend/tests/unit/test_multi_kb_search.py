@@ -92,3 +92,27 @@ async def test_answer_validates_knowledge_scope_before_reading_cache(
         )
 
     cache_reader.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_search_rejects_archived_or_inaccessible_knowledge_base(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        search_service,
+        "get_user_accessible_kb_ids",
+        AsyncMock(return_value={"kb-active"}),
+    )
+
+    with pytest.raises(ValidationException, match="不可用或无权限"):
+        await search_service.search(
+            SimpleNamespace(),
+            user=SimpleNamespace(id="user-1"),
+            req=SearchRequest(
+                query="医保结算流程",
+                mode="keyword",
+                kb_ids=["kb-archived"],
+                rerank=False,
+            ),
+            guard_checked=True,
+        )

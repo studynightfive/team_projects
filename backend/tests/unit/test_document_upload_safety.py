@@ -90,7 +90,7 @@ async def test_batch_failure_removes_files_created_by_earlier_items(
     session = _session()
     service = _service(tmp_path, session, max_upload_bytes=4)
     monkeypatch.setattr(document_service, "user_can_access_kb", AsyncMock(return_value=True))
-    monkeypatch.setattr(service, "_get_kb", AsyncMock())
+    monkeypatch.setattr(service, "_require_active_kb", AsyncMock())
     monkeypatch.setattr(service, "_find_by_hash", AsyncMock(return_value=None))
     monkeypatch.setattr(service, "_find_by_name", AsyncMock(return_value=None))
 
@@ -140,7 +140,7 @@ async def test_replace_failure_restores_original_and_derived_files(
         [("asset.txt", b"old asset")],
     )
     monkeypatch.setattr(document_service, "user_can_access_kb", AsyncMock(return_value=True))
-    monkeypatch.setattr(service, "_get_kb", AsyncMock())
+    monkeypatch.setattr(service, "_require_active_kb", AsyncMock())
     monkeypatch.setattr(service, "_find_by_hash", AsyncMock(return_value=existing))
     monkeypatch.setattr(service, "_find_by_name", AsyncMock(return_value=existing))
     monkeypatch.setattr(service, "_deactivate_index", AsyncMock())
@@ -197,7 +197,7 @@ async def test_replace_increments_document_version(
     )
     service.storage.save_original(existing.id, existing.stored_filename, b"old")
     monkeypatch.setattr(document_service, "user_can_access_kb", AsyncMock(return_value=True))
-    monkeypatch.setattr(service, "_get_kb", AsyncMock())
+    monkeypatch.setattr(service, "_require_active_kb", AsyncMock())
     monkeypatch.setattr(service, "_find_by_hash", AsyncMock(return_value=None))
     monkeypatch.setattr(service, "_find_by_name", AsyncMock(return_value=existing))
     monkeypatch.setattr(service, "_deactivate_index", AsyncMock())

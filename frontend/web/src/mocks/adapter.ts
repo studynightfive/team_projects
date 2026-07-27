@@ -181,6 +181,7 @@ const documents = [
     id: "doc-medical",
     knowledge_base_id: "kb-medical",
     knowledge_base_name: "医疗信息化知识库",
+    knowledge_base_status: "active",
     title: "医疗信息化IT系统分析文档",
     original_filename: "医疗信息化IT系统分析文档.md",
     extension: ".md",
@@ -197,6 +198,7 @@ const documents = [
     id: "doc-failed",
     knowledge_base_id: "kb-default",
     knowledge_base_name: "默认知识库",
+    knowledge_base_status: "active",
     title: "服务降级复盘模板",
     original_filename: "服务降级复盘模板.pdf",
     extension: ".pdf",
@@ -571,7 +573,14 @@ export const mockAdapter: AxiosAdapter = (config) => {
     }));
   }
   if (method === "get" && url === "/v1/audit-logs") return Promise.resolve(ok(config, page(auditLogs)));
-  if (method === "get" && url === "/v1/knowledge-bases") return Promise.resolve(ok(config, page(knowledgeBases)));
+  if (method === "get" && url === "/v1/knowledge-bases/available") {
+    return Promise.resolve(
+      ok(config, page(knowledgeBases.filter((item) => item.status === "active"))),
+    );
+  }
+  if (method === "get" && url === "/v1/knowledge-bases") {
+    return Promise.resolve(ok(config, page(knowledgeBases)));
+  }
   if (method === "get" && url === "/v1/admin/documents") return Promise.resolve(ok(config, page(documents)));
   if (method === "get" && url === "/v1/admin/documents/recycle-bin") {
     const items = recycledDocuments.map(({ document, deletedAt, purgeAfter, deletedBy }) => ({

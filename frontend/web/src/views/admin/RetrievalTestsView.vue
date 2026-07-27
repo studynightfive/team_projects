@@ -28,7 +28,7 @@ import {
   type SingleRetrievalTestResult,
 } from "../../services/admin";
 import {
-  listKnowledgeBases,
+  listAvailableKnowledgeBases,
   type KnowledgeBaseRecord,
 } from "../../services/knowledge";
 
@@ -177,7 +177,7 @@ const loadData = async (): Promise<void> => {
     const [datasetPage, runPage, kbItems] = await Promise.all([
       listRetrievalDatasets(),
       listRetrievalRuns(),
-      listKnowledgeBases(),
+      listAvailableKnowledgeBases(),
     ]);
     datasets.value = datasetPage.items;
     runs.value = runPage.items;

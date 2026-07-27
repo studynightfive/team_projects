@@ -1829,6 +1829,8 @@ export interface components {
             purge_after?: string | null;
             /** Knowledge Base Name */
             knowledge_base_name: string;
+            /** Knowledge Base Status */
+            knowledge_base_status: string;
         };
         /** AdminTaskItem */
         AdminTaskItem: {
@@ -3005,6 +3007,8 @@ export interface components {
             purge_after?: string | null;
             /** Knowledge Base Name */
             knowledge_base_name: string;
+            /** Knowledge Base Status */
+            knowledge_base_status: string;
             /** Deleted By */
             deleted_by?: string | null;
         };

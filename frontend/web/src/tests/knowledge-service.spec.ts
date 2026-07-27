@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   getUploadTaskItems,
+  listAvailableKnowledgeBases,
   type UploadResult,
 } from "../services/knowledge";
 
@@ -16,6 +17,30 @@ vi.mock("../api/client", () => ({
 }));
 
 describe("知识库服务上传任务映射", () => {
+  it("用户工作区通过可用知识库接口排除归档项", async () => {
+    const controller = new AbortController();
+    apiMocks.get.mockResolvedValueOnce({
+      data: {
+        code: 0,
+        message: "成功",
+        data: {
+          items: [],
+          page: 1,
+          page_size: 100,
+          total: 0,
+        },
+        request_id: "request-available",
+      },
+    });
+
+    await listAvailableKnowledgeBases(controller.signal);
+
+    expect(apiMocks.get).toHaveBeenCalledWith(
+      "/v1/knowledge-bases/available",
+      { signal: controller.signal },
+    );
+  });
+
   it("任务详情暂时不可用时保留上传成功结果并交给轮询恢复", async () => {
     apiMocks.get.mockRejectedValueOnce(new Error("temporary network error"));
     const uploadResult: UploadResult = {

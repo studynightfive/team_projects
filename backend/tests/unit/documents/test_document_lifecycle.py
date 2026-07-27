@@ -57,6 +57,7 @@ async def test_batch_delete_moves_document_to_recycle_bin(monkeypatch) -> None:
     service.settings = SimpleNamespace(document_recycle_days=30)
     service._cancel_open_tasks = AsyncMock()
     service._deactivate_index = AsyncMock()
+    service._require_active_kb = AsyncMock()
 
     monkeypatch.setattr(
         "app.documents.service.require_any_permission",
@@ -84,6 +85,7 @@ async def test_batch_delete_moves_document_to_recycle_bin(monkeypatch) -> None:
     assert (document.purge_after - document.deleted_at).days == 30
     service._cancel_open_tasks.assert_awaited_once_with(document.id)
     service._deactivate_index.assert_awaited_once_with(document.id)
+    service._require_active_kb.assert_awaited_once_with("kb-1")
     unpublish.assert_awaited_once_with(session, document.id)
     session.commit.assert_awaited_once()
 

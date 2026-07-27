@@ -145,6 +145,7 @@ class TaskResponse(BaseModel):
 
 class AdminDocumentItem(DocumentSummary):
     knowledge_base_name: str
+    knowledge_base_status: str
 
 
 class AdminTaskItem(TaskResponse):

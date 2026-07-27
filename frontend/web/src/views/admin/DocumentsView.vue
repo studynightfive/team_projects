@@ -45,6 +45,8 @@ const batchTasks = ref<readonly DocumentBatchTaskItem[]>([]);
 const sourceDocuments = computed<readonly DisplayDocument[]>(() =>
   viewMode.value === "active" ? documents.value : recycledDocuments.value,
 );
+const isArchivedDocument = (item: DisplayDocument): boolean =>
+  item.knowledge_base_status === "archived";
 const filteredDocuments = computed(() => {
   const keyword = query.value.trim().toLowerCase();
   return sourceDocuments.value.filter((item) => {
@@ -67,13 +69,15 @@ const {
   pagedItems: pagedDocuments,
   setPage: setDocumentsPage,
 } = useListPagination(filteredDocuments);
+const selectablePagedDocuments = computed(() =>
+  pagedDocuments.value.filter((item) => !isArchivedDocument(item)),
+);
 
 const allVisibleSelected = computed(
   () =>
-    pagedDocuments.value.length > 0 &&
-    pagedDocuments.value.every((item) =>
-      selectedDocumentIds.value.includes(item.id),
-    ),
+    selectablePagedDocuments.value.length > 0 &&
+    selectablePagedDocuments.value
+      .every((item) => selectedDocumentIds.value.includes(item.id)),
 );
 
 const statusLabel = (status: string): string =>
@@ -136,7 +140,9 @@ const loadData = async (): Promise<void> => {
         viewMode.value === "active"
           ? activePage.items
           : recycledDocuments.value
-      ).some((item) => item.id === id),
+      ).some(
+        (item) => item.id === id && !isArchivedDocument(item),
+      ),
     );
   } catch (error: unknown) {
     message.error(toPublicApiError(error).message);
@@ -145,14 +151,18 @@ const loadData = async (): Promise<void> => {
   }
 };
 
-const toggleDocument = (documentId: string): void => {
+const toggleDocument = (item: DisplayDocument): void => {
+  if (isArchivedDocument(item)) return;
+  const documentId = item.id;
   selectedDocumentIds.value = selectedDocumentIds.value.includes(documentId)
     ? selectedDocumentIds.value.filter((id) => id !== documentId)
     : [...selectedDocumentIds.value, documentId];
 };
 
 const toggleAllVisible = (): void => {
-  const visibleIds = new Set(pagedDocuments.value.map((item) => item.id));
+  const visibleIds = new Set(
+    selectablePagedDocuments.value.map((item) => item.id),
+  );
   if (allVisibleSelected.value) {
     selectedDocumentIds.value = selectedDocumentIds.value.filter(
       (id) => !visibleIds.has(id),
@@ -370,6 +380,7 @@ onMounted(loadData);
                 <input
                   type="checkbox"
                   :checked="allVisibleSelected"
+                  :disabled="selectablePagedDocuments.length === 0"
                   aria-label="选择当前页全部文档"
                   @change="toggleAllVisible"
                 />
@@ -388,15 +399,19 @@ onMounted(loadData);
                 <input
                   type="checkbox"
                   :checked="selectedDocumentIds.includes(item.id)"
+                  :disabled="isArchivedDocument(item)"
                   :aria-label="`选择 ${item.title}`"
-                  @change="toggleDocument(item.id)"
+                  @change="toggleDocument(item)"
                 />
               </td>
               <td>
                 <strong>{{ item.title }}</strong>
                 <small>{{ item.original_filename }}</small>
               </td>
-              <td>{{ item.knowledge_base_name }}</td>
+              <td>
+                {{ item.knowledge_base_name }}
+                <small v-if="isArchivedDocument(item)">已归档，只读</small>
+              </td>
               <td>{{ formatBytes(item.size_bytes) }}</td>
               <td>
                 <span
@@ -436,6 +451,7 @@ onMounted(loadData);
                   <button
                     v-if="
                       viewMode === 'active' &&
+                        !isArchivedDocument(item) &&
                         ['failed', 'manual_review', 'ready'].includes(item.status)
                     "
                     class="text-button"
@@ -445,7 +461,9 @@ onMounted(loadData);
                     重新处理
                   </button>
                   <button
-                    v-if="viewMode === 'active'"
+                    v-if="
+                      viewMode === 'active' && !isArchivedDocument(item)
+                    "
                     class="text-button danger-text"
                     type="button"
                     @click="confirmDelete([item.id])"
@@ -453,13 +471,14 @@ onMounted(loadData);
                     删除
                   </button>
                   <button
-                    v-else
+                    v-else-if="!isArchivedDocument(item)"
                     class="text-button"
                     type="button"
                     @click="restoreSelected([item.id])"
                   >
                     恢复
                   </button>
+                  <small v-else>归档只读</small>
                 </div>
               </td>
             </tr>

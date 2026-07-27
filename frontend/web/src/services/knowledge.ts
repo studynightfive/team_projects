@@ -103,6 +103,16 @@ export const listKnowledgeBases = async (
   return items;
 };
 
+export const listAvailableKnowledgeBases = async (
+  signal?: AbortSignal,
+): Promise<readonly KnowledgeBaseRecord[]> => {
+  const response = await apiClient.get<ApiResponse<KnowledgeBasePage>>(
+    "/v1/knowledge-bases/available",
+    { signal },
+  );
+  return unwrapApiData(response.data).items;
+};
+
 export const createKnowledgeBase = async (
   payload: KnowledgeBaseCreatePayload,
 ): Promise<KnowledgeBaseRecord> => {

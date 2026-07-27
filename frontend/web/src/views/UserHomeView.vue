@@ -22,7 +22,7 @@ import {
 import { isRealApiMode } from "../config/runtime";
 import { loadAiSearchHome } from "../services/ai-search";
 import { getMyIncentives, type UserIncentives } from "../services/incentives";
-import { listKnowledgeBases } from "../services/knowledge";
+import { listAvailableKnowledgeBases } from "../services/knowledge";
 import { useSessionStore } from "../stores/session";
 import type {
   AiSearchHomeData,
@@ -106,7 +106,9 @@ const initializeHome = async (): Promise<void> => {
       modelId.value = data.modelOptions[0]?.value ?? "env-deepseek";
     }
     if (data.meta.apiRequestsAllowed) {
-      const knowledgeBases = await listKnowledgeBases(loadController.signal);
+      const knowledgeBases = await listAvailableKnowledgeBases(
+        loadController.signal,
+      );
       knowledgeBaseOptions.value = knowledgeBases.map((item) => ({
         id: item.id,
         name: item.name,

@@ -8,7 +8,7 @@ import { aiSearchMockData } from "../mocks/ai-search";
 import SearchView from "../views/user/SearchView.vue";
 
 const serviceMocks = vi.hoisted(() => ({
-  listKnowledgeBases: vi.fn(),
+  listAvailableKnowledgeBases: vi.fn(),
   listRealChatModelOptions: vi.fn(),
   runAiSearch: vi.fn(),
 }));
@@ -19,7 +19,7 @@ vi.mock("../config/runtime", () => ({
 }));
 vi.mock("../services/knowledge", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../services/knowledge")>()),
-  listKnowledgeBases: serviceMocks.listKnowledgeBases,
+  listAvailableKnowledgeBases: serviceMocks.listAvailableKnowledgeBases,
 }));
 vi.mock("../services/ai-search-real", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../services/ai-search-real")>()),
@@ -31,13 +31,13 @@ vi.mock("../services/ai-search", () => ({
 
 describe("真实问答页工作流", () => {
   beforeEach(() => {
-    serviceMocks.listKnowledgeBases.mockReset();
+    serviceMocks.listAvailableKnowledgeBases.mockReset();
     serviceMocks.listRealChatModelOptions.mockReset();
     serviceMocks.runAiSearch.mockReset();
   });
 
   it("默认跳过空个人知识库并检索第一份已有就绪文档的知识库", async () => {
-    serviceMocks.listKnowledgeBases.mockResolvedValue([
+    serviceMocks.listAvailableKnowledgeBases.mockResolvedValue([
       {
         id: "kb-personal",
         name: "我的个人知识库",
@@ -123,7 +123,7 @@ describe("真实问答页工作流", () => {
     let resolveKnowledgeBases:
       | ((value: readonly Record<string, unknown>[]) => void)
       | undefined;
-    serviceMocks.listKnowledgeBases.mockReturnValue(
+    serviceMocks.listAvailableKnowledgeBases.mockReturnValue(
       new Promise<readonly Record<string, unknown>[]>((resolve) => {
         resolveKnowledgeBases = resolve;
       }),
@@ -223,7 +223,7 @@ describe("真实问答页工作流", () => {
   });
 
   it("空间入口只预选知识库，不填入问题也不自动搜索", async () => {
-    serviceMocks.listKnowledgeBases.mockResolvedValue([
+    serviceMocks.listAvailableKnowledgeBases.mockResolvedValue([
       {
         id: "kb-medical",
         name: "医疗知识库",
@@ -276,7 +276,7 @@ describe("真实问答页工作流", () => {
   });
 
   it("同页连续提问会清空输入并携带服务端会话 ID", async () => {
-    serviceMocks.listKnowledgeBases.mockResolvedValue([
+    serviceMocks.listAvailableKnowledgeBases.mockResolvedValue([
       {
         id: "kb-medical",
         name: "医疗知识库",

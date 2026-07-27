@@ -7632,6 +7632,10 @@
           "knowledge_base_name": {
             "type": "string",
             "title": "Knowledge Base Name"
+          },
+          "knowledge_base_status": {
+            "type": "string",
+            "title": "Knowledge Base Status"
           }
         },
         "type": "object",
@@ -7650,7 +7654,8 @@
           "chunk_strategy",
           "chunk_size",
           "chunk_overlap",
-          "knowledge_base_name"
+          "knowledge_base_name",
+          "knowledge_base_status"
         ],
         "title": "AdminDocumentItem"
       },
@@ -10976,6 +10981,10 @@
             "type": "string",
             "title": "Knowledge Base Name"
           },
+          "knowledge_base_status": {
+            "type": "string",
+            "title": "Knowledge Base Status"
+          },
           "deleted_by": {
             "anyOf": [
               {
@@ -11004,7 +11013,8 @@
           "chunk_strategy",
           "chunk_size",
           "chunk_overlap",
-          "knowledge_base_name"
+          "knowledge_base_name",
+          "knowledge_base_status"
         ],
         "title": "RecycleBinItem"
       },

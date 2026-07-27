@@ -10,7 +10,7 @@ import { useSessionStore } from "../stores/session";
 import KnowledgeDetailView from "../views/user/KnowledgeDetailView.vue";
 
 const serviceMocks = vi.hoisted(() => ({
-  listKnowledgeBases: vi.fn(),
+  listAvailableKnowledgeBases: vi.fn(),
   listDocuments: vi.fn(),
   checkDocumentNameConflicts: vi.fn(),
   getUploadTaskItems: vi.fn(),
@@ -66,7 +66,9 @@ const documentRecord = {
 } as const;
 
 const renderKnowledgeDetail = async () => {
-  serviceMocks.listKnowledgeBases.mockResolvedValue([personalKnowledgeBase]);
+  serviceMocks.listAvailableKnowledgeBases.mockResolvedValue([
+    personalKnowledgeBase,
+  ]);
   serviceMocks.listDocuments.mockResolvedValue([documentRecord]);
   serviceMocks.checkDocumentNameConflicts.mockResolvedValue([]);
   serviceMocks.getUploadTaskItems.mockResolvedValue([]);

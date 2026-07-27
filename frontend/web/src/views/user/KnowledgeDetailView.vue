@@ -27,8 +27,8 @@ import {
   batchReprocessDocuments,
   checkDocumentNameConflicts,
   getUploadTaskItems,
+  listAvailableKnowledgeBases,
   listDocuments,
-  listKnowledgeBases,
   uploadDocuments,
   type ChunkStrategy,
   type DocumentBatchTaskItem,
@@ -248,7 +248,7 @@ const loadRealDetail = async (): Promise<void> => {
   loadError.value = "";
   try {
     const [knowledgeBases, documents] = await Promise.all([
-      listKnowledgeBases(loadController.signal),
+      listAvailableKnowledgeBases(loadController.signal),
       listDocuments(kbId, loadController.signal),
     ]);
     realKnowledgeBase.value = knowledgeBases.find((item) => item.id === kbId);
