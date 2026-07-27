@@ -14,6 +14,10 @@ from app.rag.search.schemas import (
     SearchHit,
     SearchResponse,
 )
+from app.rag.search.service import (
+    is_no_context_answer,
+    sanitize_no_context_answer,
+)
 from app.rag.search.stream import ThinkBlockStreamFilter, stream_answer
 
 
@@ -42,6 +46,19 @@ def test_think_filter_handles_split_tags() -> None:
 
     assert visible == "回答开头回答结尾"
     assert "隐藏推理" not in visible
+
+
+def test_no_context_answer_removes_model_generated_evidence_section() -> None:
+    answer = (
+        "未在文档中找到关于天气的相关引用。请补充对应资料。"
+        "\n\n**关键依据：**\n\n- [1] 当前文档只涉及医疗系统。"
+    )
+
+    assert is_no_context_answer(answer) is True
+    assert sanitize_no_context_answer(answer) == (
+        "未在文档中找到关于天气的相关引用。请补充对应资料。"
+    )
+    assert is_no_context_answer("文档说明系统包含电子病历模块 [1]。") is False
 
 
 @pytest.mark.asyncio
@@ -139,6 +156,9 @@ async def test_stream_answer_emits_stages_citations_and_filtered_deltas(
     assert "stage" in names
     assert "citation" in names
     assert names[-1] == "done"
+    assert names.index("citation") > max(
+        index for index, name in enumerate(names) if name == "delta"
+    )
     visible_answer = "".join(
         str(event.data["text"]) for event in events if event.event == "delta"
     )
@@ -146,6 +166,107 @@ async def test_stream_answer_emits_stages_citations_and_filtered_deltas(
     assert "不应显示" not in visible_answer
     cache_write.assert_awaited_once()
     assert events[-1].data["message_id"] == "assistant-message-1"
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_hides_citations_when_model_reports_no_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = RagAnswerRequest(
+        query="文档中没有说明的问题",
+        mode="hybrid",
+        kb_id="kb-1",
+        chat_model_id="chat-1",
+        embedding_model_id="embedding-1",
+    )
+    hit = SearchHit(
+        doc_id="doc-1",
+        chunk_id="chunk-1",
+        doc_title="仅名称相似的文档",
+        score=0.82,
+        text="该片段与问题名称相似，但不包含答案。",
+        kb_id="kb-1",
+    )
+
+    async def provider_deltas():
+        yield "未在文档中找到相关信息。"
+        yield "请补充更具体的业务资料后重试。"
+
+    provider = SimpleNamespace(chat=AsyncMock(return_value=provider_deltas()))
+    monkeypatch.setattr(
+        "app.rag.search.stream._build_answer_cache_scope",
+        AsyncMock(return_value=(_scope(), request)),
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream.get_cached_answer",
+        AsyncMock(return_value=None),
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream.search",
+        AsyncMock(
+            return_value=SearchResponse(
+                hits=[hit],
+                mode="hybrid",
+                reranked=True,
+                took_ms=20,
+                total_candidates=1,
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream._resolve_chat_model",
+        AsyncMock(
+            return_value=(
+                "deepseek",
+                "https://api.deepseek.com",
+                "deepseek-chat",
+                "secret",
+                0.2,
+                1200,
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream.build_provider",
+        lambda *_args, **_kwargs: provider,
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream._prepare_conversation",
+        AsyncMock(
+            return_value=(
+                SimpleNamespace(id="conversation-1"),
+                SimpleNamespace(id="user-message-1"),
+                [],
+            )
+        ),
+    )
+    save_message = AsyncMock(return_value=SimpleNamespace(id="assistant-message-1"))
+    monkeypatch.setattr(
+        "app.rag.search.stream._save_assistant_message",
+        save_message,
+    )
+    cache_write = AsyncMock()
+    monkeypatch.setattr("app.rag.search.stream.set_cached_answer", cache_write)
+
+    events = [
+        event
+        async for event in stream_answer(
+            SimpleNamespace(),
+            user=SimpleNamespace(id="user-1"),
+            req=request,
+        )
+    ]
+
+    assert all(event.event != "citation" for event in events)
+    assert events[-1].data["generated"] is True
+    save_message.assert_awaited_once_with(
+        SimpleNamespace(),
+        conversation_id="conversation-1",
+        answer="未在文档中找到相关信息。请补充更具体的业务资料后重试。",
+        hits=[],
+        finish_reason="no_context",
+    )
+    cache_write.assert_not_awaited()
 
 
 @pytest.mark.asyncio

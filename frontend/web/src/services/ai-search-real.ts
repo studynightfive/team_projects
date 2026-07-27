@@ -33,6 +33,10 @@ import type {
   SearchResultItem,
   SearchScopeOption,
 } from "../types/ai-search";
+import {
+  isNoDocumentEvidenceAnswer,
+  sanitizeNoDocumentEvidenceAnswer,
+} from "./rag-answer-state";
 
 /** 真实模式下仍由前端提供的 UI 选项（无对应后端配置接口） */
 const REAL_MODE_OPTIONS = [
@@ -377,7 +381,11 @@ const buildFrontendResponse = (
   query: string,
   searchData: BackendRagAnswerResponse,
 ): AiSearchResponse => {
-  const hits = (searchData.hits ?? []).map((hit, index) =>
+  const visibleAnswer = sanitizeNoDocumentEvidenceAnswer(searchData.answer);
+  const backendHits = isNoDocumentEvidenceAnswer(visibleAnswer)
+    ? []
+    : (searchData.hits ?? []);
+  const hits = backendHits.map((hit, index) =>
     toFrontendHit(hit, index, query),
   );
   const citations = hits.map(toCitation);
@@ -395,15 +403,18 @@ const buildFrontendResponse = (
       hits.length > 0
         ? `基于 ${hits.length} 条引用生成，耗时 ${searchData.took_ms}ms。`
         : "未找到相关结果，请尝试其他关键词。",
-    markdown: searchData.answer,
+    markdown: visibleAnswer,
     sections: [],
     citations,
     relatedQuestions: [],
-    disclaimer: searchData.from_cache
-      ? cacheDescription
-      : searchData.generated && searchData.model
-        ? `答案由 ${searchData.model} 基于当前账号有权访问的知识库引用生成。`
-        : "正在基于当前账号有权访问的知识库引用生成答案。",
+    disclaimer:
+      hits.length === 0 && isNoDocumentEvidenceAnswer(visibleAnswer)
+        ? "知识库中未找到能够支持本问题回答的信息。"
+        : searchData.from_cache
+          ? cacheDescription
+          : searchData.generated && searchData.model
+            ? `答案由 ${searchData.model} 基于当前账号有权访问的知识库引用生成。`
+            : "正在基于当前账号有权访问的知识库引用生成答案。",
     createdAt: new Date().toISOString(),
     status: hits.length > 0 ? "success" : "partial",
   };
@@ -490,7 +501,8 @@ export const runRealSearch = async (
       observer?.onStage?.(frontendStage);
     } else if (event.event === "citation") {
       hits.push(event.data as unknown as BackendSearchHit);
-      publish();
+      // 兼容旧后端先发引用的顺序，等答案出现后再决定是否向页面公开。
+      if (answer.trim() !== "") publish();
     } else if (event.event === "delta") {
       const text = event.data.text;
       if (typeof text === "string") {

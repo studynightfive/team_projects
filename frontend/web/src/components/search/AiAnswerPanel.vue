@@ -2,6 +2,10 @@
 import { computed, ref, watch } from "vue";
 
 import type { AiAnswer, CitationSource } from "../../types/ai-search";
+import {
+  isNoDocumentEvidenceAnswer,
+  sanitizeNoDocumentEvidenceAnswer,
+} from "../../services/rag-answer-state";
 import SafeMarkdown from "../common/SafeMarkdown.vue";
 import {
   CheckCircle2,
@@ -38,15 +42,26 @@ const feedbackTitleId = computed(
 );
 const relatedTitleId = computed(() => `${normalizedIdPrefix.value}-related-title`);
 
+const visibleMarkdown = computed(() =>
+  sanitizeNoDocumentEvidenceAnswer(props.answer.markdown),
+);
+const visibleCitations = computed(() =>
+  isNoDocumentEvidenceAnswer(visibleMarkdown.value)
+    ? []
+    : props.answer.citations,
+);
 const citationNumberById = computed(
   () =>
     new Map(
-      props.answer.citations.map((citation, index) => [citation.id, index + 1]),
+      visibleCitations.value.map((citation, index) => [
+        citation.id,
+        index + 1,
+      ]),
     ),
 );
 const uniqueDocumentCitations = computed(() => {
   const seen = new Set<string>();
-  return props.answer.citations.filter((citation) => {
+  return visibleCitations.value.filter((citation) => {
     // 正文引用按分块保留，概览按文档去重，避免同一文档占据多个来源位置。
     const key =
       citation.documentId ??
@@ -66,7 +81,9 @@ const previewMarkdownCitation = (
   citationId: string,
   trigger: HTMLElement,
 ): void => {
-  const citation = props.answer.citations.find((item) => item.id === citationId);
+  const citation = visibleCitations.value.find(
+    (item) => item.id === citationId,
+  );
   if (citation !== undefined) emit("preview", citation, trigger);
 };
 
@@ -97,12 +114,13 @@ watch(
     <p class="answer-summary">{{ answer.summary }}</p>
 
     <SafeMarkdown
-      :content="answer.markdown"
-      :citation-ids="answer.citations.map((citation) => citation.id)"
+      :content="visibleMarkdown"
+      :citation-ids="visibleCitations.map((citation) => citation.id)"
       @citation="previewMarkdownCitation"
     />
 
     <section
+      v-if="uniqueDocumentCitations.length > 0"
       class="answer-citation-index"
       :aria-labelledby="citationTitleId"
     >

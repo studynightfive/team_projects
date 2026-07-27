@@ -155,4 +155,40 @@ describe("AI 搜索真实工作台", () => {
     expect(result.elapsedLabel).toBe("88ms");
     expect(result.conversationId).toBe("conversation-1");
   });
+
+  it("最终回答未找到相关信息时丢弃旧后端提前发送的引用", async () => {
+    const eventStream = [
+      'event: citation\ndata: {"event":"citation","doc_id":"doc-1","chunk_id":"chunk-1","doc_title":"仅名称相似的文档","page":1,"score":0.82,"vector_score":0.82,"keyword_score":null,"rerank_score":null,"text":"不包含问题答案","highlights":null,"kb_id":"kb-1"}\n\n',
+      'event: delta\ndata: {"event":"delta","text":"未在文档中找到相关信息。"}\n\n',
+      'event: done\ndata: {"event":"done","took_ms":45,"mode":"hybrid","model":"deepseek-chat","generated":true,"from_cache":false,"cache_match":null,"cache_similarity":null,"conversation_id":"conversation-1","message_id":"assistant-message-1"}\n\n',
+    ].join("");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(eventStream, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        }),
+      ),
+    );
+    const onResponse = vi.fn();
+
+    const result = await runRealSearch(
+      {
+        query: "文档中没有说明的问题",
+        mode: "smart",
+        sources: ["knowledge"],
+        workspaceIds: ["kb-1"],
+        modelId: "chat-1",
+      },
+      undefined,
+      { onResponse },
+    );
+
+    expect(result.status).toBe("partial");
+    expect(result.answer.citations).toEqual([]);
+    expect(result.results).toEqual([]);
+    expect(result.sourceCount).toBe(0);
+    expect(onResponse.mock.calls.at(-1)?.[0].answer.citations).toEqual([]);
+  });
 });

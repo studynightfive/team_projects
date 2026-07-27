@@ -42,6 +42,10 @@ import {
 } from "../../services/file-save";
 import { listAvailableKnowledgeBases } from "../../services/knowledge";
 import {
+  isNoDocumentEvidenceAnswer,
+  sanitizeNoDocumentEvidenceAnswer,
+} from "../../services/rag-answer-state";
+import {
   getConversation,
   listConversationMessages,
   type MessageRecord,
@@ -525,7 +529,9 @@ const buildHistoricalResponse = (
   question: MessageRecord,
   assistant: MessageRecord,
 ): AiSearchResponse => {
-  const citations = assistant.citations.map(toHistoricalCitation);
+  const citations = isNoDocumentEvidenceAnswer(assistant.content)
+    ? []
+    : assistant.citations.map(toHistoricalCitation);
   const results: SearchResultItem[] = citations.map((citation) => ({
     ...citation,
     department: "未提供",
@@ -549,7 +555,7 @@ const buildHistoricalResponse = (
         citations.length > 0
           ? `历史回答包含 ${citations.length} 条引用。`
           : "该历史回答没有可恢复的引用。",
-      markdown: assistant.content,
+      markdown: sanitizeNoDocumentEvidenceAnswer(assistant.content),
       sections: [],
       citations,
       relatedQuestions: [],
@@ -943,7 +949,10 @@ onBeforeUnmount(() => {
           />
 
           <div
-            v-if="response.status === 'partial'"
+            v-if="
+              response.status === 'partial' &&
+                !isNoDocumentEvidenceAnswer(response.answer.markdown)
+            "
             class="partial-result-notice"
             role="status"
           >

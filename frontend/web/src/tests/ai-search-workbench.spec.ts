@@ -195,6 +195,28 @@ describe("AI 搜索工作台关键链路", () => {
     expect(wrapper.text()).not.toContain("收藏答案");
   });
 
+  it("未在文档中找到相关信息时不显示结论依据", () => {
+    const citation = aiSearchMockData.answer.citations[0];
+    if (citation === undefined) throw new Error("缺少引用模拟数据");
+
+    const wrapper = mount(AiAnswerPanel, {
+      props: {
+        answer: {
+          ...aiSearchMockData.answer,
+          markdown:
+            "未在文档中找到关于天气的相关引用。请补充资料后重试。\n\n**关键依据：**\n\n- [1] 仅说明资料不相关。",
+          citations: [citation],
+          status: "partial",
+        },
+      },
+    });
+
+    expect(wrapper.find(".answer-citation-index").exists()).toBe(false);
+    expect(wrapper.find(".markdown-citation").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("结论依据");
+    expect(wrapper.text()).not.toContain("关键依据");
+  });
+
   it("非默认问题不会复用差旅结论，筛选后的引用编号与来源一致", async () => {
     const query = "本季度重点项目进展如何？";
     const response = await runAiSearch({
