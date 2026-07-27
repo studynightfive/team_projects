@@ -2186,6 +2186,9 @@ export interface components {
             knowledge_coverage: components["schemas"]["RateMetric"];
             /** Active Searches */
             active_searches: number;
+            /** Product Queries */
+            product_queries: number;
+            product_match: components["schemas"]["RateMetric"];
             /** Effective Answers */
             effective_answers: number;
             /** Unanswered Queries */
@@ -2196,8 +2199,8 @@ export interface components {
             /** Evaluation Run Count */
             evaluation_run_count: number;
             response_time: components["schemas"]["ResponseTimeMetric"];
-            /** Popular Questions */
-            popular_questions: components["schemas"]["PopularQuestionItem"][];
+            /** Popular Products */
+            popular_products: components["schemas"]["PopularProductItem"][];
             department_leaderboard: components["schemas"]["PaginatedData_DepartmentLeaderboardItem_"];
         };
         /**
@@ -2883,17 +2886,19 @@ export interface components {
             /** Total */
             total: number;
         };
-        /** PopularQuestionItem */
-        PopularQuestionItem: {
-            /** Question */
-            question: string;
-            /** Ask Count */
-            ask_count: number;
+        /** PopularProductItem */
+        PopularProductItem: {
+            /** Product Id */
+            product_id: string;
+            /** Product Name */
+            product_name: string;
+            /** Query Count */
+            query_count: number;
             /**
-             * Last Asked At
+             * Last Queried At
              * Format: date-time
              */
-            last_asked_at: string;
+            last_queried_at: string;
         };
         /** RagAnswerRequest */
         RagAnswerRequest: {

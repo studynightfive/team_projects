@@ -41,10 +41,11 @@ class DepartmentLeaderboardItem(BaseModel):
     contributor_count: int = Field(ge=0)
 
 
-class PopularQuestionItem(BaseModel):
-    question: str
-    ask_count: int = Field(ge=1)
-    last_asked_at: datetime
+class PopularProductItem(BaseModel):
+    product_id: str
+    product_name: str
+    query_count: int = Field(ge=1)
+    last_queried_at: datetime
 
 
 class DashboardMetrics(BaseModel):
@@ -65,6 +66,8 @@ class DashboardMetrics(BaseModel):
     scope: DashboardScope
     knowledge_coverage: RateMetric
     active_searches: int = Field(ge=0)
+    product_queries: int = Field(ge=0)
+    product_match: RateMetric
     effective_answers: int = Field(ge=0)
     unanswered_queries: int = Field(ge=0)
     document_processing: RateMetric
@@ -72,7 +75,7 @@ class DashboardMetrics(BaseModel):
     retrieval_evaluation: RateMetric
     evaluation_run_count: int = Field(ge=0)
     response_time: ResponseTimeMetric
-    popular_questions: list[PopularQuestionItem]
+    popular_products: list[PopularProductItem]
     department_leaderboard: PaginatedData[DepartmentLeaderboardItem]
 
 

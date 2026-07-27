@@ -54,6 +54,8 @@ async def test_record_retrieval_metric_only_persists_structured_facts() -> None:
         generated=True,
         cache_hit=False,
         took_ms=321,
+        primary_product_id=" product-1 ",
+        primary_product_name=" 门店商品资料 ",
     )
 
     metric = db.add.call_args.args[0]
@@ -64,8 +66,32 @@ async def test_record_retrieval_metric_only_persists_structured_facts() -> None:
     assert metric.generated is True
     assert metric.cache_hit is False
     assert metric.took_ms == 321
+    assert metric.primary_product_id == "product-1"
+    assert metric.primary_product_name == "门店商品资料"
     assert not hasattr(metric, "query")
     assert not hasattr(metric, "answer")
+
+
+async def test_metric_discards_incomplete_product_identity() -> None:
+    db = MagicMock(spec=AsyncSession)
+    db.flush = AsyncMock()
+
+    await record_retrieval_metric(
+        db,
+        user=_user(),
+        event_type="answer",
+        request_id="request-incomplete-product",
+        knowledge_base_id="kb-store",
+        hit_count=1,
+        generated=True,
+        cache_hit=False,
+        took_ms=20,
+        primary_product_id="product-without-name",
+    )
+
+    metric = db.add.call_args.args[0]
+    assert metric.primary_product_id is None
+    assert metric.primary_product_name is None
 
 
 async def test_duplicate_metric_does_not_break_user_request() -> None:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -253,6 +253,9 @@ async def test_dashboard_scope_and_incentive_deduplication(
                 cache_hit=False,
                 took_ms=900,
                 request_id=_id(),
+                primary_product_id="product-medical-platform",
+                primary_product_name="区域卫生平台一体机",
+                created_at=finished_at - timedelta(minutes=1),
             ),
             RetrievalMetric(
                 id=_id(),
@@ -265,6 +268,9 @@ async def test_dashboard_scope_and_incentive_deduplication(
                 cache_hit=True,
                 took_ms=50,
                 request_id=_id(),
+                primary_product_id="product-medical-platform",
+                primary_product_name="区域卫生平台一体机（新版）",
+                created_at=finished_at,
             ),
             RetrievalMetric(
                 id=_id(),
@@ -273,7 +279,8 @@ async def test_dashboard_scope_and_incentive_deduplication(
                 knowledge_base_id=knowledge_base.id,
                 event_type="answer",
                 hit_count=0,
-                generated=False,
+                # 模型执行后判断资料不足，仍应计入未匹配商品查询。
+                generated=True,
                 cache_hit=False,
                 took_ms=120,
                 request_id=_id(),
@@ -289,6 +296,8 @@ async def test_dashboard_scope_and_incentive_deduplication(
                 cache_hit=False,
                 took_ms=700,
                 request_id=_id(),
+                primary_product_id="product-teaching-platform",
+                primary_product_name="教学管理一体机",
             ),
         ]
     )
@@ -328,13 +337,19 @@ async def test_dashboard_scope_and_incentive_deduplication(
     assert dashboard.scope.department_id == department.id
     assert dashboard.knowledge_coverage.rate == 100.0
     assert dashboard.active_searches == 5
+    assert dashboard.product_queries == 3
+    assert dashboard.product_match.rate == 66.7
     assert dashboard.effective_answers == 2
     assert dashboard.unanswered_queries == 1
     assert dashboard.answer_cache.rate == 33.3
+    assert dashboard.response_time.average_ms == 356.7
+    assert dashboard.response_time.sample_count == 3
     assert dashboard.retrieval_evaluation.rate == 50.0
     assert dashboard.evaluation_run_count == 1
-    assert dashboard.popular_questions[0].question == "区域卫生平台如何共享数据？"
-    assert dashboard.popular_questions[0].ask_count == 2
+    assert len(dashboard.popular_products) == 1
+    assert dashboard.popular_products[0].product_id == "product-medical-platform"
+    assert dashboard.popular_products[0].product_name == "区域卫生平台一体机（新版）"
+    assert dashboard.popular_products[0].query_count == 2
     assert dashboard.department_leaderboard.total == 1
     assert dashboard.department_leaderboard.items[0].points == 20
     assert dashboard.department_leaderboard.items[0].contribution_count == 2
