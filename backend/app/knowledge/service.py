@@ -190,7 +190,17 @@ async def list_knowledge_bases(
     stmt = select(KnowledgeBase)
     if accessible is not None:
         stmt = stmt.where(KnowledgeBase.id.in_(accessible))
-    if active_only:
+    can_list_archived = False
+    if not active_only:
+        can_list_archived = is_super_admin(user)
+        if not can_list_archived and user.department_id is not None:
+            can_list_archived = await can_manage_department(
+                db,
+                user,
+                user.department_id,
+            )
+    # 普通用户即使直接调用管理清单接口，也不能枚举已归档知识库。
+    if active_only or not can_list_archived:
         stmt = stmt.where(KnowledgeBase.status == "active")
     stmt = stmt.order_by(KnowledgeBase.updated_at.desc(), KnowledgeBase.created_at.desc())
 

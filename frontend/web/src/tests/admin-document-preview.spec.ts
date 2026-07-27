@@ -22,6 +22,7 @@ const adminDocument = {
   id: "document-1",
   knowledge_base_id: "kb-1",
   knowledge_base_name: "医疗知识库",
+  knowledge_base_status: "active",
   title: "医疗信息化系统",
   original_filename: "医疗信息化系统.pdf",
   folder_path: "",

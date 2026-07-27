@@ -40,8 +40,12 @@ async def get_user_accessible_kb_ids(db: AsyncSession, user: User) -> set[str]:
             (KnowledgeBase.kind == "enterprise")
             & (KnowledgeBase.department_id == user.department_id)
         )
+    # 归档库保留数据供管理端查看，但不得进入检索权限集合。
     rows = await db.execute(
-        select(KnowledgeBase.id).where(or_(*clauses))
+        select(KnowledgeBase.id).where(
+            KnowledgeBase.status == "active",
+            or_(*clauses),
+        )
     )
     return {row[0] for row in rows.fetchall()}
 

@@ -167,6 +167,16 @@ class DocumentService:
             raise NotFoundException(code=ErrorCode.KB_NOT_FOUND, message="知识库不存在")
         return kb
 
+    async def _require_active_kb(self, kb_id: str) -> KnowledgeBase:
+        kb = await self._get_kb(kb_id)
+        if kb.status != "active":
+            raise AppException(
+                code=ErrorCode.KB_ARCHIVED,
+                message="知识库已归档，请先恢复后再操作",
+                status_code=409,
+            )
+        return kb
+
     @staticmethod
     def _document_name(filename: str) -> str:
         # 预检与真实上传必须使用同一文件名清洗规则，否则路径字符可能让预检漏报同名。
@@ -178,7 +188,7 @@ class DocumentService:
         return " ".join(normalized.split())
 
     async def _require_upload_access(self, user: User, kb_id: str) -> KnowledgeBase:
-        kb = await self._get_kb(kb_id)
+        kb = await self._require_active_kb(kb_id)
         if kb.kind == "personal":
             require_any_permission(user, "personal.document.upload")
             if kb.owner_user_id != user.id:
@@ -272,7 +282,7 @@ class DocumentService:
         status: str | None = None,
     ) -> tuple[list[AdminDocumentItem], int]:
         stmt = (
-            select(Document, KnowledgeBase.name)
+            select(Document, KnowledgeBase.name, KnowledgeBase.status)
             .join(KnowledgeBase, KnowledgeBase.id == Document.knowledge_base_id)
             .where(
                 Document.deleted_at.is_(None),
@@ -301,9 +311,15 @@ class DocumentService:
             stmt.order_by(Document.updated_at.desc()).offset(offset).limit(page_size)
         )
         items: list[AdminDocumentItem] = []
-        for document, kb_name in rows.all():
+        for document, kb_name, kb_status in rows.all():
             data = DocumentSummary.model_validate(document).model_dump()
-            items.append(AdminDocumentItem(**data, knowledge_base_name=kb_name))
+            items.append(
+                AdminDocumentItem(
+                    **data,
+                    knowledge_base_name=kb_name,
+                    knowledge_base_status=kb_status,
+                )
+            )
         return items, total
 
     async def list_admin_tasks(
@@ -823,6 +839,7 @@ class DocumentService:
                 )
             if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
                 raise ForbiddenException(message="无权访问该知识库")
+            await self._require_active_kb(str(doc.knowledge_base_id))
             documents.append(doc)
 
         now = datetime.now(timezone.utc)
@@ -850,7 +867,7 @@ class DocumentService:
     ) -> tuple[list[RecycleBinItem], int]:
         require_any_permission(user, "admin.document.view")
         stmt = (
-            select(Document, KnowledgeBase.name)
+            select(Document, KnowledgeBase.name, KnowledgeBase.status)
             .join(KnowledgeBase, KnowledgeBase.id == Document.knowledge_base_id)
             .where(
                 Document.deleted_at.is_not(None),
@@ -870,12 +887,13 @@ class DocumentService:
             .limit(page_size)
         )
         items = []
-        for document, kb_name in rows.all():
+        for document, kb_name, kb_status in rows.all():
             data = DocumentSummary.model_validate(document).model_dump()
             items.append(
                 RecycleBinItem(
                     **data,
                     knowledge_base_name=kb_name,
+                    knowledge_base_status=kb_status,
                     deleted_by=document.deleted_by,
                 )
             )
@@ -897,6 +915,7 @@ class DocumentService:
                 )
             if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
                 raise ForbiddenException(message="无权访问该知识库")
+            await self._require_active_kb(str(doc.knowledge_base_id))
             name_conflict = await self._find_by_name(
                 str(doc.knowledge_base_id),
                 doc.title,
@@ -1295,7 +1314,7 @@ class DocumentService:
             )
         if not await user_can_access_kb(self.session, user, str(doc.knowledge_base_id)):
             raise ForbiddenException(message="无权访问该知识库")
-        kb = await self._get_kb(str(doc.knowledge_base_id))
+        kb = await self._require_active_kb(str(doc.knowledge_base_id))
         if kb.kind == "personal":
             require_any_permission(user, "personal.document.upload")
             if kb.owner_user_id != user.id:

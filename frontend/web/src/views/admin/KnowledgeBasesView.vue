@@ -167,6 +167,10 @@ const saveKnowledgeBase = async (): Promise<void> => {
 };
 
 const startUpload = (item: KnowledgeBaseRecord): void => {
+  if (item.status !== "active") {
+    message.warning("知识库已归档，请恢复后再上传文档");
+    return;
+  }
   uploadKnowledgeBase.value = item;
   uploadStrategy.value = "recursive";
   uploadChunkSize.value = 800;
@@ -350,12 +354,14 @@ onMounted(loadData);
               <td>
                 <div class="table-actions">
                   <button
+                    v-if="item.status === 'active'"
                     class="text-button"
                     type="button"
                     @click="startUpload(item)"
                   >
                     上传文档
                   </button>
+                  <small v-else>恢复后可上传</small>
                   <button
                     class="text-button"
                     type="button"

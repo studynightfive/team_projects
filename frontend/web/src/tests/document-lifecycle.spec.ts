@@ -30,6 +30,7 @@ const documentRecord = (index: number) => ({
   id: `document-${index}`,
   knowledge_base_id: "kb-1",
   knowledge_base_name: "医疗知识库",
+  knowledge_base_status: "active",
   title: `医疗文档 ${index}`,
   original_filename: `医疗文档-${index}.md`,
   folder_path: "",
@@ -78,10 +79,10 @@ const findButton = (wrapper: VueWrapper, label: string) => {
   return button;
 };
 
-const renderView = async () => {
-  const active = Array.from({ length: 12 }, (_, index) =>
-    documentRecord(index + 1),
-  );
+const renderView = async (archivedOnly = false) => {
+  const active = archivedOnly
+    ? [{ ...documentRecord(1), knowledge_base_status: "archived" }]
+    : Array.from({ length: 12 }, (_, index) => documentRecord(index + 1));
   const recycled = [
     {
       ...documentRecord(20),
@@ -171,6 +172,25 @@ describe("文档批量生命周期", () => {
     ]);
     expect(wrapper.text()).toContain("重新处理进度");
     expect(wrapper.text()).toContain("100%");
+    wrapper.unmount();
+  });
+
+  it("归档知识库文档保持可查看但不能执行写操作", async () => {
+    const wrapper = await renderView(true);
+    const checkbox = wrapper.get<HTMLInputElement>(
+      'tbody input[type="checkbox"]',
+    );
+
+    expect(checkbox.attributes("disabled")).toBeDefined();
+    expect(wrapper.text()).toContain("已归档，只读");
+    expect(wrapper.text()).toContain("归档只读");
+    const rowActions = wrapper
+      .get("tbody tr")
+      .findAll("button")
+      .map((button) => button.text().trim());
+    expect(rowActions).not.toContain("重新处理");
+    expect(rowActions).not.toContain("删除");
+    expect(rowActions).toContain("查看");
     wrapper.unmount();
   });
 });

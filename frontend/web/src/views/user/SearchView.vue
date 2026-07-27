@@ -40,7 +40,7 @@ import {
   prepareFileSave,
   type PreparedFileSave,
 } from "../../services/file-save";
-import { listKnowledgeBases } from "../../services/knowledge";
+import { listAvailableKnowledgeBases } from "../../services/knowledge";
 import {
   getConversation,
   listConversationMessages,
@@ -649,7 +649,7 @@ const startNewConversation = (): void => {
 const loadRealKnowledgeBaseOptions = async (): Promise<void> => {
   if (!isRealApiMode) return;
   const [knowledgeBaseResult, chatModelResult] = await Promise.allSettled([
-    listKnowledgeBases(),
+    listAvailableKnowledgeBases(),
     listRealChatModelOptions(),
   ]);
 

@@ -16,7 +16,7 @@ import { useListPagination } from "../../composables/useListPagination";
 import { isRealApiMode } from "../../config/runtime";
 import { aiSearchMockData } from "../../mocks/ai-search";
 import {
-  listKnowledgeBases,
+  listAvailableKnowledgeBases,
   type KnowledgeBaseRecord,
 } from "../../services/knowledge";
 
@@ -131,7 +131,9 @@ const loadRealSpaces = async (): Promise<void> => {
   loadState.value = "loading";
   loadError.value = "";
   try {
-    realKnowledgeBases.value = await listKnowledgeBases(controller.signal);
+    realKnowledgeBases.value = await listAvailableKnowledgeBases(
+      controller.signal,
+    );
     loadState.value = "success";
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") return;

@@ -446,9 +446,11 @@ async def _resolve_knowledge_base_scope(
     requested = req.selected_knowledge_base_ids()
     if requested is not None and not requested.issubset(accessible):
         # 不区分知识库不存在还是无权限，避免利用错误信息探测其他部门数据。
-        return set()
+        raise ValidationException(message="所选知识库不可用或无权限，请重新选择")
 
     selected = requested if requested is not None else accessible
+    if not selected:
+        raise ValidationException(message="当前没有可检索的知识库")
     if requested is not None and len(selected) > 1:
         names = (
             await db.execute(select(KnowledgeBase.name).where(KnowledgeBase.id.in_(selected)))
