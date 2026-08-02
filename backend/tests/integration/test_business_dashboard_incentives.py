@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -353,6 +354,28 @@ async def test_dashboard_scope_and_incentive_deduplication(
     assert dashboard.department_leaderboard.total == 1
     assert dashboard.department_leaderboard.items[0].points == 20
     assert dashboard.department_leaderboard.items[0].contribution_count == 2
+
+    # 超级管理员切换部门时，所有指标必须按请求部门重新聚合，不能沿用当前账号部门。
+    super_admin = SimpleNamespace(
+        id=user.id,
+        department_id=department.id,
+        roles=[SimpleNamespace(name="超级管理员", status="active")],
+    )
+    other_dashboard = await get_dashboard_metrics(
+        pg_session,
+        user=super_admin,
+        days=30,
+        department_id=other_department.id,
+        leaderboard_page=1,
+        leaderboard_page_size=10,
+    )
+    assert other_dashboard.scope.department_id == other_department.id
+    assert other_dashboard.total_knowledge_bases == 1
+    assert other_dashboard.total_documents == 1
+    assert other_dashboard.product_queries == 1
+    assert other_dashboard.effective_answers == 1
+    assert len(other_dashboard.popular_products) == 1
+    assert other_dashboard.popular_products[0].product_id == "product-teaching-platform"
 
     incentives = await get_user_incentives(
         pg_session,

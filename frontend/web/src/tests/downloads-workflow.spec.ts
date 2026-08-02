@@ -105,6 +105,7 @@ describe("我的下载问答格式", () => {
     expect(serviceMocks.convertAnswerExport).toHaveBeenCalledWith(
       "export-1",
       "docx",
+      "RAG-answer",
     );
     expect(serviceMocks.downloadExportBlob).not.toHaveBeenCalled();
     expect(serviceMocks.save).toHaveBeenCalled();

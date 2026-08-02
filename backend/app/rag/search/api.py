@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
+from typing import cast
 
 import structlog
 from fastapi import APIRouter, Depends, Request
@@ -11,17 +12,25 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_any_permission
-from app.common.database import get_db
+from app.common.database import async_session_factory, get_db
 from app.common.models import User
 from app.common.schemas import APIResponse
 from app.rag._shared.audit_helper import audit
 from app.rag._shared.permissions import new_request_id
 from app.rag._shared.sse import format_sse
 from app.rag._shared.stream_session import stream_user_session
-from app.rag.guard import ensure_safe_query
+from app.rag.guard import ensure_safe_query, inspect_query
 from app.rag.metrics import record_retrieval_metric
+from app.rag.observability import create_trace_id
 from app.rag.search import service
-from app.rag.search.schemas import RagAnswerRequest, SearchHit, SearchRequest
+from app.rag.search.schemas import (
+    GuardCategory,
+    QueryGuardRequest,
+    QueryGuardResponse,
+    RagAnswerRequest,
+    SearchHit,
+    SearchRequest,
+)
 from app.rag.search.stream import stream_answer
 
 router = APIRouter(prefix="/api/v1/retrieval", tags=["retrieval"])
@@ -43,6 +52,31 @@ def _primary_product(hits: list[SearchHit]) -> tuple[str | None, str | None]:
     if not hit.doc_id.strip() or not product_name:
         return None, None
     return hit.doc_id, product_name
+
+
+@router.post("/guard/check")
+async def check_query_guard_endpoint(
+    payload: QueryGuardRequest,
+    user: User = Depends(get_current_user),
+    _perm: None = Depends(require_any_permission("retrieval.search", "chat.use", "chat:write")),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse[QueryGuardResponse]:
+    """输入框防抖预检；最终检索接口仍会再次执行同一缓存判定。"""
+
+    del user
+    result = await inspect_query(
+        payload.query,
+        db=db,
+        model_id=payload.chat_model_id,
+    )
+    return APIResponse(
+        data=QueryGuardResponse(
+            allowed=result.allowed,
+            category=cast(GuardCategory | None, result.category),
+            message=None if result.allowed else "输入内容不合法，请修改后重试",
+            semantic_checked=result.semantic_checked,
+        )
+    )
 
 
 @router.post("/search")
@@ -139,9 +173,17 @@ async def answer_stream_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("retrieval.search", "chat.use", "chat:write")),
 ) -> StreamingResponse:
-    await ensure_safe_query(payload.query)
+    # 在创建 SSE 响应前完成守卫，违规输入直接得到标准 422，而不是流内错误。
     user_id = user.id
     request_id = _request_id(request)
+    langfuse_trace_id = create_trace_id(request_id)
+    async with async_session_factory() as preprocess_db:
+        rewrite = await ensure_safe_query(
+            payload.query,
+            db=preprocess_db,
+            model_id=payload.chat_model_id,
+            trace_id=langfuse_trace_id,
+        )
 
     async def event_generator() -> AsyncIterator[str]:
         completed = False
@@ -157,6 +199,8 @@ async def answer_stream_endpoint(
                     stream_db,
                     user=stream_user,
                     req=payload,
+                    rewrite=rewrite,
+                    trace_id=langfuse_trace_id,
                 ):
                     if event.event == "citation":
                         citation_count += 1

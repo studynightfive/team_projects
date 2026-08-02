@@ -124,6 +124,7 @@ export const createExportTask = async (
 export const downloadAnswerExport = async (payload: {
   readonly question: string;
   readonly answer: string;
+  readonly filename?: string;
   readonly format?: AnswerExportFormat;
   readonly citations?: readonly Readonly<
     Record<string, string | number | null>
@@ -137,6 +138,7 @@ export const downloadAnswerExport = async (payload: {
     "/v1/exports/answer",
     {
       format: payload.format ?? "markdown",
+      filename: payload.filename,
       question: payload.question,
       answer: payload.answer,
       citations: payload.citations ?? [],
@@ -153,6 +155,7 @@ export const downloadAnswerExport = async (payload: {
 export const convertAnswerExport = async (
   exportId: string,
   format: DownloadableAnswerFormat,
+  filename?: string,
 ): Promise<{
   readonly blob: Blob;
   readonly filename?: string;
@@ -160,7 +163,7 @@ export const convertAnswerExport = async (
 }> => {
   const response = await apiClient.post<Blob>(
     `/v1/exports/${exportId}/convert`,
-    { format },
+    { format, filename },
     { responseType: "blob" },
   );
   return {

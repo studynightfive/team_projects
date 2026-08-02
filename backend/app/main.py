@@ -49,6 +49,7 @@ from app.native.runtime import enforce_native_core
 from app.notifications.router import router as notifications_router
 from app.rag.chat.all import router as chat_router
 from app.rag.conversations.all import router as conversations_router
+from app.rag.observability import get_langfuse_client, shutdown_langfuse
 from app.rag.search.api import router as retrieval_router
 from app.rag.tests.all import router as retrieval_tests_router
 from app.users.dashboard_router import router as dashboard_router
@@ -82,6 +83,8 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         app_name=settings.app_name,
         version=settings.app_version,
     )
+    # 可选观测客户端在进程内只初始化一次；缺少配置时返回空操作，不阻断启动。
+    get_langfuse_client()
     async with async_session_factory() as db:
         await seed_builtin_authorization(db)
         await seed_model_providers(db)
@@ -95,6 +98,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        shutdown_langfuse()
         await engine.dispose()
         logger.info("application_shutting_down")
 

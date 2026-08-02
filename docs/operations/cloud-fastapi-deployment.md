@@ -281,7 +281,7 @@ bash scripts/health-check.sh
 ```bash
 docker compose --env-file deploy/env/.env \
   -f deploy/docker-compose.yml exec api-server \
-  /app/backend/.venv/bin/python scripts/bootstrap_admin.py
+  /app/backend/.venv/bin/python /app/backend/scripts/bootstrap_admin.py
 ```
 
 口令输入不回显，必须为 12–128 位。已有超级管理员时脚本会拒绝创建第二个首管理员。

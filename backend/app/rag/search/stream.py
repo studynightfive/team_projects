@@ -28,6 +28,9 @@ from app.rag.conversations.all import (
     append_message,
     get_conversation,
 )
+from app.rag.guard import ensure_safe_query
+from app.rag.observability import observe, update_observation
+from app.rag.query_rewrite import RewriteResult, contextualize_rewrite
 from app.rag.search.schemas import RagAnswerRequest, RagAnswerResponse, SearchHit
 from app.rag.search.service import (
     _build_answer_cache_scope,
@@ -267,14 +270,21 @@ async def _save_assistant_message(
     return assistant_message
 
 
-async def stream_answer(
+async def _stream_answer_impl(
     db: AsyncSession,
     *,
     user: User,
     req: RagAnswerRequest,
+    rewrite: RewriteResult | None = None,
 ) -> AsyncIterator[AnswerStreamEvent]:
     started_at = time.monotonic()
     request_id = new_request_id()
+    if rewrite is None:
+        rewrite = await ensure_safe_query(
+            req.query,
+            db=db,
+            model_id=req.chat_model_id,
+        )
     requested_scope = req.selected_knowledge_base_ids()
     if req.conversation_id is not None:
         existing = await get_conversation(
@@ -304,6 +314,8 @@ async def stream_answer(
         req=req,
         knowledge_base_ids=knowledge_base_ids,
     )
+    rewrite = contextualize_rewrite(rewrite, history)
+    cache_query = rewrite.primary
     yield AnswerStreamEvent(
         event="start",
         data={
@@ -312,6 +324,17 @@ async def stream_answer(
             "conversation_id": conversation.id,
             "message_id": user_message.id,
         },
+    )
+    yield _stage(
+        stage="query_rewrite",
+        label="理解并改写问题",
+        status="completed",
+        started_at=started_at,
+        detail=(
+            "已完成语义安全校验并生成检索查询。"
+            if rewrite.semantic_checked
+            else "已使用本地规则整理检索查询。"
+        ),
     )
     yield _stage(
         stage="cache",
@@ -325,7 +348,7 @@ async def stream_answer(
     # 只有“那它呢”等省略式追问必须保留历史上下文并跳过缓存。
     cache_read_allowed = not history or not query_depends_on_conversation(req.query)
     cached = (
-        await get_cached_answer(scope=cache_scope, query=req.query)
+        await get_cached_answer(scope=cache_scope, query=cache_query)
         if cache_read_allowed
         else None
     )
@@ -334,11 +357,12 @@ async def stream_answer(
         query_embedding = await _build_cache_query_embedding(
             db,
             req=effective_request,
+            query=cache_query,
         )
         if query_embedding is not None:
             cached = await get_cached_answer(
                 scope=cache_scope,
-                query=req.query,
+                query=cache_query,
                 query_embedding=query_embedding,
                 check_exact=False,
             )
@@ -408,6 +432,7 @@ async def stream_answer(
         req=effective_request,
         guard_checked=True,
         query_embedding=query_embedding,
+        retrieval_queries=rewrite.all_queries,
     )
     yield _stage(
         stage="retrieval",
@@ -480,38 +505,53 @@ async def stream_answer(
         started_at=started_at,
         detail=f"正在由 {model_name} 基于引用内容组织回答。",
     )
-    provider_stream = await provider.chat(
-        model_name=model_name,
-        messages=_build_answer_messages(
-            req.query,
-            search_response.hits,
-            history,
-        ),
-        temperature=temperature,
-        max_tokens=max_tokens,
-        stream=True,
-        timeout=settings.model_provider_timeout_seconds,
-    )
-    if isinstance(provider_stream, str):
-        raise TypeError("流式模型返回了非流式结果")
-
     answer_parts: list[str] = []
-    think_filter = ThinkBlockStreamFilter()
-    async for provider_delta in provider_stream:
-        visible_delta = think_filter.feed(provider_delta)
-        if not visible_delta:
-            continue
-        answer_parts.append(visible_delta)
-        yield AnswerStreamEvent(
-            event="delta",
-            data={"event": "delta", "text": visible_delta},
+    with observe(
+        "rag-generation",
+        as_type="generation",
+        model=model_name,
+        metadata={
+            "stream": True,
+            "citation_count": len(search_response.hits),
+        },
+        input_value=req.query,
+    ) as generation_observation:
+        provider_stream = await provider.chat(
+            model_name=model_name,
+            messages=_build_answer_messages(
+                req.query,
+                search_response.hits,
+                history,
+            ),
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+            timeout=settings.model_provider_timeout_seconds,
         )
-    trailing_text = think_filter.finish()
-    if trailing_text:
-        answer_parts.append(trailing_text)
-        yield AnswerStreamEvent(
-            event="delta",
-            data={"event": "delta", "text": trailing_text},
+        if isinstance(provider_stream, str):
+            raise TypeError("流式模型返回了非流式结果")
+
+        think_filter = ThinkBlockStreamFilter()
+        async for provider_delta in provider_stream:
+            visible_delta = think_filter.feed(provider_delta)
+            if not visible_delta:
+                continue
+            answer_parts.append(visible_delta)
+            yield AnswerStreamEvent(
+                event="delta",
+                data={"event": "delta", "text": visible_delta},
+            )
+        trailing_text = think_filter.finish()
+        if trailing_text:
+            answer_parts.append(trailing_text)
+            yield AnswerStreamEvent(
+                event="delta",
+                data={"event": "delta", "text": trailing_text},
+            )
+        update_observation(
+            generation_observation,
+            output_value="".join(answer_parts),
+            metadata={"visible_character_count": len("".join(answer_parts))},
         )
 
     answer_text = "".join(answer_parts).strip()
@@ -533,10 +573,12 @@ async def stream_answer(
         conversation_id=conversation.id,
         generated=True,
     )
-    if not history and final_hits:
+    # 完整独立问题即使出现在已有对话中，也应成为后续语义缓存候选；
+    # 省略式追问包含上下文，不能脱离当前会话复用。
+    if cache_read_allowed and final_hits:
         await set_cached_answer(
             scope=cache_scope,
-            query=req.query,
+            query=cache_query,
             response=response,
             query_embedding=query_embedding,
         )
@@ -565,3 +607,53 @@ async def stream_answer(
         started_at=started_at,
         message_id=assistant_message.id,
     )
+
+
+async def stream_answer(
+    db: AsyncSession,
+    *,
+    user: User,
+    req: RagAnswerRequest,
+    rewrite: RewriteResult | None = None,
+    trace_id: str | None = None,
+) -> AsyncIterator[AnswerStreamEvent]:
+    """流式 RAG 根 observation；断开连接时上下文也会正常结束。"""
+
+    answer_parts: list[str] = []
+    final_metadata: dict[str, object] = {"completed": False}
+    with observe(
+        "rag-answer-stream",
+        as_type="chain",
+        trace_id=trace_id,
+        user_id=user.id,
+        session_id=req.conversation_id,
+        metadata={
+            "stream": True,
+            "mode": req.mode,
+            "knowledge_base_count": len(req.selected_knowledge_base_ids() or []),
+        },
+        input_value=req.query,
+    ) as observation:
+        async for event in _stream_answer_impl(
+            db,
+            user=user,
+            req=req,
+            rewrite=rewrite,
+        ):
+            if event.event == "delta":
+                delta = event.data.get("text")
+                if isinstance(delta, str):
+                    answer_parts.append(delta)
+            elif event.event == "done":
+                final_metadata = {
+                    "completed": True,
+                    "generated": event.data.get("generated") is True,
+                    "cache_hit": event.data.get("from_cache") is True,
+                    "took_ms": int(event.data.get("took_ms") or 0),
+                }
+            yield event
+        update_observation(
+            observation,
+            output_value="".join(answer_parts),
+            metadata=final_metadata,
+        )

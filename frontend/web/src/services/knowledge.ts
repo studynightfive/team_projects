@@ -22,6 +22,12 @@ export type DocumentUploadOptions = Readonly<{
   duplicatePolicy?: DocumentDuplicatePolicy;
 }>;
 
+export type DocumentReprocessOptions = Readonly<{
+  chunkStrategy: ChunkStrategy;
+  chunkSize: number;
+  chunkOverlap: number;
+}>;
+
 export type DocumentNameConflict = Readonly<{
   filename: string;
   document_name: string;
@@ -245,15 +251,25 @@ export const checkDocumentNameConflicts = async (
   return unwrapApiData(response.data).conflicts;
 };
 
-export const reprocessDocument = async (documentId: string): Promise<void> => {
+const toReprocessRequest = (options: DocumentReprocessOptions) => ({
+  chunk_strategy: options.chunkStrategy,
+  chunk_size: options.chunkSize,
+  chunk_overlap: options.chunkOverlap,
+});
+
+export const reprocessDocument = async (
+  documentId: string,
+  options: DocumentReprocessOptions,
+): Promise<void> => {
   const response = await apiClient.post<
     ApiResponse<Readonly<Required<ApiSchema<"TaskResponse">>>>
-  >(`/v1/documents/${documentId}/reprocess`, {});
+  >(`/v1/documents/${documentId}/reprocess`, toReprocessRequest(options));
   unwrapApiData(response.data);
 };
 
 export const batchReprocessDocuments = async (
   documentIds: readonly string[],
+  options: DocumentReprocessOptions,
 ): Promise<readonly DocumentBatchTaskItem[]> => {
   const response = await apiClient.post<
     ApiResponse<
@@ -263,6 +279,7 @@ export const batchReprocessDocuments = async (
     >
   >("/v1/documents/batch/reprocess", {
     document_ids: [...documentIds],
+    options: toReprocessRequest(options),
   });
   return unwrapApiData(response.data).items;
 };

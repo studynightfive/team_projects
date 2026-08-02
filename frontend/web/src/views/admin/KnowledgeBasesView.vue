@@ -208,6 +208,10 @@ const performUpload = async (
 
 const uploadFiles = async (files: readonly File[]): Promise<void> => {
   if (uploadKnowledgeBase.value === undefined || files.length === 0) return;
+  if (uploadChunkSize.value < 200 || uploadChunkSize.value > 4000) {
+    message.warning("切分大小必须在 200 到 4000 之间");
+    return;
+  }
   if (uploadChunkOverlap.value >= uploadChunkSize.value) {
     message.warning("重叠字符必须小于切分大小");
     return;
@@ -459,7 +463,7 @@ onMounted(loadData);
             <input
               v-model.number="uploadChunkSize"
               type="number"
-              min="100"
+              min="200"
               max="4000"
             />
           </label>

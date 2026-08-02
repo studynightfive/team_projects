@@ -1,0 +1,22 @@
+# 云端离线部署覆盖：沿用已验证的 18080 端口，并处理离线镜像与健康检查。
+services:
+  web:
+    ports: !override
+      - "0.0.0.0:18080:80"
+
+  worker:
+    # 小规格云主机导入文档依赖较多，首次健康检查可能超过镜像默认的 5 秒。
+    healthcheck:
+      test:
+        - CMD
+        - /app/backend/.venv/bin/arq
+        - app.worker.settings.WorkerSettings
+        - --check
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+
+  postgres:
+    # 离线导入的镜像按标签解析，避免 Compose 尝试访问 Docker Hub 校验摘要。
+    image: pgvector/pgvector:pg17

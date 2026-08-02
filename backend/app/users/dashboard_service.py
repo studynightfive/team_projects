@@ -93,23 +93,31 @@ def _document_contribution_subquery(
 ) -> Subquery:
     statement = (
         select(
-            User.department_id.label("department_id"),
+            KnowledgeBase.department_id.label("department_id"),
             User.id.label("user_id"),
             func.count(func.distinct(Document.content_hash)).label(
                 "contribution_count"
             ),
         )
         .join(Document, Document.created_by == User.id)
+        .join(
+            KnowledgeBase,
+            KnowledgeBase.id == Document.knowledge_base_id,
+        )
         .where(
             User.status == "active",
+            KnowledgeBase.kind == "enterprise",
+            KnowledgeBase.status == "active",
             Document.status == DocumentStatus.READY.value,
             Document.is_active_index.is_(True),
             Document.deleted_at.is_(None),
         )
-        .group_by(User.department_id, User.id)
+        .group_by(KnowledgeBase.department_id, User.id)
     )
     if department_id is not None:
-        statement = statement.where(User.department_id == department_id)
+        statement = statement.where(
+            KnowledgeBase.department_id == department_id
+        )
     return statement.subquery()
 
 
@@ -334,7 +342,10 @@ async def get_dashboard_metrics(
         or 0
     )
 
-    knowledge_statement = select(func.count(KnowledgeBase.id))
+    knowledge_statement = select(func.count(KnowledgeBase.id)).where(
+        KnowledgeBase.kind == "enterprise",
+        KnowledgeBase.status == "active",
+    )
     if scope_department_id is not None:
         knowledge_statement = knowledge_statement.where(
             KnowledgeBase.department_id == scope_department_id
@@ -349,6 +360,11 @@ async def get_dashboard_metrics(
         .join(
             KnowledgeBase,
             KnowledgeBase.id == Document.knowledge_base_id,
+        )
+        .where(
+            KnowledgeBase.kind == "enterprise",
+            KnowledgeBase.status == "active",
+            Document.deleted_at.is_(None),
         )
     )
     if scope_department_id is not None:
@@ -439,6 +455,8 @@ async def get_dashboard_metrics(
             KnowledgeBase.id == Document.knowledge_base_id,
         )
         .where(
+            KnowledgeBase.kind == "enterprise",
+            KnowledgeBase.status == "active",
             Document.updated_at >= started_at,
             Document.updated_at <= ended_at,
             Document.deleted_at.is_(None),

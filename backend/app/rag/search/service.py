@@ -32,6 +32,7 @@ from app.rag._shared.permissions import (
 )
 from app.rag.answer_cache import AnswerCacheScope, get_cached_answer, set_cached_answer
 from app.rag.guard import ensure_safe_query
+from app.rag.observability import observe, update_observation
 from app.rag.search.schemas import (
     RagAnswerRequest,
     RagAnswerResponse,
@@ -497,16 +498,18 @@ async def _resolve_knowledge_base_scope(
     return selected
 
 
-async def search(
+async def _search_impl(
     db: AsyncSession,
     *,
     user: User,
     req: SearchRequest,
     guard_checked: bool = False,
     query_embedding: list[float] | None = None,
+    retrieval_queries: Sequence[str] | None = None,
 ) -> SearchResponse:
     if not guard_checked:
-        await ensure_safe_query(req.query)
+        rewrite = await ensure_safe_query(req.query, db=db)
+        retrieval_queries = rewrite.all_queries
     start = time.time()
     if req.metadata_filter:
         raise ValidationException(message="metadata_filter 尚未接入，不能静默忽略筛选条件")
@@ -517,14 +520,35 @@ async def search(
     debug_kt, debug_vt, debug_rt = 0, 0, 0
     total = 0
     actual_mode = req.mode
+    queries = list(
+        dict.fromkeys(
+            query.strip()
+            for query in (retrieval_queries or (req.query,))
+            if query.strip()
+        )
+    )
+    if not queries:
+        queries = [req.query]
+    primary_query = queries[0]
 
     if req.mode == "keyword":
         ts = time.time()
-        kw_hits, total = await _keyword_search(
-            db, query=req.query, accessible_kb_ids=accessible_kbs, top_k=req.top_k
-        )
+        keyword_lists = []
+        for query in queries:
+            query_hits, _ = await _keyword_search(
+                db,
+                query=query,
+                accessible_kb_ids=accessible_kbs,
+                top_k=req.top_k,
+            )
+            keyword_lists.append(query_hits)
         debug_kt = int((time.time() - ts) * 1000)
-        fused = kw_hits
+        fused = (
+            rrf_fuse_many(keyword_lists)
+            if len(keyword_lists) > 1
+            else keyword_lists[0]
+        )
+        total = len(fused)
     elif req.mode == "vector":
         embedding_model_id = await _resolve_embedding_model_id(db, req.embedding_model_id)
         if not embedding_model_id:
@@ -538,7 +562,7 @@ async def search(
         ts = time.time()
         emb = query_embedding or await _embed_query(
             db,
-            query=req.query,
+            query=primary_query,
             embedding_model_id=embedding_model_id,
         )
         debug_vt = int((time.time() - ts) * 1000)
@@ -548,28 +572,39 @@ async def search(
         fused = vec_hits
     else:  # hybrid
         ts = time.time()
-        kw_hits, _ = await _keyword_search(
-            db, query=req.query, accessible_kb_ids=accessible_kbs, top_k=req.top_k
-        )
+        keyword_lists = []
+        for query in queries:
+            query_hits, _ = await _keyword_search(
+                db,
+                query=query,
+                accessible_kb_ids=accessible_kbs,
+                top_k=req.top_k,
+            )
+            keyword_lists.append(query_hits)
         debug_kt = int((time.time() - ts) * 1000)
-        total = len(kw_hits)
+        keyword_fused = (
+            rrf_fuse_many(keyword_lists)
+            if len(keyword_lists) > 1
+            else keyword_lists[0]
+        )
+        total = len(keyword_fused)
         embedding_model_id = await _resolve_embedding_model_id(db, req.embedding_model_id)
         if embedding_model_id is None:
             actual_mode = "keyword"
-            fused = kw_hits
+            fused = keyword_fused
         else:
             try:
                 ts = time.time()
                 emb = query_embedding or await _embed_query(
                     db,
-                    query=req.query,
+                    query=primary_query,
                     embedding_model_id=embedding_model_id,
                 )
                 debug_vt = int((time.time() - ts) * 1000)
                 vec_hits, _ = await _vector_search(
                     db, embedding=emb, accessible_kb_ids=accessible_kbs, top_k=req.top_k
                 )
-                fused = rrf_fuse(keyword_hits=kw_hits, vector_hits=vec_hits)
+                fused = rrf_fuse_many([*keyword_lists, vec_hits])
                 total = len(fused)
             except Exception as exc:  # noqa: BLE001
                 logger.warning(
@@ -577,7 +612,7 @@ async def search(
                     error_type=type(exc).__name__,
                 )
                 actual_mode = "keyword"
-                fused = kw_hits
+                fused = keyword_fused
 
     # 重排在答案生成前完成；未显式指定时使用首个已启用且已配置密钥的模型。
     informative = [hit for hit in fused if _has_retrieval_information(hit)]
@@ -589,13 +624,29 @@ async def search(
     if do_rerank:
         ts = time.time()
         rerank_model_id = await _resolve_rerank_model_id(db, req.rerank_model_id)
-        fused, reranked = await _rerank(
-            db,
-            query=req.query,
-            candidates=fused,
-            rerank_model_id=rerank_model_id,
-            top_k=req.top_k,
-        )
+        with observe(
+            "rag-rerank",
+            as_type="retriever",
+            metadata={
+                "candidate_count": len(fused),
+                "model_id": rerank_model_id or "unavailable",
+            },
+            input_value=req.query,
+        ) as rerank_observation:
+            fused, reranked = await _rerank(
+                db,
+                query=req.query,
+                candidates=fused,
+                rerank_model_id=rerank_model_id,
+                top_k=req.top_k,
+            )
+            update_observation(
+                rerank_observation,
+                metadata={
+                    "reranked": reranked,
+                    "result_count": len(fused),
+                },
+            )
         debug_rt = int((time.time() - ts) * 1000)
     else:
         fused = fused[: req.top_k]
@@ -621,6 +672,48 @@ async def search(
             rerank_latency_ms=debug_rt or None,
         ),
     )
+
+
+async def search(
+    db: AsyncSession,
+    *,
+    user: User,
+    req: SearchRequest,
+    guard_checked: bool = False,
+    query_embedding: list[float] | None = None,
+    retrieval_queries: Sequence[str] | None = None,
+) -> SearchResponse:
+    """为真实检索统一建立 Langfuse retriever observation。"""
+
+    with observe(
+        "rag-retrieval",
+        as_type="retriever",
+        user_id=user.id,
+        metadata={
+            "mode": req.mode,
+            "top_k": req.top_k,
+            "knowledge_base_count": len(req.selected_knowledge_base_ids() or []),
+            "query_variant_count": len(retrieval_queries or (req.query,)),
+        },
+        input_value=req.query,
+    ) as observation:
+        response = await _search_impl(
+            db,
+            user=user,
+            req=req,
+            guard_checked=guard_checked,
+            query_embedding=query_embedding,
+            retrieval_queries=retrieval_queries,
+        )
+        update_observation(
+            observation,
+            metadata={
+                "hit_count": len(response.hits),
+                "reranked": response.reranked,
+                "took_ms": response.took_ms,
+            },
+        )
+        return response
 
 
 def _build_answer_messages(
@@ -876,13 +969,14 @@ async def _build_cache_query_embedding(
     db: AsyncSession,
     *,
     req: RagAnswerRequest,
+    query: str | None = None,
 ) -> list[float] | None:
     if req.mode not in {"vector", "hybrid"} or req.embedding_model_id is None:
         return None
     try:
         return await _embed_query(
             db,
-            query=req.query,
+            query=query or req.query,
             embedding_model_id=req.embedding_model_id,
         )
     except Exception as exc:  # noqa: BLE001
@@ -893,14 +987,19 @@ async def _build_cache_query_embedding(
         return None
 
 
-async def answer(
+async def _answer_impl(
     db: AsyncSession,
     *,
     user: User,
     req: RagAnswerRequest,
 ) -> RagAnswerResponse:
     start = time.time()
-    await ensure_safe_query(req.query)
+    rewrite = await ensure_safe_query(
+        req.query,
+        db=db,
+        model_id=req.chat_model_id,
+    )
+    cache_query = rewrite.primary
     cache_scope, effective_request = await _build_answer_cache_scope(
         db,
         user=user,
@@ -908,18 +1007,19 @@ async def answer(
     )
     cached = await get_cached_answer(
         scope=cache_scope,
-        query=req.query,
+        query=cache_query,
     )
     query_embedding: list[float] | None = None
     if cached is None:
         query_embedding = await _build_cache_query_embedding(
             db,
             req=effective_request,
+            query=cache_query,
         )
         if query_embedding is not None:
             cached = await get_cached_answer(
                 scope=cache_scope,
-                query=req.query,
+                query=cache_query,
                 query_embedding=query_embedding,
                 check_exact=False,
             )
@@ -946,6 +1046,7 @@ async def answer(
         req=effective_request,
         guard_checked=True,
         query_embedding=query_embedding,
+        retrieval_queries=rewrite.all_queries,
     )
 
     if not search_resp.hits:
@@ -975,14 +1076,25 @@ async def answer(
         timeout=settings.model_provider_timeout_seconds,
     )
     try:
-        generated = await provider.chat(
-            model_name=model_name,
-            messages=_build_answer_messages(req.query, search_resp.hits),
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=False,
-            timeout=settings.model_provider_timeout_seconds,
-        )
+        with observe(
+            "rag-generation",
+            as_type="generation",
+            model=model_name,
+            metadata={"citation_count": len(search_resp.hits), "stream": False},
+            input_value=req.query,
+        ) as generation_observation:
+            generated = await provider.chat(
+                model_name=model_name,
+                messages=_build_answer_messages(req.query, search_resp.hits),
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=False,
+                timeout=settings.model_provider_timeout_seconds,
+            )
+            update_observation(
+                generation_observation,
+                output_value=generated if isinstance(generated, str) else None,
+            )
     except Exception as exc:  # noqa: BLE001
         status = getattr(getattr(exc, "response", None), "status_code", None)
         logger.warning(
@@ -1024,8 +1136,42 @@ async def answer(
     if final_hits:
         await set_cached_answer(
             scope=cache_scope,
-            query=req.query,
+            query=cache_query,
             response=response,
             query_embedding=query_embedding,
         )
     return response
+
+
+async def answer(
+    db: AsyncSession,
+    *,
+    user: User,
+    req: RagAnswerRequest,
+) -> RagAnswerResponse:
+    """非流式 RAG 根 observation；子检索与生成会自动挂到当前上下文。"""
+
+    with observe(
+        "rag-answer",
+        as_type="chain",
+        user_id=user.id,
+        session_id=req.conversation_id,
+        metadata={
+            "stream": False,
+            "mode": req.mode,
+            "knowledge_base_count": len(req.selected_knowledge_base_ids() or []),
+        },
+        input_value=req.query,
+    ) as observation:
+        response = await _answer_impl(db, user=user, req=req)
+        update_observation(
+            observation,
+            output_value=response.answer,
+            metadata={
+                "generated": response.generated,
+                "cache_hit": response.from_cache,
+                "hit_count": len(response.hits),
+                "took_ms": response.took_ms,
+            },
+        )
+        return response

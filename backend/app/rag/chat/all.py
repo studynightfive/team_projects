@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_any_permission
 from app.common.config import settings
+from app.common.database import async_session_factory
 from app.common.exceptions import ForbiddenException, ValidationException
 from app.common.models import User
 from app.documents.permissions import user_can_access_kb
@@ -39,6 +40,7 @@ from app.rag.conversations.all import (
     regenerate_answer,
 )
 from app.rag.guard import ensure_safe_query
+from app.rag.query_rewrite import RewriteResult
 from app.rag.search.schemas import SearchRequest
 from app.rag.search.service import is_no_context_answer, sanitize_no_context_answer
 from app.rag.search.service import search as search_rag
@@ -71,6 +73,7 @@ async def _retrieve_context(
     *,
     user: User,
     req: ChatStreamRequest,
+    rewrite: RewriteResult,
 ) -> list[dict[str, object]]:
     search_resp = await search_rag(
         db,
@@ -87,6 +90,7 @@ async def _retrieve_context(
             embedding_model_id=req.embedding_model_id,
         ),
         guard_checked=True,
+        retrieval_queries=rewrite.all_queries,
     )
     # 二次权限过滤（即使 search 内已过滤）
     hits_dicts: list[dict[str, object]] = [h.model_dump() for h in search_resp.hits]
@@ -127,6 +131,7 @@ async def _chat_stream(
     *,
     user: User,
     req: ChatStreamRequest,
+    rewrite: RewriteResult,
 ) -> AsyncIterator[str]:
     request_id = new_request_id()
     message_id = new_message_id()
@@ -191,7 +196,12 @@ async def _chat_stream(
 
     # 3. 检索 + 拼 prompt
     try:
-        contexts = await _retrieve_context(db, user=user, req=req)
+        contexts = await _retrieve_context(
+            db,
+            user=user,
+            req=req,
+            rewrite=rewrite,
+        )
     except Exception as exc:
         logger.warning(
             "chat_retrieval_failed",
@@ -368,7 +378,12 @@ async def chat_stream_endpoint(
     user: User = Depends(get_current_user),
     _perm: None = Depends(require_any_permission("chat.use", "chat:write")),
 ) -> StreamingResponse:
-    await ensure_safe_query(payload.question)
+    async with async_session_factory() as preprocess_db:
+        rewrite = await ensure_safe_query(
+            payload.question,
+            db=preprocess_db,
+            model_id=payload.chat_model_id,
+        )
     user_id = user.id
 
     async def event_gen() -> AsyncIterator[str]:
@@ -378,6 +393,7 @@ async def chat_stream_endpoint(
                     stream_db,
                     user=stream_user,
                     req=payload,
+                    rewrite=rewrite,
                 ):
                     yield chunk
         except asyncio.CancelledError:

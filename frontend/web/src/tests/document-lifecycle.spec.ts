@@ -100,6 +100,7 @@ const renderView = async (archivedOnly = false) => {
   });
   knowledgeMocks.listRecycleBin.mockResolvedValue(recycled);
   knowledgeMocks.batchDeleteDocuments.mockResolvedValue(10);
+  knowledgeMocks.batchReprocessDocuments.mockResolvedValue([taskItem]);
   knowledgeMocks.restoreDocuments.mockResolvedValue([taskItem]);
   knowledgeMocks.getDocumentTask.mockResolvedValue(taskItem.task);
 
@@ -152,12 +153,21 @@ describe("文档批量生命周期", () => {
       document.querySelectorAll<HTMLButtonElement>("button"),
     ).find((button) => button.textContent?.includes("移入回收站"));
     expect(confirmButton).toBeDefined();
+    adminMocks.listAdminDocuments.mockResolvedValue({
+      items: [documentRecord(11), documentRecord(12)],
+      page: 1,
+      page_size: 100,
+      total: 2,
+    });
     confirmButton?.click();
     await flushPromises();
 
     expect(knowledgeMocks.batchDeleteDocuments).toHaveBeenCalledWith(
       Array.from({ length: 10 }, (_, index) => `document-${index + 1}`),
     );
+    expect(
+      wrapper.findAll<HTMLInputElement>('tbody input[type="checkbox"]'),
+    ).toHaveLength(2);
 
     await findButton(wrapper, "回收站").trigger("click");
     await flushPromises();
@@ -191,6 +201,51 @@ describe("文档批量生命周期", () => {
     expect(rowActions).not.toContain("重新处理");
     expect(rowActions).not.toContain("删除");
     expect(rowActions).toContain("查看");
+    wrapper.unmount();
+  });
+
+  it("重新处理前可选择切分方式并把参数提交到批量接口", async () => {
+    const wrapper = await renderView();
+    await wrapper
+      .get<HTMLInputElement>('tbody input[type="checkbox"]')
+      .setValue(true);
+    await findButton(wrapper, "重新处理").trigger("click");
+    await flushPromises();
+
+    const strategy = document.querySelector<HTMLSelectElement>(
+      ".reprocess-form select",
+    );
+    const numericInputs = Array.from(
+      document.querySelectorAll<HTMLInputElement>(
+        '.reprocess-form input[type="number"]',
+      ),
+    );
+    expect(strategy).not.toBeNull();
+    expect(numericInputs[0]?.min).toBe("200");
+    strategy!.value = "semantic";
+    strategy!.dispatchEvent(new Event("change"));
+    numericInputs[0]!.value = "1000";
+    numericInputs[0]!.dispatchEvent(new Event("input"));
+    numericInputs[1]!.value = "150";
+    numericInputs[1]!.dispatchEvent(new Event("input"));
+    await flushPromises();
+
+    const confirmButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>("button"),
+    ).find((button) => button.textContent?.includes("开始重新处理"));
+    expect(confirmButton).toBeDefined();
+    confirmButton?.click();
+    await flushPromises();
+
+    expect(knowledgeMocks.batchReprocessDocuments).toHaveBeenCalledWith(
+      ["document-1"],
+      {
+        chunkStrategy: "semantic",
+        chunkSize: 1000,
+        chunkOverlap: 150,
+      },
+    );
+    expect(wrapper.text()).toContain("重新处理进度");
     wrapper.unmount();
   });
 });

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, model_validator
 
 SearchMode = Literal["keyword", "vector", "hybrid"]
 CacheMatch = Literal["exact", "similar"]
+GuardCategory = Literal["涉黄", "涉赌", "涉毒"]
 
 
 class SearchRequest(BaseModel):
@@ -89,3 +90,15 @@ class RagAnswerResponse(BaseModel):
     from_cache: bool = False
     cache_match: CacheMatch | None = None
     cache_similarity: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+class QueryGuardRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=2000)
+    chat_model_id: str | None = None
+
+
+class QueryGuardResponse(BaseModel):
+    allowed: bool
+    category: GuardCategory | None = None
+    message: str | None = None
+    semantic_checked: bool

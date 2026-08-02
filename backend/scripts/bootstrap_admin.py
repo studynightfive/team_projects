@@ -5,23 +5,18 @@ import sys
 from getpass import getpass
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.security import hash_password
 from app.common.database import async_session_factory
-from app.common.exceptions import AppException
 from app.common.models import Role, User
 from app.common.seed import SUPER_ADMIN_ROLE_NAME, seed_builtin_authorization
-from app.users.schemas import CreateUserRequest
-from app.users.service import create_user
+from app.knowledge.service import ensure_personal_knowledge_base
 
 
 async def _admin_exists(db: AsyncSession, role_id: str) -> bool:
-    result = await db.execute(
-        select(User.id)
-        .join(User.roles)
-        .where(Role.id == role_id)
-        .limit(1)
-    )
+    result = await db.execute(select(User.id).join(User.roles).where(Role.id == role_id).limit(1))
     return result.scalar_one_or_none() is not None
 
 
@@ -31,6 +26,39 @@ async def _prepare_bootstrap(db: AsyncSession) -> Role:
     if await _admin_exists(db, role.id):
         raise RuntimeError("已存在管理员，拒绝再次执行首管理员初始化")
     return role
+
+
+async def _create_initial_admin(
+    db: AsyncSession,
+    *,
+    role: Role,
+    username: str,
+    display_name: str,
+    password: str,
+) -> User:
+    """通过受信任的初始化入口创建唯一首管理员。"""
+    existing = await db.execute(select(User.id).where(User.username == username))
+    if existing.scalar_one_or_none() is not None:
+        raise RuntimeError("管理员账号已存在")
+    if await _admin_exists(db, role.id):
+        raise RuntimeError("已存在管理员")
+
+    user = User(
+        username=username,
+        display_name=display_name,
+        password_hash=hash_password(password),
+        status="active",
+    )
+    user.roles = [role]
+    db.add(user)
+    try:
+        await db.flush()
+        await ensure_personal_knowledge_base(db, user)
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise RuntimeError("管理员账号已存在") from exc
+    return user
 
 
 async def bootstrap_admin() -> bool:
@@ -66,17 +94,15 @@ async def bootstrap_admin() -> bool:
             return False
 
         try:
-            user = await create_user(
+            user = await _create_initial_admin(
                 db,
-                CreateUserRequest(
-                    username=username,
-                    display_name=display_name,
-                    password=password,
-                    role_ids=[role.id],
-                ),
+                role=role,
+                username=username,
+                display_name=display_name,
+                password=password,
             )
-        except AppException as exc:
-            print(f"未创建管理员：{exc.message}", file=sys.stderr)
+        except RuntimeError as exc:
+            print(f"未创建管理员：{exc}", file=sys.stderr)
             return False
         except Exception as exc:
             print(f"未创建管理员（{type(exc).__name__}）", file=sys.stderr)

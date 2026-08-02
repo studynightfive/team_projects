@@ -35,8 +35,11 @@ const leaderboardPage = ref(1);
 const leaderboardPageSize = ref(10);
 let loadSequence = 0;
 
-const canSelectDepartment = computed(() =>
-  sessionStore.hasAnyPermission(["admin.department.view"]),
+const canSelectDepartment = computed(
+  () =>
+    sessionStore.currentUser?.roles.some(
+      (role) => role.name === "超级管理员",
+    ) ?? false,
 );
 
 const summaryCards = computed(() => [
@@ -74,16 +77,23 @@ const summaryCards = computed(() => [
 
 const loadOverview = async (): Promise<void> => {
   const sequence = ++loadSequence;
+  const requestedDepartmentId = departmentId.value || undefined;
   loading.value = true;
   loadError.value = "";
   try {
     const dashboard = await getDashboardMetrics({
       days: days.value,
-      department_id: departmentId.value || undefined,
+      department_id: requestedDepartmentId,
       leaderboard_page: leaderboardPage.value,
       leaderboard_page_size: leaderboardPageSize.value,
     });
     if (sequence !== loadSequence) return;
+    if (
+      canSelectDepartment.value &&
+      dashboard.scope.department_id !== (requestedDepartmentId ?? null)
+    ) {
+      throw new Error("看板返回的部门范围与当前选择不一致，请重新刷新");
+    }
     metrics.value = dashboard;
     lastUpdated.value = `${new Date().toLocaleTimeString("zh-CN", {
       hour: "2-digit",

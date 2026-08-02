@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from app.common.config import Settings
 from app.common.exceptions import ValidationException
-from app.documents.schemas import UploadOptions
+from app.documents.schemas import ReprocessRequest, UploadOptions
 from app.models.providers.openai import _address_is_allowed, build_provider
 from app.models.service import _validate_provider_base_url
 
@@ -94,6 +94,14 @@ def test_demo_seed_requires_explicit_password() -> None:
 def test_chunk_overlap_must_be_smaller_than_chunk_size() -> None:
     with pytest.raises(ValidationError, match="chunk_overlap 必须小于 chunk_size"):
         UploadOptions(chunk_size=200, chunk_overlap=200)
+
+
+def test_upload_and_reprocess_share_runtime_chunk_size_minimum() -> None:
+    with pytest.raises(ValidationError):
+        UploadOptions(chunk_size=199)
+
+    with pytest.raises(ValidationError):
+        ReprocessRequest(chunk_size=199)
 
 
 @pytest.mark.parametrize(

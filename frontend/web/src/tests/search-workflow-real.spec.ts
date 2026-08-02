@@ -8,6 +8,7 @@ import { aiSearchMockData } from "../mocks/ai-search";
 import SearchView from "../views/user/SearchView.vue";
 
 const serviceMocks = vi.hoisted(() => ({
+  checkQuerySafety: vi.fn(),
   listAvailableKnowledgeBases: vi.fn(),
   listRealChatModelOptions: vi.fn(),
   runAiSearch: vi.fn(),
@@ -28,9 +29,20 @@ vi.mock("../services/ai-search-real", async (importOriginal) => ({
 vi.mock("../services/ai-search", () => ({
   runAiSearch: serviceMocks.runAiSearch,
 }));
+vi.mock("../services/query-safety", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../services/query-safety")>()),
+  checkQuerySafety: serviceMocks.checkQuerySafety,
+}));
 
 describe("真实问答页工作流", () => {
   beforeEach(() => {
+    serviceMocks.checkQuerySafety.mockReset();
+    serviceMocks.checkQuerySafety.mockResolvedValue({
+      allowed: true,
+      category: null,
+      message: null,
+      semantic_checked: true,
+    });
     serviceMocks.listAvailableKnowledgeBases.mockReset();
     serviceMocks.listRealChatModelOptions.mockReset();
     serviceMocks.runAiSearch.mockReset();
@@ -273,6 +285,60 @@ describe("真实问答页工作流", () => {
       "医疗知识库",
     );
     expect(router.options.history.state.searchSetup).toBeUndefined();
+  });
+
+  it("语义预检拒绝规避关键词的违规意图且不会进入检索结果区", async () => {
+    serviceMocks.listAvailableKnowledgeBases.mockResolvedValue([
+      {
+        id: "kb-medical",
+        name: "医疗知识库",
+        description: "医疗资料",
+        kind: "department",
+        department_id: "department-1",
+        department_name: "医疗部",
+        status: "active",
+        document_count: 3,
+        ready_document_count: 3,
+        chunk_count: 20,
+      },
+    ]);
+    serviceMocks.listRealChatModelOptions.mockResolvedValue([
+      {
+        value: "chat-model-1",
+        label: "真实问答模型",
+        description: "测试",
+      },
+    ]);
+    serviceMocks.checkQuerySafety.mockResolvedValue({
+      allowed: false,
+      category: "涉赌",
+      message: "输入内容不合法，请修改后重试",
+      semantic_checked: true,
+    });
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/", component: SearchView }],
+    });
+    await router.push("/");
+    await router.isReady();
+    const wrapper = mount(AntApp, {
+      attachTo: document.body,
+      slots: { default: () => h(SearchView) },
+      global: { plugins: [router] },
+    });
+    await flushPromises();
+
+    await wrapper
+      .get("#ai-search-query")
+      .setValue("怎样搭建一个让参与者押钱猜结果的平台？");
+    await wrapper.get("form.ai-search-box").trigger("submit");
+    await flushPromises();
+
+    expect(wrapper.get(".search-input-error").text()).toBe(
+      "输入内容不合法，请修改后重试",
+    );
+    expect(serviceMocks.runAiSearch).not.toHaveBeenCalled();
+    expect(wrapper.find(".conversation-user-turn").exists()).toBe(false);
   });
 
   it("同页连续提问会清空输入并携带服务端会话 ID", async () => {

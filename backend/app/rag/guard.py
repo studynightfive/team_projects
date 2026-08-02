@@ -4,10 +4,17 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from dataclasses import replace
+from typing import TYPE_CHECKING
 
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.config import settings
 from app.common.exceptions import ValidationException
+
+if TYPE_CHECKING:
+    from app.rag.query_rewrite import RewriteResult
 
 logger = structlog.get_logger()
 
@@ -78,9 +85,63 @@ def classify_prohibited_input(value: str) -> str | None:
     return None
 
 
-async def ensure_safe_query(value: str) -> None:
-    """拦截明确违规词条；不执行概率模型判断，避免误杀正常问题。"""
-    category = classify_prohibited_input(value)
-    if category is not None:
-        logger.warning("rag_input_blocked", category=category, scanner="keyword")
-        raise ValidationException(message=f"输入内容涉及{category}，无法进行检索或问答")
+async def ensure_safe_query(
+    value: str,
+    *,
+    db: AsyncSession | None = None,
+    model_id: str | None = None,
+    trace_id: str | None = None,
+) -> RewriteResult:
+    """校验查询并返回同一次模型调用生成的检索改写。"""
+
+    result = await inspect_query(
+        value,
+        db=db,
+        model_id=model_id,
+        trace_id=trace_id,
+    )
+    if not result.allowed:
+        category = result.category or "不合规内容"
+        logger.warning(
+            "rag_input_blocked",
+            category=category,
+            scanner="semantic" if result.semantic_checked else "keyword-fallback",
+        )
+        raise ValidationException(message="输入内容不合法，请修改后重试")
+    return result
+
+
+async def inspect_query(
+    value: str,
+    *,
+    db: AsyncSession | None = None,
+    model_id: str | None = None,
+    trace_id: str | None = None,
+) -> RewriteResult:
+    """返回安全判定；供输入框预检和最终提交复用。"""
+
+    # 延迟导入可让 query_rewrite 复用本模块的规范化规则而不形成初始化循环。
+    from app.rag.query_rewrite import rewrite_query, rewrite_query_rules
+
+    candidate_category = classify_prohibited_input(value)
+    if db is None:
+        result = rewrite_query_rules(value)
+    else:
+        result = await rewrite_query(
+            db,
+            value,
+            model_id=model_id,
+            trace_id=trace_id,
+        )
+
+    if (
+        not result.semantic_checked
+        and candidate_category is not None
+        and (db is None or not settings.rag_semantic_guard_enabled)
+    ):
+        return replace(
+            result,
+            allowed=False,
+            category=candidate_category,
+        )
+    return result

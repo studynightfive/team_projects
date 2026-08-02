@@ -160,7 +160,7 @@ class ReprocessRequest(BaseModel):
     ocr_enabled: bool | None = None
     language: str | None = Field(default=None, min_length=1, max_length=64)
     chunk_strategy: Literal["fixed", "semantic", "recursive", "format"] | None = None
-    chunk_size: int | None = Field(default=None, ge=100, le=4000)
+    chunk_size: int | None = Field(default=None, ge=200, le=4000)
     chunk_overlap: int | None = Field(default=None, ge=0, le=1000)
     from_stage: str | None = Field(
         default=None,
@@ -207,7 +207,7 @@ class UploadOptions(BaseModel):
     language: str = Field(default="chi_sim+eng", min_length=1, max_length=64)
     duplicate_policy: DuplicatePolicy = DuplicatePolicy.NEW_VERSION
     chunk_strategy: Literal["fixed", "semantic", "recursive", "format"] = "recursive"
-    chunk_size: int = Field(default=800, ge=100, le=4000)
+    chunk_size: int = Field(default=800, ge=200, le=4000)
     chunk_overlap: int = Field(default=120, ge=0, le=1000)
 
     @model_validator(mode="after")

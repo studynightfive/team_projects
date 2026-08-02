@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.rag.answer_cache import AnswerCacheScope
+from app.rag.query_rewrite import rewrite_query_rules
 from app.rag.search.schemas import (
     RagAnswerRequest,
     RagAnswerResponse,
@@ -62,13 +63,14 @@ def test_no_context_answer_removes_model_generated_evidence_section() -> None:
 
 
 @pytest.mark.asyncio
-async def test_stream_answer_emits_stages_citations_and_filtered_deltas(
+async def test_stream_answer_emits_stages_and_caches_standalone_conversation_question(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     request = RagAnswerRequest(
         query="医疗信息化平台有哪些模块",
         mode="hybrid",
         kb_id="kb-1",
+        conversation_id="conversation-1",
         chat_model_id="chat-1",
         embedding_model_id="embedding-1",
         rerank_model_id="rerank-1",
@@ -87,9 +89,23 @@ async def test_stream_answer_emits_stages_citations_and_filtered_deltas(
             yield delta
 
     provider = SimpleNamespace(chat=AsyncMock(return_value=provider_deltas()))
+    existing = SimpleNamespace(
+        id="conversation-1",
+        kb_id="kb-1",
+        knowledge_base_ids=["kb-1"],
+    )
+    monkeypatch.setattr(
+        "app.rag.search.stream.get_conversation",
+        AsyncMock(return_value=existing),
+    )
     monkeypatch.setattr(
         "app.rag.search.stream._build_answer_cache_scope",
-        AsyncMock(return_value=(_scope(), request)),
+        AsyncMock(
+            return_value=(
+                _scope(),
+                request.model_copy(update={"kb_id": None, "kb_ids": ["kb-1"]}),
+            )
+        ),
     )
     monkeypatch.setattr(
         "app.rag.search.stream.get_cached_answer",
@@ -128,9 +144,12 @@ async def test_stream_answer_emits_stages_citations_and_filtered_deltas(
         "app.rag.search.stream._prepare_conversation",
         AsyncMock(
             return_value=(
-                SimpleNamespace(id="conversation-1"),
+                existing,
                 SimpleNamespace(id="user-message-1"),
-                [],
+                [
+                    ("user", "上一轮独立问题"),
+                    ("assistant", "上一轮回答"),
+                ],
             )
         ),
     )
@@ -147,6 +166,7 @@ async def test_stream_answer_emits_stages_citations_and_filtered_deltas(
             SimpleNamespace(),
             user=SimpleNamespace(id="user-1"),
             req=request,
+            rewrite=rewrite_query_rules(request.query),
         )
     ]
 
@@ -254,6 +274,7 @@ async def test_stream_answer_hides_citations_when_model_reports_no_context(
             SimpleNamespace(),
             user=SimpleNamespace(id="user-1"),
             req=request,
+            rewrite=rewrite_query_rules(request.query),
         )
     ]
 
@@ -365,6 +386,7 @@ async def test_followup_uses_history_and_skips_answer_cache(
             SimpleNamespace(),
             user=SimpleNamespace(id="user-1"),
             req=request,
+            rewrite=rewrite_query_rules(request.query),
         )
     ]
 
@@ -455,6 +477,7 @@ async def test_standalone_question_in_conversation_can_reuse_semantic_cache(
             SimpleNamespace(),
             user=SimpleNamespace(id="user-1"),
             req=request,
+            rewrite=rewrite_query_rules(request.query),
         )
     ]
 

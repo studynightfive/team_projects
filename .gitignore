@@ -23,6 +23,7 @@ exports/
 backups/
 logs/
 storage_backup_*/
+artifacts/
 
 # Node.js
 node_modules/

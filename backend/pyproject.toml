@@ -70,6 +70,7 @@ dependencies = [
     "python-pptx==1.0.2",
     "cryptography==46.0.3",       # cryptography：Fernet 对称加密（模型密钥）
     "fastapi-swagger==0.4.55",
+    "langfuse==4.10.0",
 ]
 
 # 开发依赖组

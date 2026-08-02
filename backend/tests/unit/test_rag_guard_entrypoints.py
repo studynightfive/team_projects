@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import ANY, AsyncMock
 
 import pytest
 from starlette.requests import Request
@@ -11,6 +11,7 @@ from starlette.requests import Request
 from app.common.exceptions import ValidationException
 from app.rag.chat import all as chat_module
 from app.rag.conversations import all as conversation_module
+from app.rag.query_rewrite import rewrite_query_rules
 from app.rag.search import service as search_service
 from app.rag.search.schemas import RagAnswerRequest
 
@@ -22,12 +23,13 @@ def _request(path: str) -> Request:
 async def test_answer_guard_runs_before_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     guard = AsyncMock(side_effect=ValidationException(message="blocked"))
     cache = AsyncMock()
+    db = SimpleNamespace()
     monkeypatch.setattr(search_service, "ensure_safe_query", guard)
     monkeypatch.setattr(search_service, "get_cached_answer", cache)
 
     with pytest.raises(ValidationException, match="blocked"):
         await search_service.answer(
-            SimpleNamespace(),
+            db,
             user=SimpleNamespace(id="user-1"),
             req=RagAnswerRequest(
                 query="危险输入",
@@ -36,14 +38,15 @@ async def test_answer_guard_runs_before_cache(monkeypatch: pytest.MonkeyPatch) -
             ),
         )
 
-    guard.assert_awaited_once_with("危险输入")
+    guard.assert_awaited_once_with("危险输入", db=db, model_id=None)
     cache.assert_not_awaited()
 
 
 async def test_answer_does_not_scan_twice_in_internal_search(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    guard = AsyncMock()
+    guard = AsyncMock(return_value=rewrite_query_rules("正常问题"))
+    db = SimpleNamespace()
     search = AsyncMock(
         return_value=search_service.SearchResponse(
             hits=[],
@@ -68,12 +71,12 @@ async def test_answer_does_not_scan_twice_in_internal_search(
     monkeypatch.setattr(search_service, "search", search)
 
     await search_service.answer(
-        SimpleNamespace(),
+        db,
         user=SimpleNamespace(id="user-1"),
         req=RagAnswerRequest(query="正常问题", mode="keyword", kb_id="kb-1"),
     )
 
-    guard.assert_awaited_once_with("正常问题")
+    guard.assert_awaited_once_with("正常问题", db=db, model_id=None)
     assert search.await_args.kwargs["guard_checked"] is True
 
 
@@ -96,7 +99,7 @@ async def test_chat_stream_guard_runs_before_response_creation(
             _perm=None,
         )
 
-    guard.assert_awaited_once_with("危险输入")
+    guard.assert_awaited_once_with("危险输入", db=ANY, model_id="chat-1")
 
 
 async def test_conversation_first_question_is_guarded_before_database_lookup(
@@ -118,7 +121,7 @@ async def test_conversation_first_question_is_guarded_before_database_lookup(
             db=db,
         )
 
-    guard.assert_awaited_once_with("危险输入")
+    guard.assert_awaited_once_with("危险输入", db=db)
     db.get.assert_not_awaited()
 
 
@@ -133,6 +136,7 @@ async def test_user_message_is_guarded_before_append(monkeypatch: pytest.MonkeyP
     )
     monkeypatch.setattr(conversation_module, "append_message", append)
 
+    db = SimpleNamespace()
     with pytest.raises(ValidationException, match="blocked"):
         await conversation_module.append_message_endpoint(
             conversation_id="conversation-1",
@@ -140,8 +144,8 @@ async def test_user_message_is_guarded_before_append(monkeypatch: pytest.MonkeyP
             payload={"role": "user", "content": "危险输入"},
             user=SimpleNamespace(id="user-1"),
             _perm=None,
-            db=SimpleNamespace(),
+            db=db,
         )
 
-    guard.assert_awaited_once_with("危险输入")
+    guard.assert_awaited_once_with("危险输入", db=db)
     append.assert_not_awaited()

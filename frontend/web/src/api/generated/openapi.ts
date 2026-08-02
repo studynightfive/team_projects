@@ -863,6 +863,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/retrieval/guard/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Query Guard Endpoint
+         * @description 输入框防抖预检；最终检索接口仍会再次执行同一缓存判定。
+         */
+        post: operations["check_query_guard_endpoint_api_v1_retrieval_guard_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/retrieval/search": {
         parameters: {
             query?: never;
@@ -1638,6 +1658,25 @@ export interface components {
              */
             request_id: string;
         };
+        /** APIResponse[QueryGuardResponse] */
+        APIResponse_QueryGuardResponse_: {
+            /**
+             * Code
+             * @default 0
+             */
+            code: number;
+            /**
+             * Message
+             * @default success
+             */
+            message: string;
+            data?: components["schemas"]["QueryGuardResponse"] | null;
+            /**
+             * Request Id
+             * @default
+             */
+            request_id: string;
+        };
         /** APIResponse[TaskResponse] */
         APIResponse_TaskResponse_: {
             /**
@@ -1875,6 +1914,8 @@ export interface components {
              * @enum {string}
              */
             format: "pdf" | "docx" | "markdown" | "txt";
+            /** Filename */
+            filename?: string | null;
             /** Question */
             question: string;
             /** Answer */
@@ -2073,6 +2114,8 @@ export interface components {
              * @enum {string}
              */
             format: "pdf" | "docx" | "markdown";
+            /** Filename */
+            filename?: string | null;
         };
         /** CreateExportRequest */
         CreateExportRequest: {
@@ -2899,6 +2942,24 @@ export interface components {
              * Format: date-time
              */
             last_queried_at: string;
+        };
+        /** QueryGuardRequest */
+        QueryGuardRequest: {
+            /** Query */
+            query: string;
+            /** Chat Model Id */
+            chat_model_id?: string | null;
+        };
+        /** QueryGuardResponse */
+        QueryGuardResponse: {
+            /** Allowed */
+            allowed: boolean;
+            /** Category */
+            category?: ("涉黄" | "涉赌" | "涉毒") | null;
+            /** Message */
+            message?: string | null;
+            /** Semantic Checked */
+            semantic_checked: boolean;
         };
         /** RagAnswerRequest */
         RagAnswerRequest: {
@@ -6000,6 +6061,57 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description 未登录、Token 无效或已过期 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 已登录但权限不足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+            /** @description 请求参数错误 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIErrorResponse"];
+                };
+            };
+        };
+    };
+    check_query_guard_endpoint_api_v1_retrieval_guard_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QueryGuardRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse_QueryGuardResponse_"];
                 };
             };
             /** @description 未登录、Token 无效或已过期 */

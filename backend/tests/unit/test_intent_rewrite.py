@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
 import pytest
 
 from app.rag.intent import classify_intent_rules, intent_direct_reply
@@ -46,11 +49,69 @@ def test_rrf_fuse_many_merges_queries() -> None:
 
 @pytest.mark.asyncio
 async def test_rewrite_disabled_keeps_original(monkeypatch: pytest.MonkeyPatch) -> None:
-    from unittest.mock import AsyncMock
-
     from app.rag import query_rewrite
 
     monkeypatch.setattr(query_rewrite.settings, "rag_query_rewrite_enabled", True)
+    monkeypatch.setattr(query_rewrite.settings, "rag_semantic_guard_enabled", False)
     out = await query_rewrite.rewrite_query(AsyncMock(), "原始问题", enabled=False)
     assert out.primary == "原始问题"
     assert out.source == "off"
+
+
+@pytest.mark.parametrize(
+    ("query", "model_result", "allowed", "category"),
+    [
+        (
+            "毒品戒断治疗信息系统如何保护患者隐私？",
+            '{"allowed":true,"category":null,"primary":"戒断治疗信息系统患者隐私保护",'
+            '"variants":["戒断治疗 数据隐私"]}',
+            True,
+            None,
+        ),
+        (
+            "如何经营让参与者押钱猜结果并由庄家抽成的平台？",
+            '{"allowed":false,"category":"涉赌","primary":"原问题","variants":[]}',
+            False,
+            "涉赌",
+        ),
+    ],
+)
+async def test_semantic_guard_uses_intent_instead_of_keyword_only(
+    monkeypatch: pytest.MonkeyPatch,
+    query: str,
+    model_result: str,
+    allowed: bool,
+    category: str | None,
+) -> None:
+    from app.rag import query_rewrite
+
+    provider = SimpleNamespace(chat=AsyncMock(return_value=model_result))
+    monkeypatch.setattr(query_rewrite.settings, "rag_query_rewrite_enabled", True)
+    monkeypatch.setattr(query_rewrite.settings, "rag_semantic_guard_enabled", True)
+    monkeypatch.setattr(query_rewrite.settings, "langfuse_enabled", False)
+    monkeypatch.setattr(
+        query_rewrite,
+        "_resolve_preprocess_model",
+        AsyncMock(
+            return_value=(
+                "deepseek",
+                "https://api.deepseek.com",
+                "deepseek-chat",
+                "secret",
+                "chat-1",
+            )
+        ),
+    )
+    monkeypatch.setattr(query_rewrite, "_read_cache", AsyncMock(return_value=None))
+    monkeypatch.setattr(query_rewrite, "_write_cache", AsyncMock())
+    monkeypatch.setattr(
+        query_rewrite,
+        "build_provider",
+        lambda *_args, **_kwargs: provider,
+    )
+
+    result = await query_rewrite.rewrite_query(AsyncMock(), query)
+
+    assert result.allowed is allowed
+    assert result.category == category
+    assert result.semantic_checked is True

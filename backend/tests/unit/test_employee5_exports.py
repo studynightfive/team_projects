@@ -367,6 +367,15 @@ import asyncio  # noqa: E402
 import os  # noqa: E402
 
 
+def test_answer_filename_is_single_safe_path_component() -> None:
+    from app.exports import all as exports
+
+    assert exports._answer_filename("../客户:问答.pdf", "pdf") == "_客户_问答.pdf"
+    assert exports._answer_filename("客户问答.pdf", "docx") == "客户问答.docx"
+    assert exports._answer_filename("CON.txt", "pdf") == "_CON.pdf"
+    assert exports._answer_filename("CON", "docx") == "_CON.docx"
+
+
 class TestAnswerExportTask:
     @pytest.mark.parametrize(
         ("export_format", "extension"),
@@ -408,6 +417,7 @@ class TestAnswerExportTask:
             ),
             payload=exports.AnswerExportRequest(
                 format=export_format,
+                filename="客户演示问答",
                 question="医院信息平台如何规划？",
                 answer="应先完成数据标准和接口治理。",
                 citations=[{"doc_id": "doc-1", "chunk_id": "chunk-1", "score": 0.9}],
@@ -424,6 +434,7 @@ class TestAnswerExportTask:
         assert task.status == "done"
         assert task.progress == 100
         assert exported.suffix == extension
+        assert exported.name == f"客户演示问答{extension}"
         assert exported.exists()
         assert exported.stat().st_size > 0
         assert (exported.parent / "answer-source.md").exists()
@@ -549,7 +560,10 @@ class TestAnswerExportTask:
                     "headers": [],
                 }
             ),
-            payload=exports.ConvertAnswerExportRequest(format="docx"),
+            payload=exports.ConvertAnswerExportRequest(
+                format="docx",
+                filename="客户转换结果",
+            ),
             user=SimpleNamespace(id="user-1"),
             _perm=None,
             db=db,
@@ -559,6 +573,7 @@ class TestAnswerExportTask:
         assert converted.format == "docx"
         assert converted.status == "done"
         assert Path(response.path).suffix == ".docx"
+        assert Path(response.path).name == "客户转换结果.docx"
         assert Path(response.path).exists()
         assert (Path(response.path).parent / "answer-source.md").exists()
         assert response.headers["x-export-id"] == converted.id

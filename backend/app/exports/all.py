@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import os
+import re
 import zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -106,6 +107,7 @@ class CreateExportRequest(BaseModel):
 
 class AnswerExportRequest(BaseModel):
     format: Literal["pdf", "docx", "markdown", "txt"] = "markdown"
+    filename: str | None = Field(default=None, max_length=160)
     question: str = Field(min_length=1, max_length=2000)
     answer: str = Field(min_length=1, max_length=100_000)
     citations: list[dict[str, JsonValue]] = Field(default_factory=list, max_length=50)
@@ -113,6 +115,7 @@ class AnswerExportRequest(BaseModel):
 
 class ConvertAnswerExportRequest(BaseModel):
     format: Literal["pdf", "docx", "markdown"]
+    filename: str | None = Field(default=None, max_length=160)
 
 
 class ExportTaskResponse(BaseModel):
@@ -326,6 +329,37 @@ def _answer_media_type(export_format: str) -> str:
     }[export_format]
 
 
+_INVALID_EXPORT_FILENAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+_WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{index}" for index in range(1, 10)),
+    *(f"LPT{index}" for index in range(1, 10)),
+}
+_KNOWN_ANSWER_SUFFIXES = (".markdown", ".docx", ".pdf", ".txt", ".md")
+
+
+def _answer_filename(requested_name: str | None, export_format: str) -> str:
+    """将用户文件名约束为单个安全文件名，并由服务端统一附加扩展名。"""
+    extension = "md" if export_format == "markdown" else export_format
+    fallback = f"RAG-answer-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    candidate = (requested_name or fallback).strip()
+    suffix = f".{extension}"
+    for known_suffix in _KNOWN_ANSWER_SUFFIXES:
+        if candidate.lower().endswith(known_suffix):
+            candidate = candidate[: -len(known_suffix)]
+            break
+    candidate = _INVALID_EXPORT_FILENAME.sub("_", candidate).strip(" .")
+    candidate = re.sub(r"\s+", " ", candidate)[:120].rstrip(" .")
+    if not candidate:
+        candidate = fallback
+    if candidate.split(".", maxsplit=1)[0].upper() in _WINDOWS_RESERVED_NAMES:
+        candidate = f"_{candidate}"
+    return f"{candidate}{suffix}"
+
+
 def _read_answer_source(task: ExportTask) -> str:
     """读取服务端保留的问答 Markdown，绝不让客户端回传历史答案正文。"""
     task_root = (root() / task.id).resolve()
@@ -350,10 +384,10 @@ async def _render_answer_task(
     *,
     markdown: str,
     citations: list[dict[str, JsonValue]] | None = None,
+    requested_filename: str | None = None,
 ) -> tuple[Path, str]:
     """生成问答文件并同步任务终态，供首次导出和历史格式转换复用。"""
-    extension = "md" if task.format == "markdown" else task.format
-    filename = f"RAG-answer-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.{extension}"
+    filename = _answer_filename(requested_filename, task.format)
     output_path = Path(task_file_path(task.id, filename))
     source_path = Path(task_file_path(task.id, _ANSWER_SOURCE_FILENAME))
     content = ExportContent(
@@ -611,6 +645,7 @@ async def export_answer_endpoint(
             f"## 答案\n\n{payload.answer.strip()}"
         ),
         citations=payload.citations,
+        requested_filename=payload.filename,
     )
     await audit(
         db,
@@ -674,7 +709,12 @@ async def convert_answer_export_endpoint(
     )
     db.add(task)
     await db.commit()
-    output_path, filename = await _render_answer_task(db, task, markdown=markdown)
+    output_path, filename = await _render_answer_task(
+        db,
+        task,
+        markdown=markdown,
+        requested_filename=payload.filename,
+    )
     await audit(
         db,
         action="answer_export_convert",

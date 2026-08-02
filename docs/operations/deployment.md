@@ -43,7 +43,7 @@ bash scripts/health-check.sh
 应用启动会自动补齐内建权限和角色，不会自动创建生产账号。新环境启动完成后，使用交互式终端执行：
 
 ```bash
-docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml exec api-server /app/backend/.venv/bin/python scripts/bootstrap_admin.py
+docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml exec api-server /app/backend/.venv/bin/python /app/backend/scripts/bootstrap_admin.py
 ```
 
 口令输入不回显，长度必须为 12–128 位。数据库已有“超级管理员”角色账号时，脚本会拒绝创建第二个首管理员。不要在非交互式 CI 中传递口令，也不要使用演示播种脚本代替该流程。
