@@ -234,7 +234,8 @@ async def test_dashboard_scope_and_incentive_deduplication(
             RetrievalMetric(
                 id=_id(),
                 user_id=user.id,
-                department_id=department.id,
+                # 模拟旧版本按提问账号写错部门；看板必须以知识库归属为准。
+                department_id=other_department.id,
                 knowledge_base_id=knowledge_base.id,
                 event_type="search",
                 hit_count=2,
@@ -246,7 +247,7 @@ async def test_dashboard_scope_and_incentive_deduplication(
             RetrievalMetric(
                 id=_id(),
                 user_id=user.id,
-                department_id=department.id,
+                department_id=other_department.id,
                 knowledge_base_id=knowledge_base.id,
                 event_type="answer",
                 hit_count=2,
@@ -308,7 +309,8 @@ async def test_dashboard_scope_and_incentive_deduplication(
     for _ in range(2):
         await record_retrieval_metric(
             pg_session,
-            user=user,
+            # 指标归属知识库部门，而不是执行跨部门检索的账号部门。
+            user=other_user,
             event_type="search",
             request_id=replay_request_id,
             knowledge_base_id=knowledge_base.id,

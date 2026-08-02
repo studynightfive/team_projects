@@ -23,6 +23,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.database import Base
 from app.common.models import User
+from app.knowledge.models import KnowledgeBase
 
 logger = structlog.get_logger()
 
@@ -130,11 +131,20 @@ async def record_retrieval_metric(
         product_name = None
 
     try:
+        # 运营指标描述的是被查询知识的归属，不是发起查询账号的组织归属。
+        knowledge_base = (
+            await db.get(KnowledgeBase, knowledge_base_id)
+            if knowledge_base_id is not None
+            else None
+        )
+        department_id = (
+            knowledge_base.department_id if knowledge_base is not None else None
+        )
         async with db.begin_nested():
             db.add(
                 RetrievalMetric(
                     user_id=user.id,
-                    department_id=user.department_id,
+                    department_id=department_id,
                     knowledge_base_id=knowledge_base_id,
                     primary_product_id=product_id,
                     primary_product_name=product_name,

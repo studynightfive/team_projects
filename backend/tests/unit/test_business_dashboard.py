@@ -1,5 +1,6 @@
 """业务看板口径与指标写入单元测试。"""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 from sqlalchemy.exc import IntegrityError
@@ -42,6 +43,9 @@ def test_badges_and_next_badge_follow_real_points() -> None:
 
 async def test_record_retrieval_metric_only_persists_structured_facts() -> None:
     db = MagicMock(spec=AsyncSession)
+    db.get = AsyncMock(
+        return_value=SimpleNamespace(department_id="department-knowledge-base")
+    )
     db.flush = AsyncMock()
 
     await record_retrieval_metric(
@@ -61,7 +65,8 @@ async def test_record_retrieval_metric_only_persists_structured_facts() -> None:
     metric = db.add.call_args.args[0]
     assert isinstance(metric, RetrievalMetric)
     assert metric.user_id == "user-business-dashboard"
-    assert metric.department_id == "department-medical"
+    assert metric.department_id == "department-knowledge-base"
+    assert metric.knowledge_base_id == "kb-medical"
     assert metric.hit_count == 2
     assert metric.generated is True
     assert metric.cache_hit is False
@@ -74,6 +79,9 @@ async def test_record_retrieval_metric_only_persists_structured_facts() -> None:
 
 async def test_metric_discards_incomplete_product_identity() -> None:
     db = MagicMock(spec=AsyncSession)
+    db.get = AsyncMock(
+        return_value=SimpleNamespace(department_id="department-knowledge-base")
+    )
     db.flush = AsyncMock()
 
     await record_retrieval_metric(
@@ -92,6 +100,27 @@ async def test_metric_discards_incomplete_product_identity() -> None:
     metric = db.add.call_args.args[0]
     assert metric.primary_product_id is None
     assert metric.primary_product_name is None
+
+
+async def test_metric_without_knowledge_base_is_not_assigned_to_user_department() -> None:
+    db = MagicMock(spec=AsyncSession)
+    db.flush = AsyncMock()
+
+    await record_retrieval_metric(
+        db,
+        user=_user(),
+        event_type="answer",
+        request_id="request-without-scope",
+        knowledge_base_id=None,
+        hit_count=0,
+        generated=True,
+        cache_hit=False,
+        took_ms=20,
+    )
+
+    metric = db.add.call_args.args[0]
+    assert metric.department_id is None
+    db.get.assert_not_awaited()
 
 
 async def test_duplicate_metric_does_not_break_user_request() -> None:

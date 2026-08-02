@@ -61,6 +61,7 @@ async def test_retrieval_stream_owns_session_until_done(
                 "event": "citation",
                 "doc_id": "product-1",
                 "doc_title": "智能门店终端 Pro",
+                "kb_id": "kb-1",
             },
         )
         yield AnswerStreamEvent(
@@ -86,7 +87,11 @@ async def test_retrieval_stream_owns_session_until_done(
 
     response = await search_api.answer_stream_endpoint(
         _request("/api/v1/retrieval/answer/stream"),
-        RagAnswerRequest(query="医疗平台包含哪些模块", mode="hybrid", kb_id="kb-1"),
+        RagAnswerRequest(
+            query="医疗平台包含哪些模块",
+            mode="hybrid",
+            kb_ids=["kb-1"],
+        ),
         SimpleNamespace(id="user-1"),
         None,
     )
@@ -99,6 +104,7 @@ async def test_retrieval_stream_owns_session_until_done(
         metric_mock.await_args.kwargs["primary_product_name"]
         == "智能门店终端 Pro"
     )
+    assert metric_mock.await_args.kwargs["knowledge_base_id"] == "kb-1"
     db.commit.assert_awaited_once()
 
 

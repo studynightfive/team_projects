@@ -730,13 +730,6 @@ p {
   white-space: nowrap;
 }
 
-.environment-select {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.environment-select select,
 .time-range-select select {
   height: 32px;
   appearance: none;
@@ -745,17 +738,6 @@ p {
   color: var(--color-text-secondary);
   background: var(--color-surface);
   font-size: var(--font-size-13);
-}
-
-.environment-select select {
-  min-width: 78px;
-  padding: 0 30px 0 var(--space-3);
-}
-
-.environment-select svg {
-  position: absolute;
-  right: var(--space-2);
-  pointer-events: none;
 }
 
 /* 页面主体 */
@@ -3187,7 +3169,6 @@ p {
   .topbar-workspace-link,
   .topbar-source-status,
   .topbar-actions > .icon-button:not(.notification-button):not(.help-button),
-  .environment-select,
   .admin-topbar-actions .secondary-button {
     display: none;
   }

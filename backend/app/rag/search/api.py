@@ -42,16 +42,28 @@ def _request_id(request: Request) -> str:
     return request_id if isinstance(request_id, str) and request_id else new_request_id()
 
 
-def _primary_product(hits: list[SearchHit]) -> tuple[str | None, str | None]:
+def _request_knowledge_base_id(payload: SearchRequest) -> str | None:
+    """无引用时使用用户选择顺序中的首个知识库作为运营归属。"""
+
+    if payload.kb_id is not None:
+        return payload.kb_id
+    if payload.kb_ids:
+        return payload.kb_ids[0]
+    return None
+
+
+def _primary_product(
+    hits: list[SearchHit],
+) -> tuple[str | None, str | None, str | None]:
     """以最终首条引用作为本次问答的主商品，不使用问题文本猜测商品。"""
 
     if not hits:
-        return None, None
+        return None, None, None
     hit = hits[0]
     product_name = (hit.doc_title or "").strip()
     if not hit.doc_id.strip() or not product_name:
-        return None, None
-    return hit.doc_id, product_name
+        return None, None, hit.kb_id
+    return hit.doc_id, product_name, hit.kb_id
 
 
 @router.post("/guard/check")
@@ -89,13 +101,16 @@ async def search_endpoint(
 ) -> dict[str, object]:
     response = await service.search(db, user=user, req=payload)
     request_id = _request_id(request)
-    product_id, product_name = _primary_product(response.hits)
+    product_id, product_name, hit_knowledge_base_id = _primary_product(response.hits)
+    metric_knowledge_base_id = (
+        hit_knowledge_base_id or _request_knowledge_base_id(payload)
+    )
     await record_retrieval_metric(
         db,
         user=user,
         event_type="search",
         request_id=request_id,
-        knowledge_base_id=payload.kb_id,
+        knowledge_base_id=metric_knowledge_base_id,
         hit_count=len(response.hits),
         generated=False,
         cache_hit=False,
@@ -108,7 +123,7 @@ async def search_endpoint(
         action="retrieval_search",
         user_id=user.id,
         resource_type="kb",
-        resource_id=payload.kb_id,
+        resource_id=metric_knowledge_base_id,
         detail=f"mode={payload.mode} top_k={payload.top_k}",
         request=request,
     )
@@ -126,13 +141,16 @@ async def answer_endpoint(
 ) -> dict[str, object]:
     response = await service.answer(db, user=user, req=payload)
     request_id = _request_id(request)
-    product_id, product_name = _primary_product(response.hits)
+    product_id, product_name, hit_knowledge_base_id = _primary_product(response.hits)
+    metric_knowledge_base_id = (
+        hit_knowledge_base_id or _request_knowledge_base_id(payload)
+    )
     await record_retrieval_metric(
         db,
         user=user,
         event_type="answer",
         request_id=request_id,
-        knowledge_base_id=payload.kb_id,
+        knowledge_base_id=metric_knowledge_base_id,
         hit_count=len(response.hits),
         generated=response.generated,
         cache_hit=response.from_cache,
@@ -145,7 +163,7 @@ async def answer_endpoint(
         action="rag_answer",
         user_id=user.id,
         resource_type="kb",
-        resource_id=payload.kb_id,
+        resource_id=metric_knowledge_base_id,
         detail=f"mode={payload.mode} top_k={payload.top_k} generated={response.generated}",
         request=request,
     )
@@ -193,6 +211,7 @@ async def answer_stream_endpoint(
         took_ms = 0
         primary_product_id: str | None = None
         primary_product_name: str | None = None
+        metric_knowledge_base_id = _request_knowledge_base_id(payload)
         try:
             async with stream_user_session(user_id) as (stream_db, stream_user):
                 async for event in stream_answer(
@@ -215,6 +234,12 @@ async def answer_stream_endpoint(
                             ):
                                 primary_product_id = event_product_id
                                 primary_product_name = event_product_name
+                                event_knowledge_base_id = event.data.get("kb_id")
+                                if (
+                                    isinstance(event_knowledge_base_id, str)
+                                    and event_knowledge_base_id.strip()
+                                ):
+                                    metric_knowledge_base_id = event_knowledge_base_id
                     if event.event == "done":
                         completed = True
                         generated = event.data.get("generated") is True
@@ -232,7 +257,7 @@ async def answer_stream_endpoint(
                         user=stream_user,
                         event_type="answer",
                         request_id=request_id,
-                        knowledge_base_id=payload.kb_id,
+                        knowledge_base_id=metric_knowledge_base_id,
                         hit_count=citation_count,
                         generated=generated,
                         cache_hit=cache_hit,
@@ -245,7 +270,7 @@ async def answer_stream_endpoint(
                     action="rag_answer_stream",
                     user_id=stream_user.id,
                     resource_type="kb",
-                    resource_id=payload.kb_id,
+                    resource_id=metric_knowledge_base_id,
                     detail=(
                         f"mode={payload.mode} top_k={payload.top_k} "
                         f"completed={completed}"

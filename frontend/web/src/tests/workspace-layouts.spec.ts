@@ -63,6 +63,7 @@ describe("M01 V2 工作区布局", () => {
     expect(wrapper.get('.admin-topbar-actions a[href="/"]').text()).toBe(
       "返回用户工作区",
     );
+    expect(wrapper.find('select[aria-label="运行环境"]').exists()).toBe(false);
     expect(wrapper.findAll("h1")).toHaveLength(1);
     expect(wrapper.findAll(".admin-stat-grid .stat-card")).toHaveLength(4);
     expect(wrapper.findAll(".admin-stat-grid .sparkline")).toHaveLength(0);
