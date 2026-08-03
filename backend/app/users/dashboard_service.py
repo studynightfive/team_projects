@@ -6,7 +6,7 @@ from datetime import datetime, time, timedelta, timezone, tzinfo
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import String, cast, func, select
+from sqlalchemy import String, and_, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.selectable import Subquery
 
@@ -93,23 +93,31 @@ def _document_contribution_subquery(
 ) -> Subquery:
     statement = (
         select(
-            User.department_id.label("department_id"),
+            KnowledgeBase.department_id.label("department_id"),
             User.id.label("user_id"),
             func.count(func.distinct(Document.content_hash)).label(
                 "contribution_count"
             ),
         )
         .join(Document, Document.created_by == User.id)
+        .join(
+            KnowledgeBase,
+            KnowledgeBase.id == Document.knowledge_base_id,
+        )
         .where(
             User.status == "active",
+            KnowledgeBase.kind == "enterprise",
+            KnowledgeBase.status == "active",
             Document.status == DocumentStatus.READY.value,
             Document.is_active_index.is_(True),
             Document.deleted_at.is_(None),
         )
-        .group_by(User.department_id, User.id)
+        .group_by(KnowledgeBase.department_id, User.id)
     )
     if department_id is not None:
-        statement = statement.where(User.department_id == department_id)
+        statement = statement.where(
+            KnowledgeBase.department_id == department_id
+        )
     return statement.subquery()
 
 
@@ -206,6 +214,11 @@ async def _popular_products(
             )
             .label("product_rank"),
         )
+        .select_from(RetrievalMetric)
+        .outerjoin(
+            KnowledgeBase,
+            KnowledgeBase.id == RetrievalMetric.knowledge_base_id,
+        )
         .where(
             RetrievalMetric.event_type == "answer",
             RetrievalMetric.hit_count > 0,
@@ -218,7 +231,13 @@ async def _popular_products(
     )
     if department_id is not None:
         ranked_metrics = ranked_metrics.where(
-            RetrievalMetric.department_id == department_id
+            or_(
+                KnowledgeBase.department_id == department_id,
+                and_(
+                    RetrievalMetric.knowledge_base_id.is_(None),
+                    RetrievalMetric.department_id == department_id,
+                ),
+            )
         )
     ranked_products = ranked_metrics.subquery()
     statement = (
@@ -334,7 +353,10 @@ async def get_dashboard_metrics(
         or 0
     )
 
-    knowledge_statement = select(func.count(KnowledgeBase.id))
+    knowledge_statement = select(func.count(KnowledgeBase.id)).where(
+        KnowledgeBase.kind == "enterprise",
+        KnowledgeBase.status == "active",
+    )
     if scope_department_id is not None:
         knowledge_statement = knowledge_statement.where(
             KnowledgeBase.department_id == scope_department_id
@@ -349,6 +371,11 @@ async def get_dashboard_metrics(
         .join(
             KnowledgeBase,
             KnowledgeBase.id == Document.knowledge_base_id,
+        )
+        .where(
+            KnowledgeBase.kind == "enterprise",
+            KnowledgeBase.status == "active",
+            Document.deleted_at.is_(None),
         )
     )
     if scope_department_id is not None:
@@ -439,6 +466,8 @@ async def get_dashboard_metrics(
             KnowledgeBase.id == Document.knowledge_base_id,
         )
         .where(
+            KnowledgeBase.kind == "enterprise",
+            KnowledgeBase.status == "active",
             Document.updated_at >= started_at,
             Document.updated_at <= ended_at,
             Document.deleted_at.is_(None),
@@ -458,35 +487,49 @@ async def get_dashboard_metrics(
     processed_total = int(processing_row[0] or 0)
     processed_ready = int(processing_row[1] or 0)
 
-    metric_statement = select(
-        func.count(RetrievalMetric.id),
-        func.count().filter(
-            (RetrievalMetric.event_type == "answer")
-            & (RetrievalMetric.hit_count > 0)
-            & (
-                RetrievalMetric.generated.is_(True)
-                | RetrievalMetric.cache_hit.is_(True)
+    metric_statement = (
+        select(
+            func.count(RetrievalMetric.id),
+            func.count().filter(
+                (RetrievalMetric.event_type == "answer")
+                & (RetrievalMetric.hit_count > 0)
+                & (
+                    RetrievalMetric.generated.is_(True)
+                    | RetrievalMetric.cache_hit.is_(True)
+                )
+            ),
+            func.count().filter(
+                (RetrievalMetric.event_type == "answer")
+                & (RetrievalMetric.hit_count == 0)
+            ),
+            func.count().filter(RetrievalMetric.event_type == "answer"),
+            func.count().filter(
+                (RetrievalMetric.event_type == "answer")
+                & RetrievalMetric.cache_hit.is_(True)
+            ),
+            func.avg(RetrievalMetric.took_ms).filter(
+                RetrievalMetric.event_type == "answer"
             )
-        ),
-        func.count().filter(
-            (RetrievalMetric.event_type == "answer")
-            & (RetrievalMetric.hit_count == 0)
-        ),
-        func.count().filter(RetrievalMetric.event_type == "answer"),
-        func.count().filter(
-            (RetrievalMetric.event_type == "answer")
-            & RetrievalMetric.cache_hit.is_(True)
-        ),
-        func.avg(RetrievalMetric.took_ms).filter(
-            RetrievalMetric.event_type == "answer"
-        ),
-    ).where(
-        RetrievalMetric.created_at >= started_at,
-        RetrievalMetric.created_at <= ended_at,
+        )
+        .select_from(RetrievalMetric)
+        .outerjoin(
+            KnowledgeBase,
+            KnowledgeBase.id == RetrievalMetric.knowledge_base_id,
+        )
+        .where(
+            RetrievalMetric.created_at >= started_at,
+            RetrievalMetric.created_at <= ended_at,
+        )
     )
     if scope_department_id is not None:
         metric_statement = metric_statement.where(
-            RetrievalMetric.department_id == scope_department_id
+            or_(
+                KnowledgeBase.department_id == scope_department_id,
+                and_(
+                    RetrievalMetric.knowledge_base_id.is_(None),
+                    RetrievalMetric.department_id == scope_department_id,
+                ),
+            )
         )
     metric_row = (await db.execute(metric_statement)).one()
     active_searches = int(metric_row[0] or 0)

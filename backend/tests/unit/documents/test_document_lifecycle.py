@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.documents.models import Document, DocumentStatus, TaskStatus
-from app.documents.schemas import DocumentIdBatchRequest
+from app.documents.schemas import DocumentIdBatchRequest, ReprocessRequest
 from app.documents.service import DocumentService
 
 
@@ -110,6 +110,32 @@ async def test_reprocess_task_uses_real_document_task_progress() -> None:
     assert document.is_active_index is False
     session.add.assert_called_once_with(task)
     session.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_reprocess_task_applies_new_chunk_configuration() -> None:
+    document = _document()
+    session = SimpleNamespace(add=MagicMock(), flush=AsyncMock())
+    service = object.__new__(DocumentService)
+    service.session = session
+    service._latest_task = AsyncMock(return_value=None)
+    service.chunker = SimpleNamespace(validate_params=MagicMock())
+
+    await service._create_reprocess_task(
+        document,
+        ReprocessRequest(
+            chunk_strategy="semantic",
+            chunk_size=1000,
+            chunk_overlap=150,
+        ),
+    )
+
+    assert document.chunk_strategy == "semantic"
+    assert document.chunk_size == 1000
+    assert document.chunk_overlap == 150
+    assert document.status == DocumentStatus.UPLOADED.value
+    assert document.is_active_index is False
+    service.chunker.validate_params.assert_called_once_with(1000, 150)
 
 
 @pytest.mark.asyncio

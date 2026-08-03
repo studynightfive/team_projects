@@ -16,6 +16,7 @@ import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
 import ResourcePanel from "../../components/ResourcePanel.vue";
 import DocumentTaskProgress from "../../components/documents/DocumentTaskProgress.vue";
+import DocumentReprocessModal from "../../components/documents/DocumentReprocessModal.vue";
 import DocumentUploadQueue from "../../components/documents/DocumentUploadQueue.vue";
 import { useListPagination } from "../../composables/useListPagination";
 import { ChevronLeft, Download, Eye, RotateCcw } from "../../components/icons";
@@ -35,6 +36,7 @@ import {
   type DocumentDuplicatePolicy,
   type DocumentNameConflict,
   type DocumentRecord,
+  type DocumentReprocessOptions,
   type KnowledgeBaseRecord,
 } from "../../services/knowledge";
 
@@ -59,6 +61,8 @@ const chunkSize = ref(800);
 const chunkOverlap = ref(120);
 const isExporting = ref(false);
 const isReprocessing = ref(false);
+const isReprocessDialogOpen = ref(false);
+const pendingReprocessIds = ref<readonly string[]>([]);
 const batchTasks = ref<readonly DocumentBatchTaskItem[]>([]);
 const batchTaskTitle = ref("任务处理进度");
 const uploadConflicts = ref<readonly DocumentNameConflict[]>([]);
@@ -222,13 +226,29 @@ const exportSelected = async (): Promise<void> => {
   }
 };
 
-const reprocessSelected = async (): Promise<void> => {
-  if (selectedDocumentIds.value.length === 0) return;
+const openReprocessDialog = (ids = selectedDocumentIds.value): void => {
+  if (ids.length === 0) return;
+  pendingReprocessIds.value = [...ids];
+  isReprocessDialogOpen.value = true;
+};
+
+const reprocessSelected = async (
+  options: DocumentReprocessOptions,
+): Promise<void> => {
+  if (pendingReprocessIds.value.length === 0) return;
   isReprocessing.value = true;
   try {
-    batchTasks.value = await batchReprocessDocuments(selectedDocumentIds.value);
+    batchTasks.value = await batchReprocessDocuments(
+      pendingReprocessIds.value,
+      options,
+    );
     batchTaskTitle.value = "重新处理进度";
     message.success("文档已进入重新处理队列");
+    chunkStrategy.value = options.chunkStrategy;
+    chunkSize.value = options.chunkSize;
+    chunkOverlap.value = options.chunkOverlap;
+    isReprocessDialogOpen.value = false;
+    pendingReprocessIds.value = [];
     await loadRealDetail();
   } catch (error: unknown) {
     message.error(toPublicApiError(error).message);
@@ -319,6 +339,10 @@ const performUpload = async (
 
 const uploadFiles = async (files: readonly File[]): Promise<void> => {
   if (!isRealApiMode || files.length === 0) return;
+  if (chunkSize.value < 200 || chunkSize.value > 4000) {
+    message.warning("切分大小必须在 200 到 4000 之间");
+    return;
+  }
   if (chunkOverlap.value >= chunkSize.value) {
     message.warning("重叠字符必须小于切分大小");
     return;
@@ -406,7 +430,7 @@ onBeforeUnmount(() => {
           class="secondary-button"
           type="button"
           :disabled="selectedDocumentIds.length === 0 || isReprocessing"
-          @click="reprocessSelected"
+          @click="openReprocessDialog()"
         >
           <RotateCcw :size="17" aria-hidden="true" />
           {{
@@ -502,7 +526,7 @@ onBeforeUnmount(() => {
           <input
             v-model.number="chunkSize"
             type="number"
-            min="100"
+            min="200"
             max="4000"
           />
         </label>
@@ -530,6 +554,16 @@ onBeforeUnmount(() => {
         :items="batchTasks"
         :title="batchTaskTitle"
         @finished="handleBatchTasksFinished"
+      />
+
+      <DocumentReprocessModal
+        v-model:open="isReprocessDialogOpen"
+        :document-count="pendingReprocessIds.length"
+        :submitting="isReprocessing"
+        :initial-strategy="chunkStrategy"
+        :initial-chunk-size="chunkSize"
+        :initial-chunk-overlap="chunkOverlap"
+        @submit="reprocessSelected"
       />
 
       <div class="filter-bar">

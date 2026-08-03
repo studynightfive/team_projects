@@ -1,3 +1,6 @@
+import { apiClient } from "../api/client";
+import { unwrapApiData, type ApiResponse } from "../api/contracts";
+
 export const INVALID_QUERY_MESSAGE = "输入内容不合法，请修改后重试";
 
 const PROHIBITED_TERM_GROUPS = [
@@ -82,3 +85,26 @@ export const classifyUnsafeQuery = (
 
 export const getQuerySafetyMessage = (value: string): string | undefined =>
   classifyUnsafeQuery(value) === undefined ? undefined : INVALID_QUERY_MESSAGE;
+
+export interface QuerySafetyCheckResult {
+  readonly allowed: boolean;
+  readonly category: UnsafeQueryCategory | null;
+  readonly message: string | null;
+  readonly semantic_checked: boolean;
+}
+
+export const checkQuerySafety = async (
+  query: string,
+  chatModelId: string | undefined,
+  signal?: AbortSignal,
+): Promise<QuerySafetyCheckResult> => {
+  const response = await apiClient.post<ApiResponse<QuerySafetyCheckResult>>(
+    "/v1/retrieval/guard/check",
+    {
+      query,
+      chat_model_id: chatModelId || null,
+    },
+    { signal },
+  );
+  return unwrapApiData(response.data);
+};

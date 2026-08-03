@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     rag_answer_max_tokens: int = 1200
     rag_answer_cache_enabled: bool = True
     rag_answer_cache_ttl_seconds: int = Field(default=604800, ge=60, le=2592000)
-    rag_answer_cache_similarity_threshold: float = Field(default=0.95, ge=0.85, le=1.0)
+    rag_answer_cache_similarity_threshold: float = Field(default=0.92, ge=0.85, le=1.0)
     rag_answer_cache_candidate_limit: int = Field(default=50, ge=1, le=200)
 
     # ============================================================
@@ -167,6 +167,17 @@ class Settings(BaseSettings):
     rag_query_rewrite_enabled: bool = True
     rag_query_rewrite_model_id: str | None = None
     rag_query_rewrite_max_variants: int = 3
+    rag_query_preprocess_cache_ttl_seconds: int = Field(
+        default=900,
+        ge=60,
+        le=86400,
+    )
+
+    # 语义守卫复用聊天模型，与问题改写合并为一次预处理调用，避免重复增加问答延迟。
+    rag_semantic_guard_enabled: bool = True
+    rag_semantic_guard_model_id: str | None = None
+    rag_semantic_guard_timeout_seconds: float = Field(default=8.0, ge=1.0, le=30.0)
+    rag_semantic_guard_fail_closed: bool = False
 
     # Intent Recognition (backend/app/rag/intent.py)
     rag_intent_llm_enabled: bool = True
@@ -174,6 +185,17 @@ class Settings(BaseSettings):
 
     # Embeddings 抽象层 (backend/app/rag/embeddings.py)
     indexing_embedding_model_id: str | None = None
+
+    # ============================================================
+    # Langfuse RAG 可观测性
+    # ============================================================
+    langfuse_enabled: bool = False
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+    langfuse_environment: str = "development"
+    langfuse_release: str = ""
+    langfuse_capture_content: bool = False
 
     # ============================================================
     # 员工5 扩展配置：Vector Store 抽象（提示词 02 + 新增 Milvus 支持）

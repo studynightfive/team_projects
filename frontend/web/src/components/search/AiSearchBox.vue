@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 
-import { getQuerySafetyMessage } from "../../services/query-safety";
+import { isRealApiMode } from "../../config/runtime";
+import {
+  checkQuerySafety,
+  classifyUnsafeQuery,
+  getQuerySafetyMessage,
+  INVALID_QUERY_MESSAGE,
+} from "../../services/query-safety";
 import type {
   KnowledgeBaseOption,
   ModelOption,
@@ -48,6 +54,15 @@ const emit = defineEmits<{
 
 const textareaRef = ref<HTMLTextAreaElement>();
 const knowledgeMenuOpen = ref(false);
+const semanticSafetyState = ref<
+  "idle" | "checking" | "allowed" | "blocked" | "unavailable"
+>("idle");
+const semanticSafetyMessage = ref<string>();
+const submitSafetyPending = ref(false);
+let safetyTimer: ReturnType<typeof setTimeout> | undefined;
+let safetyController: AbortController | undefined;
+let safetyPromise: Promise<boolean | undefined> | undefined;
+let safetyRequestKey: string | undefined;
 const selectedKnowledgeBases = computed(() =>
   props.workspaceIds
     .map((id) => props.knowledgeBaseOptions.find((item) => item.id === id))
@@ -57,7 +72,14 @@ const availableKnowledgeBases = computed(() => {
   const selectedIds = new Set(props.workspaceIds);
   return props.knowledgeBaseOptions.filter((item) => !selectedIds.has(item.id));
 });
-const querySafetyMessage = computed(() => getQuerySafetyMessage(props.query));
+const querySafetyMessage = computed(() =>
+  isRealApiMode
+    ? semanticSafetyMessage.value
+    : getQuerySafetyMessage(props.query),
+);
+const semanticSafetyChecking = computed(
+  () => isRealApiMode && semanticSafetyState.value === "checking",
+);
 const selectedScopeHasReadyDocument = computed(() =>
   selectedKnowledgeBases.value.some((item) => item.readyDocumentCount > 0),
 );
@@ -80,14 +102,19 @@ const selectedScopeIsValid = computed(() => {
     selectedScopeHasReadyDocument.value
   );
 });
-const canSubmit = computed(
+const baseCanSubmit = computed(
   () =>
     props.query.trim().length > 0 &&
-    querySafetyMessage.value === undefined &&
     props.sources.length > 0 &&
     selectedScopeIsValid.value &&
     !props.busy &&
     !props.disabled,
+);
+const canSubmit = computed(
+  () =>
+    baseCanSubmit.value &&
+    querySafetyMessage.value === undefined &&
+    !submitSafetyPending.value,
 );
 
 const resizeTextarea = async (): Promise<void> => {
@@ -100,6 +127,84 @@ const resizeTextarea = async (): Promise<void> => {
 };
 
 watch(() => props.query, resizeTextarea, { immediate: true });
+
+const runSemanticSafetyCheck = (
+  normalized: string,
+  modelId: string,
+): Promise<boolean | undefined> => {
+  const requestKey = `${modelId}\u0000${normalized}`;
+  if (safetyPromise !== undefined && safetyRequestKey === requestKey) {
+    return safetyPromise;
+  }
+
+  safetyController?.abort();
+  const controller = new AbortController();
+  safetyController = controller;
+  safetyRequestKey = requestKey;
+  semanticSafetyState.value = "checking";
+  semanticSafetyMessage.value = undefined;
+  const pending = checkQuerySafety(normalized, modelId, controller.signal)
+    .then((result) => {
+      if (
+        controller.signal.aborted ||
+        props.query.trim() !== normalized ||
+        props.modelId !== modelId
+      ) {
+        return undefined;
+      }
+      semanticSafetyState.value = result.allowed ? "allowed" : "blocked";
+      semanticSafetyMessage.value = result.allowed
+        ? undefined
+        : (result.message ?? INVALID_QUERY_MESSAGE);
+      return result.allowed;
+    })
+    .catch(() => {
+      if (!controller.signal.aborted) {
+        // 预检网络故障不锁死输入，最终提交仍由后端执行强制校验。
+        semanticSafetyState.value = "unavailable";
+        semanticSafetyMessage.value = undefined;
+      }
+      return undefined;
+    })
+    .finally(() => {
+      if (safetyRequestKey === requestKey) {
+        safetyPromise = undefined;
+        safetyRequestKey = undefined;
+      }
+    });
+  safetyPromise = pending;
+  return pending;
+};
+
+watch(
+  [() => props.query, () => props.modelId],
+  ([queryValue, modelId]) => {
+    if (safetyTimer !== undefined) clearTimeout(safetyTimer);
+    safetyController?.abort();
+    safetyPromise = undefined;
+    safetyRequestKey = undefined;
+    semanticSafetyMessage.value = undefined;
+
+    const normalized = queryValue.trim();
+    if (!isRealApiMode || normalized.length === 0) {
+      semanticSafetyState.value = "idle";
+      return;
+    }
+
+    semanticSafetyState.value = "checking";
+    // 明显候选词较快送检；普通输入稍长防抖，减少连续打字产生的模型请求。
+    const delay = classifyUnsafeQuery(normalized) === undefined ? 650 : 250;
+    safetyTimer = setTimeout(() => {
+      void runSemanticSafetyCheck(normalized, modelId);
+    }, delay);
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  if (safetyTimer !== undefined) clearTimeout(safetyTimer);
+  safetyController?.abort();
+});
 
 watch(
   [() => props.knowledgeBaseOptions, () => props.workspaceIds],
@@ -171,12 +276,12 @@ const removeKnowledgeBase = (knowledgeBaseId: string): void => {
   );
 };
 
-const submit = (): void => {
+const submit = async (): Promise<void> => {
   if (querySafetyMessage.value !== undefined) {
     textareaRef.value?.focus();
     return;
   }
-  if (!canSubmit.value) {
+  if (!baseCanSubmit.value || submitSafetyPending.value) {
     if (props.query.trim().length === 0) {
       emit("notice", "请输入要查找的问题");
     } else if (props.requiresWorkspace && props.workspaceIds.length === 0) {
@@ -194,8 +299,29 @@ const submit = (): void => {
     return;
   }
 
+  const normalizedQuery = props.query.trim();
+  const selectedModelId = props.modelId;
+  if (isRealApiMode && semanticSafetyState.value !== "allowed") {
+    if (safetyTimer !== undefined) clearTimeout(safetyTimer);
+    submitSafetyPending.value = true;
+    const allowed = await runSemanticSafetyCheck(
+      normalizedQuery,
+      selectedModelId,
+    );
+    submitSafetyPending.value = false;
+    if (
+      allowed === false ||
+      props.query.trim() !== normalizedQuery ||
+      props.modelId !== selectedModelId
+    ) {
+      textareaRef.value?.focus();
+      return;
+    }
+  }
+  if (querySafetyMessage.value !== undefined) return;
+
   emit("submit", {
-    query: props.query.trim(),
+    query: normalizedQuery,
     mode: props.mode,
     sources: [...props.sources],
     workspaceIds:
@@ -207,7 +333,7 @@ const submit = (): void => {
 const handleKeydown = (event: KeyboardEvent): void => {
   if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
   event.preventDefault();
-  submit();
+  void submit();
 };
 
 defineExpose({
@@ -262,6 +388,13 @@ defineExpose({
       role="alert"
     >
       {{ querySafetyMessage }}
+    </p>
+    <p
+      v-else-if="semanticSafetyChecking"
+      class="search-input-checking"
+      role="status"
+    >
+      正在进行语义安全检查…
     </p>
     <p
       v-else-if="
@@ -373,9 +506,17 @@ defineExpose({
         class="search-submit-button"
         type="submit"
         :disabled="!canSubmit"
-        :aria-label="busy ? '正在检索企业知识' : '发送搜索问题'"
+        :aria-label="
+          submitSafetyPending
+            ? '正在检查输入内容'
+            : busy
+              ? '正在检索企业知识'
+              : '发送搜索问题'
+        "
       >
-        <span>{{ busy ? "正在检索" : "开始搜索" }}</span>
+        <span>
+          {{ submitSafetyPending ? "检查中" : busy ? "正在检索" : "开始搜索" }}
+        </span>
         <Send :size="17" aria-hidden="true" />
       </button>
     </div>
@@ -475,6 +616,12 @@ defineExpose({
 .search-input-error {
   margin: calc(var(--space-2) * -1) 0 0;
   color: var(--color-danger-text);
+  font-size: var(--font-size-13);
+}
+
+.search-input-checking {
+  margin: calc(var(--space-2) * -1) 0 0;
+  color: var(--color-text-muted);
   font-size: var(--font-size-13);
 }
 

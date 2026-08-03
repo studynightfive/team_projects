@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -233,7 +234,8 @@ async def test_dashboard_scope_and_incentive_deduplication(
             RetrievalMetric(
                 id=_id(),
                 user_id=user.id,
-                department_id=department.id,
+                # 模拟旧版本按提问账号写错部门；看板必须以知识库归属为准。
+                department_id=other_department.id,
                 knowledge_base_id=knowledge_base.id,
                 event_type="search",
                 hit_count=2,
@@ -245,7 +247,7 @@ async def test_dashboard_scope_and_incentive_deduplication(
             RetrievalMetric(
                 id=_id(),
                 user_id=user.id,
-                department_id=department.id,
+                department_id=other_department.id,
                 knowledge_base_id=knowledge_base.id,
                 event_type="answer",
                 hit_count=2,
@@ -307,7 +309,8 @@ async def test_dashboard_scope_and_incentive_deduplication(
     for _ in range(2):
         await record_retrieval_metric(
             pg_session,
-            user=user,
+            # 指标归属知识库部门，而不是执行跨部门检索的账号部门。
+            user=other_user,
             event_type="search",
             request_id=replay_request_id,
             knowledge_base_id=knowledge_base.id,
@@ -353,6 +356,28 @@ async def test_dashboard_scope_and_incentive_deduplication(
     assert dashboard.department_leaderboard.total == 1
     assert dashboard.department_leaderboard.items[0].points == 20
     assert dashboard.department_leaderboard.items[0].contribution_count == 2
+
+    # 超级管理员切换部门时，所有指标必须按请求部门重新聚合，不能沿用当前账号部门。
+    super_admin = SimpleNamespace(
+        id=user.id,
+        department_id=department.id,
+        roles=[SimpleNamespace(name="超级管理员", status="active")],
+    )
+    other_dashboard = await get_dashboard_metrics(
+        pg_session,
+        user=super_admin,
+        days=30,
+        department_id=other_department.id,
+        leaderboard_page=1,
+        leaderboard_page_size=10,
+    )
+    assert other_dashboard.scope.department_id == other_department.id
+    assert other_dashboard.total_knowledge_bases == 1
+    assert other_dashboard.total_documents == 1
+    assert other_dashboard.product_queries == 1
+    assert other_dashboard.effective_answers == 1
+    assert len(other_dashboard.popular_products) == 1
+    assert other_dashboard.popular_products[0].product_id == "product-teaching-platform"
 
     incentives = await get_user_incentives(
         pg_session,

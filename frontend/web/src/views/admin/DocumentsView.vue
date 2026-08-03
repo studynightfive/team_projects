@@ -4,6 +4,7 @@ import { computed, onMounted, ref, watch } from "vue";
 
 import { toPublicApiError } from "../../api/client";
 import AdminDocumentPreviewDrawer from "../../components/documents/AdminDocumentPreviewDrawer.vue";
+import DocumentReprocessModal from "../../components/documents/DocumentReprocessModal.vue";
 import InlineState from "../../components/InlineState.vue";
 import ListPagination from "../../components/ListPagination.vue";
 import PageHeader from "../../components/PageHeader.vue";
@@ -23,6 +24,8 @@ import {
   listRecycleBin,
   restoreDocuments,
   type DocumentBatchTaskItem,
+  type ChunkStrategy,
+  type DocumentReprocessOptions,
   type RecycleBinRecord,
 } from "../../services/knowledge";
 
@@ -41,6 +44,9 @@ const previewDocument = ref<AdminDocument>();
 const loading = ref(false);
 const submitting = ref(false);
 const batchTasks = ref<readonly DocumentBatchTaskItem[]>([]);
+const isReprocessDialogOpen = ref(false);
+const pendingReprocessIds = ref<readonly string[]>([]);
+let loadSequence = 0;
 
 const sourceDocuments = computed<readonly DisplayDocument[]>(() =>
   viewMode.value === "active" ? documents.value : recycledDocuments.value,
@@ -72,6 +78,18 @@ const {
 const selectablePagedDocuments = computed(() =>
   pagedDocuments.value.filter((item) => !isArchivedDocument(item)),
 );
+const reprocessSeedDocument = computed(() =>
+  documents.value.find((item) => pendingReprocessIds.value.includes(item.id)),
+);
+const reprocessSeedStrategy = computed<ChunkStrategy>(() => {
+  const strategy = reprocessSeedDocument.value?.chunk_strategy;
+  return strategy === "fixed" ||
+    strategy === "semantic" ||
+    strategy === "recursive" ||
+    strategy === "format"
+    ? strategy
+    : "recursive";
+});
 
 const allVisibleSelected = computed(
   () =>
@@ -124,14 +142,19 @@ const openDocumentPreview = (item: DisplayDocument): void => {
   previewDocument.value = item as AdminDocument;
 };
 
-const loadData = async (): Promise<void> => {
-  loading.value = true;
+const loadData = async (silent = false): Promise<void> => {
+  const sequence = ++loadSequence;
+  if (!silent) loading.value = true;
   try {
     const activePage = await listAdminDocuments();
+    if (sequence !== loadSequence) return;
     documents.value = activePage.items;
     try {
-      recycledDocuments.value = await listRecycleBin();
+      const recycleItems = await listRecycleBin();
+      if (sequence !== loadSequence) return;
+      recycledDocuments.value = recycleItems;
     } catch (error: unknown) {
+      if (sequence !== loadSequence) return;
       recycledDocuments.value = [];
       message.warning(`回收站加载失败：${toPublicApiError(error).message}`);
     }
@@ -145,10 +168,16 @@ const loadData = async (): Promise<void> => {
       ),
     );
   } catch (error: unknown) {
+    if (sequence !== loadSequence) return;
     message.error(toPublicApiError(error).message);
   } finally {
-    loading.value = false;
+    // 只有最新请求可以收口加载态；静默刷新也可能成为最新请求。
+    if (sequence === loadSequence) loading.value = false;
   }
+};
+
+const refreshData = (): void => {
+  void loadData(true);
 };
 
 const toggleDocument = (item: DisplayDocument): void => {
@@ -174,14 +203,27 @@ const toggleAllVisible = (): void => {
   ];
 };
 
-const reprocessSelected = async (ids = selectedDocumentIds.value): Promise<void> => {
+const openReprocessDialog = (ids = selectedDocumentIds.value): void => {
   if (ids.length === 0) return;
+  pendingReprocessIds.value = [...ids];
+  isReprocessDialogOpen.value = true;
+};
+
+const reprocessSelected = async (
+  options: DocumentReprocessOptions,
+): Promise<void> => {
+  if (pendingReprocessIds.value.length === 0) return;
   submitting.value = true;
   try {
-    batchTasks.value = await batchReprocessDocuments(ids);
-    message.success(`${ids.length} 个文档已进入重新处理队列`);
+    batchTasks.value = await batchReprocessDocuments(
+      pendingReprocessIds.value,
+      options,
+    );
+    message.success(`${pendingReprocessIds.value.length} 个文档已进入重新处理队列`);
+    isReprocessDialogOpen.value = false;
+    pendingReprocessIds.value = [];
     selectedDocumentIds.value = [];
-    await loadData();
+    await loadData(true);
   } catch (error: unknown) {
     message.error(toPublicApiError(error).message);
   } finally {
@@ -202,9 +244,13 @@ const confirmDelete = (ids = selectedDocumentIds.value): void => {
       submitting.value = true;
       try {
         const count = await batchDeleteDocuments(ids);
+        const deletedIds = new Set(ids);
+        documents.value = documents.value.filter((item) => !deletedIds.has(item.id));
         message.success(`${count} 个文档已移入回收站`);
         selectedDocumentIds.value = [];
-        await loadData();
+        await loadData(true);
+      } catch (error: unknown) {
+        message.error(toPublicApiError(error).message);
       } finally {
         submitting.value = false;
       }
@@ -217,9 +263,13 @@ const restoreSelected = async (ids = selectedDocumentIds.value): Promise<void> =
   submitting.value = true;
   try {
     batchTasks.value = await restoreDocuments(ids);
+    const restoredIds = new Set(ids);
+    recycledDocuments.value = recycledDocuments.value.filter(
+      (item) => !restoredIds.has(item.id),
+    );
     message.success(`${ids.length} 个文档已恢复并开始重新处理`);
     selectedDocumentIds.value = [];
-    await loadData();
+    await loadData(true);
   } catch (error: unknown) {
     message.error(toPublicApiError(error).message);
   } finally {
@@ -233,7 +283,9 @@ watch(viewMode, () => {
   statusFilter.value = "全部状态";
 });
 
-onMounted(loadData);
+onMounted(() => {
+  void loadData();
+});
 </script>
 
 <template>
@@ -244,7 +296,11 @@ onMounted(loadData);
       description="批量管理文档处理、索引重建和可恢复删除。"
     >
       <template #actions>
-        <button class="secondary-button" type="button" @click="loadData">
+        <button
+          class="secondary-button"
+          type="button"
+          @click="() => loadData()"
+        >
           <RefreshCw :size="17" aria-hidden="true" />
           刷新
         </button>
@@ -264,7 +320,17 @@ onMounted(loadData);
     <DocumentTaskProgress
       v-if="batchTasks.length > 0"
       :items="batchTasks"
-      @finished="loadData"
+      @finished="refreshData"
+    />
+
+    <DocumentReprocessModal
+      v-model:open="isReprocessDialogOpen"
+      :document-count="pendingReprocessIds.length"
+      :submitting="submitting"
+      :initial-strategy="reprocessSeedStrategy"
+      :initial-chunk-size="reprocessSeedDocument?.chunk_size ?? 800"
+      :initial-chunk-overlap="reprocessSeedDocument?.chunk_overlap ?? 120"
+      @submit="reprocessSelected"
     />
 
     <ResourcePanel
@@ -328,7 +394,7 @@ onMounted(loadData);
             class="secondary-button"
             type="button"
             :disabled="submitting"
-            @click="reprocessSelected()"
+            @click="openReprocessDialog()"
           >
             <RotateCcw :size="16" aria-hidden="true" />
             重新处理
@@ -456,7 +522,7 @@ onMounted(loadData);
                     "
                     class="text-button"
                     type="button"
-                    @click="reprocessSelected([item.id])"
+                    @click="openReprocessDialog([item.id])"
                   >
                     重新处理
                   </button>

@@ -164,7 +164,7 @@ async def upload_documents(
     language: str = Form("chi_sim+eng", min_length=1, max_length=64),
     duplicate_policy: str = Form("new_version"),
     chunk_strategy: Literal["fixed", "semantic", "recursive", "format"] = Form("recursive"),
-    chunk_size: int = Form(800, ge=100, le=4000),
+    chunk_size: int = Form(800, ge=200, le=4000),
     chunk_overlap: int = Form(120, ge=0, le=1000),
 ) -> APIResponse[UploadResponse]:
     request_id = str(uuid.uuid4())

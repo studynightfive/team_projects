@@ -16,6 +16,7 @@ from app.rag.answer_cache import (
     query_depends_on_conversation,
     semantic_similarity,
 )
+from app.rag.query_rewrite import rewrite_query_rules
 from app.rag.search.schemas import RagAnswerResponse, SearchHit
 
 
@@ -170,6 +171,38 @@ async def test_similar_cache_hit(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.cache_match == "similar"
     assert result.cache_similarity is not None
     assert result.cache_similarity > 0.99
+
+
+@pytest.mark.asyncio
+async def test_medical_company_synonyms_reuse_semantic_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = rewrite_query_rules("医疗信息化有企业在做").primary
+    second = rewrite_query_rules("医疗信息化有哪些企业在做").primary
+    third = rewrite_query_rules("医疗信息化有那些企业").primary
+    assert first == second
+    assert intents_are_compatible(first, third)
+
+    client = _FakeRedis(candidates=[_payload(first, [1.0, 0.0, 0.0])])
+    monkeypatch.setattr(
+        "app.rag.answer_cache._redis",
+        AsyncMock(return_value=client),
+    )
+    monkeypatch.setattr(
+        "app.rag.answer_cache.settings.rag_answer_cache_similarity_threshold",
+        0.92,
+    )
+
+    result = await get_cached_answer(
+        scope=_scope(),
+        query=third,
+        query_embedding=[0.98, 0.08, 0.0],
+    )
+
+    assert result is not None
+    assert result.cache_match == "similar"
+    assert result.cache_similarity is not None
+    assert result.cache_similarity >= 0.92
 
 
 @pytest.mark.asyncio

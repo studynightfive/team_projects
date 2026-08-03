@@ -10,6 +10,7 @@ import pytest
 from starlette.requests import Request
 
 from app.rag.chat import all as chat_api
+from app.rag.query_rewrite import rewrite_query_rules
 from app.rag.search import api as search_api
 from app.rag.search.schemas import RagAnswerRequest
 from app.rag.search.stream import AnswerStreamEvent
@@ -44,9 +45,11 @@ async def test_retrieval_stream_owns_session_until_done(
         yield db, stream_user
         lifecycle.append("closed")
 
-    async def fake_stream_answer(stream_db, *, user, req):
+    async def fake_stream_answer(stream_db, *, user, req, rewrite, trace_id):
         assert stream_db is db
         assert user is stream_user
+        assert rewrite.primary == req.query
+        assert trace_id is None
         assert lifecycle == ["opened"]
         yield AnswerStreamEvent(
             event="start",
@@ -58,6 +61,7 @@ async def test_retrieval_stream_owns_session_until_done(
                 "event": "citation",
                 "doc_id": "product-1",
                 "doc_title": "智能门店终端 Pro",
+                "kb_id": "kb-1",
             },
         )
         yield AnswerStreamEvent(
@@ -75,11 +79,19 @@ async def test_retrieval_stream_owns_session_until_done(
     metric_mock = AsyncMock()
     monkeypatch.setattr(search_api, "record_retrieval_metric", metric_mock)
     monkeypatch.setattr(search_api, "audit", AsyncMock())
-    monkeypatch.setattr(search_api, "ensure_safe_query", AsyncMock())
+    monkeypatch.setattr(
+        search_api,
+        "ensure_safe_query",
+        AsyncMock(return_value=rewrite_query_rules("医疗平台包含哪些模块")),
+    )
 
     response = await search_api.answer_stream_endpoint(
         _request("/api/v1/retrieval/answer/stream"),
-        RagAnswerRequest(query="医疗平台包含哪些模块", mode="hybrid", kb_id="kb-1"),
+        RagAnswerRequest(
+            query="医疗平台包含哪些模块",
+            mode="hybrid",
+            kb_ids=["kb-1"],
+        ),
         SimpleNamespace(id="user-1"),
         None,
     )
@@ -92,6 +104,7 @@ async def test_retrieval_stream_owns_session_until_done(
         metric_mock.await_args.kwargs["primary_product_name"]
         == "智能门店终端 Pro"
     )
+    assert metric_mock.await_args.kwargs["knowledge_base_id"] == "kb-1"
     db.commit.assert_awaited_once()
 
 
@@ -110,15 +123,20 @@ async def test_chat_stream_uses_same_session_lifetime_rule(
         yield db, stream_user
         lifecycle.append("closed")
 
-    async def fake_chat_stream(stream_db, *, user, req):
+    async def fake_chat_stream(stream_db, *, user, req, rewrite):
         assert stream_db is db
         assert user is stream_user
+        assert rewrite.primary == req.question
         assert lifecycle == ["opened"]
         yield "event: done\ndata: {\"event\":\"done\"}\n\n"
 
     monkeypatch.setattr(chat_api, "stream_user_session", fake_stream_session)
     monkeypatch.setattr(chat_api, "_chat_stream", fake_chat_stream)
-    monkeypatch.setattr(chat_api, "ensure_safe_query", AsyncMock())
+    monkeypatch.setattr(
+        chat_api,
+        "ensure_safe_query",
+        AsyncMock(return_value=rewrite_query_rules("医疗平台包含哪些模块")),
+    )
 
     response = await chat_api.chat_stream_endpoint(
         _request("/api/v1/chat/stream"),

@@ -7,6 +7,8 @@
 | [deployment.md](deployment.md) | 环境配置、启动、迁移和故障排查 |
 | [testing.md](testing.md) | 前后端门禁与隔离 Docker 测试 |
 | [monitoring.md](monitoring.md) | 真实可用的健康检查和 HTTP 指标 |
+| [langfuse-rag-observability.md](langfuse-rag-observability.md) | RAG 链路观测、隐私配置和云端验证 |
+| [cloud-acceptance-fixes-2026-07-31.md](cloud-acceptance-fixes-2026-07-31.md) | 云端验收问题修正、配置与回归步骤 |
 | [alerting.md](alerting.md) | 当前可用告警与待补 exporter 边界 |
 | [backup-restore.md](backup-restore.md) | 数据库与文件卷的一致性备份、恢复 |
 | [rollback.md](rollback.md) | 镜像回滚和有损数据恢复决策 |
@@ -16,7 +18,7 @@
 
 ```bash
 docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml up -d --build
-docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml exec api-server /app/backend/.venv/bin/python scripts/bootstrap_admin.py  # 仅新环境首次交互执行
+docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml exec api-server /app/backend/.venv/bin/python /app/backend/scripts/bootstrap_admin.py  # 仅新环境首次交互执行
 bash scripts/health-check.sh
 bash scripts/backup.sh
 docker compose -f deploy/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner

@@ -73,7 +73,19 @@ interface DownloadRow {
 
 const selectedAnswerDownload = ref<DownloadRow>();
 const selectedAnswerFormat = ref<DownloadableAnswerFormat>("markdown");
+const selectedAnswerFilename = ref("RAG问答结果");
 const isAnswerDownloadDialogOpen = ref(false);
+
+const normalizeAnswerFilename = (value: string): string => {
+  const filename = value
+    .trim()
+    .replace(/\.(?:pdf|docx|md|markdown|txt)$/iu, "")
+    .replace(/[<>:"/\\|?*]/gu, "_")
+    .replace(/\s+/gu, " ")
+    .replace(/[. ]+$/u, "")
+    .slice(0, 120);
+  return filename || "RAG问答结果";
+};
 
 const statusLabels = {
   pending: "等待中",
@@ -231,6 +243,7 @@ const downloadFormatOptions = {
 const requestDownload = async (
   item: DownloadRow,
   answerFormat?: DownloadableAnswerFormat,
+  answerFilename?: string,
 ): Promise<void> => {
   if (!isRealApiMode) {
     void message.info(`${item.name} 等待鉴权下载接口，当前不会构造文件地址`);
@@ -254,9 +267,13 @@ const requestDownload = async (
     targetFormat === undefined
       ? downloadFormatOptions.pdf
       : downloadFormatOptions[targetFormat];
-  const suggestedName = shouldConvert
-    ? `${item.name.replace(/\.[^.]+$/u, "")}${format.extension}`
-    : item.name;
+  const requestedAnswerName = normalizeAnswerFilename(
+    answerFilename ?? item.name,
+  );
+  const suggestedName =
+    item.sourceType === "answer"
+      ? `${requestedAnswerName}${format.extension}`
+      : item.name;
   let destination: PreparedFileSave | undefined;
   try {
     destination = await prepareFileSave({
@@ -275,9 +292,16 @@ const requestDownload = async (
   try {
     const result =
       shouldConvert && answerTargetFormat !== undefined
-        ? await convertAnswerExport(item.id, answerTargetFormat)
+        ? await convertAnswerExport(
+            item.id,
+            answerTargetFormat,
+            requestedAnswerName,
+          )
         : await downloadExportBlob(item.downloadUrl);
-    await destination.save(result.blob, result.filename);
+    await destination.save(
+      result.blob,
+      item.sourceType === "answer" ? undefined : result.filename,
+    );
     void message.success("文件已通过鉴权接口保存。");
     if (item.sourceType === "answer") {
       isAnswerDownloadDialogOpen.value = false;
@@ -302,13 +326,18 @@ const openDownload = (item: DownloadRow): void => {
   )
     ? (item.rawFormat as DownloadableAnswerFormat)
     : "markdown";
+  selectedAnswerFilename.value = normalizeAnswerFilename(item.name);
   isAnswerDownloadDialogOpen.value = true;
 };
 
 const confirmAnswerDownload = (): void => {
   const item = selectedAnswerDownload.value;
   if (item === undefined) return;
-  void requestDownload(item, selectedAnswerFormat.value);
+  void requestDownload(
+    item,
+    selectedAnswerFormat.value,
+    selectedAnswerFilename.value,
+  );
 };
 
 const recreateExport = async (item: DownloadRow): Promise<void> => {
@@ -589,6 +618,20 @@ onBeforeUnmount(() => {
           :disabled="selectedAnswerDownload?.id === busyTaskId"
           block
         />
+        <label for="answer-download-filename">文件名</label>
+        <div class="answer-download-filename">
+          <input
+            id="answer-download-filename"
+            v-model="selectedAnswerFilename"
+            type="text"
+            maxlength="120"
+            placeholder="请输入文件名"
+            :disabled="selectedAnswerDownload?.id === busyTaskId"
+          />
+          <span>
+            {{ downloadFormatOptions[selectedAnswerFormat].extension }}
+          </span>
+        </div>
       </div>
     </AntModal>
   </div>
@@ -621,6 +664,43 @@ onBeforeUnmount(() => {
   margin: 0;
   color: var(--color-text-secondary);
   line-height: 1.65;
+}
+
+.answer-download-form > label {
+  color: var(--color-text);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
+}
+
+.answer-download-filename {
+  display: grid;
+  overflow: hidden;
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.answer-download-filename:focus-within {
+  border-color: var(--color-primary);
+}
+
+.answer-download-filename input {
+  min-width: 0;
+  padding: 0 var(--space-3);
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.answer-download-filename span {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  background: var(--color-surface-subtle);
 }
 
 .progress-cell {

@@ -98,7 +98,8 @@ echo "=== 验证镜像 ==="
 
 # 这里只验证运行镜像可导入应用；真实启动、迁移与健康检查由 Compose 发布门禁负责。
 echo "验证 API Server 应用导入..."
-docker run --rm --entrypoint /app/backend/.venv/bin/python \
+# Git Bash 会默认把容器内绝对路径转换为 Windows 路径，因此仅对这两条命令关闭参数转换。
+MSYS_NO_PATHCONV=1 docker run --rm --entrypoint /app/backend/.venv/bin/python \
   -e DATABASE_URL=postgresql+asyncpg://validation:validation@127.0.0.1/validation \
   -e SECRET_KEY=validation-only-secret-key-32-chars \
   knowledge-base-platform-api-server:"${VERSION}" \
@@ -106,7 +107,7 @@ docker run --rm --entrypoint /app/backend/.venv/bin/python \
 echo "API Server 应用导入验证通过"
 
 echo "验证 Worker 配置导入..."
-docker run --rm --entrypoint /app/backend/.venv/bin/python \
+MSYS_NO_PATHCONV=1 docker run --rm --entrypoint /app/backend/.venv/bin/python \
   -e DATABASE_URL=postgresql+asyncpg://validation:validation@127.0.0.1/validation \
   -e SECRET_KEY=validation-only-secret-key-32-chars \
   knowledge-base-platform-worker:"${VERSION}" \

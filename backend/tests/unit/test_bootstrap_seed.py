@@ -264,3 +264,40 @@ async def test_bootstrap_refuses_when_admin_already_exists(monkeypatch) -> None:
 
     with pytest.raises(RuntimeError, match="已存在管理员"):
         await bootstrap_module._prepare_bootstrap(db)
+
+
+async def test_bootstrap_creates_initial_admin_without_user_management(
+    monkeypatch,
+) -> None:
+    role = Role(id="admin-role", name=seed_module.SUPER_ADMIN_ROLE_NAME, status="active")
+    db = MagicMock(spec=AsyncSession)
+    db.execute = AsyncMock(return_value=_result(None))
+    db.flush = AsyncMock()
+    db.commit = AsyncMock()
+    db.rollback = AsyncMock()
+    monkeypatch.setattr(bootstrap_module, "_admin_exists", AsyncMock(return_value=False))
+    monkeypatch.setattr(bootstrap_module, "hash_password", lambda _password: "password-hash")
+    ensure_personal_kb = AsyncMock()
+    monkeypatch.setattr(
+        bootstrap_module,
+        "ensure_personal_knowledge_base",
+        ensure_personal_kb,
+    )
+
+    user = await bootstrap_module._create_initial_admin(
+        db,
+        role=role,
+        username="admin",
+        display_name="系统管理员",
+        password="not-returned-or-logged",
+    )
+
+    assert user.username == "admin"
+    assert user.display_name == "系统管理员"
+    assert user.password_hash == "password-hash"
+    assert user.roles == [role]
+    db.add.assert_called_once_with(user)
+    db.flush.assert_awaited_once()
+    ensure_personal_kb.assert_awaited_once_with(db, user)
+    db.commit.assert_awaited_once()
+    db.rollback.assert_not_awaited()

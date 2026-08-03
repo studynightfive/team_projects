@@ -110,6 +110,7 @@ interface ConversationTurn {
 type VisibleAnswerExportFormat = Exclude<AnswerExportFormat, "txt">;
 
 const answerExportFormat = ref<VisibleAnswerExportFormat>("markdown");
+const answerExportFilename = ref("RAG问答结果");
 const answerExportFormats = {
   pdf: {
     label: "PDF",
@@ -151,9 +152,6 @@ const answerExportOptions: Array<{
 let searchController: AbortController | undefined;
 let skipNextRouteSync = false;
 
-const apiModeLabel = computed(() =>
-  isRealApiMode || response.value?.isMock === false ? "真实接口" : "模拟数据",
-);
 const hasConversationContent = computed(
   () =>
     previousTurns.value.length > 0 ||
@@ -435,14 +433,28 @@ const downloadAnswerMarkdownLocally = (): void => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `AI搜索结果-${apiModeLabel.value}.md`;
+  anchor.download = `${normalizedAnswerExportFilename()}.md`;
   anchor.click();
   URL.revokeObjectURL(url);
 };
 
 const openAnswerExport = (): void => {
   if (response.value === undefined) return;
+  if (answerExportFilename.value.trim() === "") {
+    answerExportFilename.value = "RAG问答结果";
+  }
   isExportDialogOpen.value = true;
+};
+
+const normalizedAnswerExportFilename = (): string => {
+  const filename = answerExportFilename.value
+    .trim()
+    .replace(/\.(?:pdf|docx|md|markdown|txt)$/iu, "")
+    .replace(/[<>:"/\\|?*]/gu, "_")
+    .replace(/\s+/gu, " ")
+    .replace(/[. ]+$/u, "")
+    .slice(0, 120);
+  return filename || "RAG问答结果";
 };
 
 const confirmAnswerExport = async (): Promise<void> => {
@@ -456,10 +468,11 @@ const confirmAnswerExport = async (): Promise<void> => {
   }
 
   const format = answerExportFormats[answerExportFormat.value];
+  const filename = normalizedAnswerExportFilename();
   let destination: PreparedFileSave | undefined;
   try {
     destination = await prepareFileSave({
-      suggestedName: `RAG问答结果${format.extension}`,
+      suggestedName: `${filename}${format.extension}`,
       description: format.description,
       mediaType: format.mediaType,
       extensions: [format.extension],
@@ -474,6 +487,7 @@ const confirmAnswerExport = async (): Promise<void> => {
   try {
     const result = await downloadAnswerExport({
       format: answerExportFormat.value,
+      filename,
       question: currentQuestion.value,
       answer: response.value.answer.markdown,
       citations: response.value.answer.citations.map((citation) => ({
@@ -1069,6 +1083,18 @@ onBeforeUnmount(() => {
           :disabled="isExporting || !isRealApiMode"
           block
         />
+        <label for="answer-export-filename">文件名</label>
+        <div class="answer-export-filename">
+          <input
+            id="answer-export-filename"
+            v-model="answerExportFilename"
+            type="text"
+            maxlength="120"
+            placeholder="请输入文件名"
+            :disabled="isExporting"
+          />
+          <span>{{ answerExportFormats[answerExportFormat].extension }}</span>
+        </div>
         <dl class="answer-export-summary">
           <div>
             <dt>内容</dt>
@@ -1081,7 +1107,8 @@ onBeforeUnmount(() => {
           <div>
             <dt>文件名</dt>
             <dd>
-              RAG问答结果{{ answerExportFormats[answerExportFormat].extension }}
+              {{ normalizedAnswerExportFilename()
+              }}{{ answerExportFormats[answerExportFormat].extension }}
             </dd>
           </div>
         </dl>
@@ -1295,6 +1322,37 @@ onBeforeUnmount(() => {
   color: var(--color-text);
   font-size: var(--font-size-13);
   font-weight: var(--font-weight-medium);
+}
+
+.answer-export-filename {
+  display: grid;
+  overflow: hidden;
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.answer-export-filename:focus-within {
+  border-color: var(--color-primary);
+}
+
+.answer-export-filename input {
+  min-width: 0;
+  padding: 0 var(--space-3);
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.answer-export-filename span {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  background: var(--color-surface-subtle);
 }
 
 .answer-export-summary {

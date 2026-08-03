@@ -4109,6 +4109,73 @@
         ]
       }
     },
+    "/retrieval/guard/check": {
+      "post": {
+        "tags": [
+          "retrieval"
+        ],
+        "summary": "Check Query Guard Endpoint",
+        "description": "输入框防抖预检；最终检索接口仍会再次执行同一缓存判定。",
+        "operationId": "check_query_guard_endpoint_api_v1_retrieval_guard_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryGuardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse_QueryGuardResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录、Token 无效或已过期",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "已登录但权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/retrieval/search": {
       "post": {
         "tags": [
@@ -7247,6 +7314,37 @@
         "type": "object",
         "title": "APIResponse[PaginatedData[RecycleBinItem]]"
       },
+      "APIResponse_QueryGuardResponse_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QueryGuardResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "APIResponse[QueryGuardResponse]"
+      },
       "APIResponse_TaskResponse_": {
         "properties": {
           "code": {
@@ -7793,6 +7891,18 @@
             "title": "Format",
             "default": "markdown"
           },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
           "question": {
             "type": "string",
             "maxLength": 2000,
@@ -8004,7 +8114,7 @@
           "chunk_size": {
             "type": "integer",
             "maximum": 4000.0,
-            "minimum": 100.0,
+            "minimum": 200.0,
             "title": "Chunk Size",
             "default": 800
           },
@@ -8320,6 +8430,18 @@
               "markdown"
             ],
             "title": "Format"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
           }
         },
         "type": "object",
@@ -10661,6 +10783,77 @@
         ],
         "title": "PopularProductItem"
       },
+      "QueryGuardRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query"
+          },
+          "chat_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chat Model Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "QueryGuardRequest"
+      },
+      "QueryGuardResponse": {
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "title": "Allowed"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "涉黄",
+                  "涉赌",
+                  "涉毒"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "semantic_checked": {
+            "type": "boolean",
+            "title": "Semantic Checked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "allowed",
+          "semantic_checked"
+        ],
+        "title": "QueryGuardResponse"
+      },
       "RagAnswerRequest": {
         "properties": {
           "query": {
@@ -11111,7 +11304,7 @@
               {
                 "type": "integer",
                 "maximum": 4000.0,
-                "minimum": 100.0
+                "minimum": 200.0
               },
               {
                 "type": "null"

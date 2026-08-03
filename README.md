@@ -57,7 +57,7 @@ bash scripts/health-check.sh
 应用启动会幂等补齐内建权限码与“超级管理员”“普通用户”“知识库编辑者”角色，但默认不创建任何账号。新环境首次启动后，在交互式终端创建首管理员：
 
 ```powershell
-docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml exec api-server /app/backend/.venv/bin/python scripts/bootstrap_admin.py
+docker compose --env-file deploy/env/.env -f deploy/docker-compose.yml exec api-server /app/backend/.venv/bin/python /app/backend/scripts/bootstrap_admin.py
 ```
 
 脚本使用不回显的口令输入，口令至少 12 位，并且只在数据库中尚无管理员时创建。演示账号播种只允许在隔离环境显式启用，不是生产初始化方式。
